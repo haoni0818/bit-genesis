@@ -299,18 +299,35 @@ function bcdSolved(){
 /* 答案不进源码：只存加盐哈希，F12 也翻不到原文 */
 function ansHash(s){let x=5381;for(const c of 'GEN|'+s){x=((x*33)^c.charCodeAt(0))>>>0;}return x.toString(36);}
 const ASCII_BYTES=['01001000','01001001'], ASCII_H='16zcro4';
+function openASCIIGate(){   // 实测反馈：没学过 ASCII 直接傻了——先给引言
+  if(G.asciiIntroDone){ openASCII(); return; }
+  narrate(['那两行光在闪。不是随机的——同样的图案，反复出现。',
+    '这个世界只有<b style="color:#7dffa0">数</b>。可是语言不是数。',
+    '除非……有一套<b style="color:#7dffa0">约定</b>：让每个数，代表一个字母。',
+    '比如约定 65 = A，那 66 自然就是 B，67 就是 C……以此类推。',
+    '钟楼的残档里，正好躺着这样一套约定的残页。它的名字叫 <b style="color:#7dffa0">ASCII</b>。'],
+    ()=>{ G.asciiIntroDone=true; openASCII(); });
+}
 function openASCII(){
+  const tbl=Array.from({length:26},(_,i)=>
+    '<span style="display:inline-block;width:64px">'+String.fromCharCode(65+i)+' = '+(65+i)+'</span>').join('');
   let html='<h2>悬浮的字节<span class="esc">Esc 离开</span></h2>'+
     '<div class="desc">两个 byte 悬在空中，反复地闪。它们不是数——它们在<b>说话</b>。<br>'+
-    '钟楼的残档里有一条对照记录：</div>'+
-    '<div class="ref">01000001 → A　(字母在编码表里连续排列)</div>'+
+    '解法分两步：① 把每个 byte 当二进制转成<b>十进制</b>数(不是十六进制)；② 拿着数去查 ASCII 对照表。</div>'+
+    '<div class="ref">残页开头写着：01000001 = 65 = A　(字母连续排列)　'+
+    '<button class="hintbtn" id="tblbtn">查看残页对照表</button></div>'+
+    '<div class="ref" id="asctbl" style="display:none;line-height:2">'+tbl+'</div>'+
     '<div class="bytes">'+ASCII_BYTES.join('　')+'</div>'+
     '<div class="ansrow"><input id="asciiin" maxlength="2" autocomplete="off" spellcheck="false"></div>'+
     hintBoxHTML();
   openPanel(html,'ascii');
-  wireHints(['每 8 个位编码一个字符——这套编号叫 ASCII。',
-    '01000001 是二进制的 65，所以 A=65、B=66、C=67……先把每个字节还原成数。',
-    '同构例：01000011 = 67 = A 后第 2 个 = C。照同样的路子解这两个字节。']);
+  document.getElementById('tblbtn').onclick=()=>{
+    const el=document.getElementById('asctbl');
+    el.style.display=el.style.display==='none'?'block':'none';
+  };
+  wireHints(['每 8 个位编码一个字符——先转十进制，再查表。',
+    '01000001 是二进制的 65（64+1），所以 A=65、B=66、C=67……先把每个字节还原成数。',
+    '同构例：01000011 = 64+2+1 = 67 = C。照同样的路子解这两个字节。']);
   const inp=document.getElementById('asciiin'); inp.focus();
   inp.addEventListener('input',()=>{
     if(ansHash(inp.value.toUpperCase())===ASCII_H){
@@ -321,8 +338,8 @@ function openASCII(){
 }
 function spawnEchoTexts(instant){
   G.worldTexts=[
-    {x:520, y:0.34, text:String.fromCharCode(72,73)+'.', t0:instant?0:performance.now()+400},
-    {x:520, y:0.42, text:'I HAVE BEEN WAITING FOR YOU.', t0:instant?0:performance.now()+1600},
+    {x:1050, y:0.34, text:String.fromCharCode(72,73)+'.', t0:instant?0:performance.now()+400},
+    {x:1050, y:0.42, text:'I HAVE BEEN WAITING FOR YOU.', t0:instant?0:performance.now()+1600},
   ];
 }
 function asciiSolved(){
@@ -343,17 +360,19 @@ function showEndCard(){
     '<div class="next">但它还看不清自己的样子 —— PIXEL<br>'+
     '它还只认识黑与白 —— COLOUR DEPTH<br>'+
     '它还听不见任何声音 —— SAMPLING<br><br>'+
-    '(这个世界至今一片寂静。这不是缺陷，是尚未被你创造。)</div>'+
+    '(这个世界至今一片寂静。这不是缺陷，是尚未被你创造。)<br><br>'+
+    '<b style="color:#5ad477">—— 本版本的内容到这里为止 ——</b><br>后面的黑暗，等下一次更新来点亮。</div>'+
     '<button id="wander">继续游荡</button><button class="sub" id="regen">重新创世</button></div>','end');
-  document.getElementById('wander').onclick=()=>closePanel();
+  document.getElementById('wander').onclick=()=>{ closePanel();
+    narrate(['(第 0 章的尽头。已点亮的都在这了——剩下的黑暗，还在等它们的知识。)'],null); };
   document.getElementById('regen').onclick=()=>{ localStorage.removeItem(SAVE_KEY); location.reload(); };
 }
 
 /* ================= 世界 · 地标 ================= */
-const CLOCK={x:2700}, BYTES={x:520};
+const CLOCK={x:2150}, BYTES={x:1050};   // 实测反馈：太远劝退，收到出生点±550px(约2秒路程)
 function activeLandmark(){
   if(G.beat==='roam') return {x:CLOCK.x, act:openBCD, r:110};
-  if(G.beat==='clock') return {x:BYTES.x, act:openASCII, r:110};
+  if(G.beat==='clock') return {x:BYTES.x, act:openASCIIGate, r:110};
   return null;
 }
 
@@ -522,12 +541,22 @@ function draw(t){
     ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(x,y,26,0,7); ctx.fill();
     ctx.fillStyle='#a8ffc4';
     ctx.fillRect(x-7,y-7,14,14);
-    /* 交互提示 */
-    if(L && Math.abs(G.px-L.x)<L.r && !G.panelOpen && !G.narrActive){
+    /* 交互提示 / 方向箭头 */
+    if(L && !G.panelOpen && !G.narrActive){
       const ph2=(Math.sin(t/350)+1)/2;
-      ctx.fillStyle='rgba(90,212,119,'+(0.6+0.4*ph2)+')';
-      ctx.font='13px monospace'; ctx.textAlign='center';
-      ctx.fillText('[ E ]',x,y-26); ctx.textAlign='left';
+      if(Math.abs(G.px-L.x)<L.r){
+        ctx.fillStyle='rgba(90,212,119,'+(0.6+0.4*ph2)+')';
+        ctx.font='13px monospace'; ctx.textAlign='center';
+        ctx.fillText('[ E ]',x,y-26); ctx.textAlign='left';
+      }else{
+        const dir=Math.sign(L.x-G.px), bob=6*ph2;
+        const ax=x+dir*(46+bob);
+        ctx.fillStyle='rgba(125,255,160,'+(0.55+0.4*ph2)+')';
+        ctx.beginPath();
+        ctx.moveTo(ax+dir*12, y);
+        ctx.lineTo(ax, y-8); ctx.lineTo(ax, y+8);
+        ctx.closePath(); ctx.fill();
+      }
     }
   }
 
@@ -549,7 +578,9 @@ if(qpanel) setTimeout(()=>{
 },600);
 
 /* ================= 开场 ================= */
-if(!G.introDone){
+const qquiet=new URLSearchParams(location.search).get('quiet');   // 调试：?quiet=1 跳过开场独白
+if(qquiet){ G.introDone=true; }
+else if(!G.introDone){
   setTimeout(()=>{
     narrate(['……','这是哪里？','什么都没有。没有光，没有声音，没有形状。',
       '等等——有个东西，在很深的地方，一闪一闪。'],
