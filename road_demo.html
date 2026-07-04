@@ -27,15 +27,18 @@
 
 /* ---------------- 调参区（手感全在这里） ---------------- */
 const ROAD_SPACING   = 13;    // 路面字符间距 px（和游戏 tile 13px 网格一致）
-const ROAD_FONT      = '12px monospace';
-const ROAD_STAGGER   = 5;     // 两条微错行：偶数字符 -5px，奇数 +5px
-const WAVE_SPEED     = 260;   // 建造波前推进速度 px/s = 游戏玩家移速，玩家向右跑时路恰好在脚下/前方一点持续生成
-const FLY_R_MIN      = 80;    // 飞入起点距最终位置的最小半径 px
-const FLY_R_MAX      = 160;   // 飞入最大半径 px（越大越"从四面八方汇聚"）
+const ROAD_FONT_PX   = 12;    // 路面字符落定字号 px
+const ROW_OFFSETS    = [-2, 7, 16]; // 三行错位：i%3 → 相对基线 midY 的行偏移 px（与游戏侧 index.html 三行布局一致）
+const WAVE_SPEED     = 200;   // 建造波前推进速度 px/s（演出期间游戏侧锁玩家操作，宁慢有仪式感）
+const FLY_R_MIN      = 60;    // 浮现起点距最终位置的最小半径 px（收小：重点是"从虚空浮现飘近"，不是"飞行"）
+const FLY_R_MAX      = 120;   // 浮现最大半径 px
 const FLY_X_GAIN     = 1.4;   // 水平位移增益：路是横线，纯垂直来向最扎眼，放大水平分量让"从左右斜向来"看得见
 const GOLDEN_ANG     = 2.399963229; // 黄金角 137.5°(弧度)：叠加 i*黄金角，相邻字符来向强制错开，不会局部同向
-const FLY_DUR_MIN    = 800;   // 单字符入场时长下限 ms（放长 →"飘"进来的感觉）
-const FLY_DUR_MAX    = 1200;  // 入场时长上限 ms（hash 决定，错落感）
+const FLY_DUR_MIN    = 1400;  // 单字符入场时长下限 ms（大幅放慢 → 慢慢浮现的仪式感）
+const FLY_DUR_MAX    = 2200;  // 入场时长上限 ms（hash 决定，错落感）
+const SCALE_START_MIN= 0.25;  // 浮现起始字号比例下限（越小越像"从深处来"）
+const SCALE_START_MAX= 0.35;  // 起始字号比例上限（hash 逐字符分布 25%~35%）
+const FADE_POW       = 1.6;   // alpha 入场指数：>1 → 前半程更暗更虚（近似远处虚焦），后半程快速变实
 const OVERSHOOT      = 1.35;  // easeOutBack 过冲量（1.7=标准，1.35=轻微回弹）
 const FLASH_TAU      = 220;   // 落定闪光衰减时间常数 ms（越大闪得越久）
 const FLASH_ALPHA    = 0.9;   // 落定瞬间峰值亮度 rgba(125,255,160,·)
@@ -80,20 +83,19 @@ function easeOutBack(p, s){
  *   t        : 当前时刻 ms（performance.now() 同源即可）
  *   bornTime : 铺路动画开始时刻 ms；t < bornTime 时什么都不画
  *   x0, x1   : 路的起点/终点 x（x0=玩家右侧脚下，x1 可给到屏幕外）
- *   midY     : 路的中线 y（字符在 midY±ROAD_STAGGER 两条错行上）
+ *   midY     : 路的行基线 y（游戏侧取 玩家y+34；三行落在 midY+ROW_OFFSETS）
  * 返回 true 表示整条路已全部落定（可供游戏侧触发后续事件）。
  * ============================================================ */
 function drawRoadBuild(ctx, t, bornTime, x0, x1, midY){
   if (t < bornTime) return false;
   const n = Math.max(0, Math.floor((x1 - x0) / ROAD_SPACING) + 1);
-  ctx.font = ROAD_FONT;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   let allSettled = true;
 
   for (let i = 0; i < n; i++){
     const fx = x0 + i * ROAD_SPACING;                     // 最终 x
-    const fy = midY + (i % 2 === 0 ? -ROAD_STAGGER : ROAD_STAGGER); // 两条错行
+    const fy = midY + ROW_OFFSETS[i % 3];                 // 三行错位布局（与游戏一致）
     // 波前：该字符的入场从"波前扫到它"那一刻开始，再叠加一点 hash 抖动
     const delay = (fx - x0) / WAVE_SPEED * 1000 + hash01(i, 7) * 180;
     const dur   = FLY_DUR_MIN + hash01(i, 11) * (FLY_DUR_MAX - FLY_DUR_MIN);
@@ -103,24 +105,30 @@ function drawRoadBuild(ctx, t, bornTime, x0, x1, midY){
     const ch = hash01(i, 3) < 0.5 ? '0' : '1';            // 字符内容也由 hash 定
 
     if (local < dur){
-      /* ---- 飞入阶段：从四面八方 80~160px 外淡入汇聚 ---- */
+      /* ---- 浮现阶段：从虚空深处"小而淡"漂近，越近越大越实 ---- */
       allSettled = false;
       const p   = local / dur;
-      const e   = easeOutBack(p, OVERSHOOT);
+      const e   = easeOutBack(p, OVERSHOOT);              // 位置缓动（带轻微回弹）
       // 来向 = hash 均匀角 + i*黄金角：既随机又保证相邻字符来向各异（不会一片全从上/下插）
       const ang = hash01(i, 5) * Math.PI * 2 + i * GOLDEN_ANG;
       const rad = FLY_R_MIN + hash01(i, 9) * (FLY_R_MAX - FLY_R_MIN);
       const off = (1 - e) * rad;                          // e 可 >1 → 轻微过冲回弹
       const x = fx + Math.cos(ang) * off * FLY_X_GAIN;    // 水平分量放大，左右来向更明显
       const y = fy + Math.sin(ang) * off;
-      // 飞行中亮度快速拉起（p^0.6 前段起得快），明显亮于背景雨
-      const a = Math.min(1, Math.pow(p, 0.6)) * 0.8;
+      // 缩放：从 25%~35% 字号放大到 100%（easeOutCubic，不过冲，避免字号脉动）
+      const s0 = SCALE_START_MIN + hash01(i, 15) * (SCALE_START_MAX - SCALE_START_MIN);
+      const es = 1 - Math.pow(1 - p, 3);
+      const scale = s0 + (1 - s0) * es;
+      // alpha：p^FADE_POW → 前半程暗而虚（远处虚焦感），后半程快速变实，仍明显亮于背景雨
+      const a = Math.pow(p, FADE_POW) * 0.85;
+      ctx.font = (ROAD_FONT_PX * scale).toFixed(2) + 'px monospace';
       ctx.fillStyle = 'rgba(125,255,160,' + a.toFixed(3) + ')';
       ctx.fillText(ch, x, y);
     } else {
       /* ---- 已落定：暗绿路面 + 呼吸，叠加落定闪光的指数衰减 ---- */
       const settleA = SETTLE_A_MIN + hash01(i, 13) * (SETTLE_A_MAX - SETTLE_A_MIN);
       const breath  = BREATH_AMP * Math.sin(t * BREATH_SPEED + i * 1.7);
+      ctx.font = ROAD_FONT_PX + 'px monospace';
       ctx.fillStyle = 'rgba(90,212,119,' + Math.max(0, settleA + breath).toFixed(3) + ')';
       ctx.fillText(ch, fx, fy);
       // 落定瞬间的高亮确认闪：exp 衰减，叠画一层亮绿
@@ -215,8 +223,8 @@ function renderFrame(t, born){
   drawRain(t);
 
   const px = W * PLAYER_X_R, py = H * PLAYER_Y_R;
-  // 路：从玩家右侧脚下开始，延伸到屏幕右缘之外
-  drawRoadBuild(ctx, t, born, px + PLAYER_SIZE + 6, W + 40, py + 4);
+  // 路：从玩家右侧脚下开始，延伸到屏幕右缘之外；行基线 = 玩家y+34（与游戏侧一致，路在脚下）
+  drawRoadBuild(ctx, t, born, px + PLAYER_SIZE + 6, W + 40, py + 34);
   drawPlayer(px, py, t);
   drawVignette();
 }
