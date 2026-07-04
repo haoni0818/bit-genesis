@@ -120,7 +120,8 @@ const beatIdx=b=>BEATS.indexOf(b);
 
 const G={
   beat:'void', binLevel:0,
-  px:WORLD_W/2, py:0, camx:WORLD_W/2,
+  px:WORLD_W/2, py:32, camx:WORLD_W/2,   // py 初始就在路面走廊里
+  lockUntil:0,                            // 演出期间锁玩家操作
   introDone:true, moved:false, panelOpen:null, narrActive:false,
   worldTexts:[],           // {x,y,text,shown}
   clockLitAt:0, asciiSolvedAt:0, roadBornA:0,
@@ -253,7 +254,9 @@ function seqSolved(){
   if(G.panelOpen!=='seq') return;
   overlay.querySelector('.panel').classList.add('flash');
   /* 无言演出：01 雨落下 + 路从虚空铺开 + WASD 键帽浮现。世界还没有字。 */
-  setTimeout(()=>{ closePanel(); G.beat='roam'; G.roadBornA=performance.now(); save(); },700);
+  setTimeout(()=>{ closePanel(); G.beat='roam'; G.roadBornA=performance.now();
+    G.lockUntil=performance.now()+1000;   // 铺出一小段路之后玩家才能动
+    save(); },700);
 }
 
 /* ================= 谜题二：BCD 巨钟 ================= */
@@ -306,8 +309,10 @@ function bcdSolved(){
   if(G.panelOpen!=='bcd') return;
   overlay.querySelector('.panel').classList.add('flash');
   setTimeout(()=>{
-    /* 无言演出：钟亮起显示真实时间 → 时间挂上天空(常驻UI诞生) → 路向东延伸。 */
-    closePanel(); G.beat='clock'; G.clockLitAt=performance.now(); save();
+    /* 无言演出：钟亮起(0.9s) → 时间升天(1.5s) → 演出完才开始铺路 → 铺出一段后解锁操作。 */
+    closePanel(); G.beat='clock'; G.clockLitAt=performance.now();
+    G.lockUntil=performance.now()+3400;
+    save();
   },450);
 }
 
@@ -358,7 +363,9 @@ function spawnEchoTexts(instant){
 }
 function asciiSolved(){
   /* 文字诞生。不弹独白——旁白以"路"的形式从左到右拼在地上(见 drawRoad 字母段)。 */
-  G.beat='ascii'; G.asciiSolvedAt=performance.now(); save(); spawnEchoTexts(false);
+  G.beat='ascii'; G.asciiSolvedAt=performance.now();
+  G.lockUntil=performance.now()+6600;   // 字母云拼HI+两句话+路写出一段，演出全程锁操作
+  save(); spawnEchoTexts(false);
 }
 
 /* ================= 谜题四：活的编码字典（ASCII→Unicode 滚动演出 + 拖拽配对） ================= */
@@ -561,14 +568,14 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 function update(dt,t){
-  if(past('roam') && !G.narrActive && !G.panelOpen){
+  if(past('roam') && !G.narrActive && !G.panelOpen && t>=G.lockUntil){
     const sp=260;
     if(keys['w']||keys['arrowup'])    G.py-=sp*dt;
     if(keys['s']||keys['arrowdown'])  G.py+=sp*dt;
     if(keys['a']||keys['arrowleft'])  G.px-=sp*dt;
     if(keys['d']||keys['arrowright']) G.px+=sp*dt;
     G.px=Math.max(60,Math.min(WORLD_W-60,G.px));
-    G.py=Math.max(-VH*.32,Math.min(VH*.36,G.py));
+    G.py=Math.max(16,Math.min(48,G.py));   // 只能在路面走廊内移动
   }
   G.camx+=( (past('roam')?G.px:WORLD_W/2) - G.camx )*Math.min(1,dt*4);
   ensureRain();
@@ -611,7 +618,7 @@ function draw(t){
         const L2=ROAD_MSG.length;
         const la=(.55+.12*Math.sin(t/700+i*.7))*lp;
         ctx.fillStyle='rgba(125,255,160,'+la+')';
-        ctx.fillText(ROAD_MSG[li%L2], x, midY+34+(i%2?7:-2));
+        ctx.fillText(ROAD_MSG[li%L2], x, midY+34+[-2,7,16][i%3]);
         continue;
       }
       const p=Math.min(1, Math.max(0,(el-start)/700));
@@ -621,11 +628,12 @@ function draw(t){
       const ox=(1-e)*(((i*89)%60)-30), oy=(1-e)*(((i*61)%80)-40);   // 从虚空飘来
       const a=(.3+.12*Math.sin(t/700+i*.7))*e;
       ctx.fillStyle='rgba(90,212,119,'+a+')';
-      ctx.fillText(ch, x+ox, midY+34+(i%2?7:-2)+oy);
+      ctx.fillText(ch, x+ox, midY+34+[-2,7,16][i%3]+oy);
     }
   }
   if(past('roam'))  drawRoad(WORLD_W/2-40, CLOCK.x, G.roadBornA, false);
-  if(past('clock')) drawRoad(CLOCK.x, BYTES.x, G.clockLitAt, false);
+  if(past('clock')) drawRoad(CLOCK.x, BYTES.x,
+    G.clockLitAt ? G.clockLitAt+2600 : 0, false);   // 等时钟升天演出完再铺
   if(past('ascii')) drawRoad(BYTES.x, TERMINUS.x,
     G.asciiSolvedAt ? G.asciiSolvedAt+5800 : 0, true);   // 等回声两句话打完再开始写路
 
@@ -784,8 +792,8 @@ function draw(t){
       const ph2=(Math.sin(t/350)+1)/2;
       drawKey(x,y-30,'E',.6+.4*ph2);
     }
-    /* 移动教学：WASD 键帽（键盘上印的字），陪你走到巨钟为止 */
-    if(G.beat==='roam' && Math.abs(G.px-CLOCK.x)>=130 && !G.panelOpen && !G.narrActive){
+    /* 移动教学：WASD 键帽（键盘上印的字），陪你走到巨钟为止；演出锁定时不显示 */
+    if(G.beat==='roam' && Math.abs(G.px-CLOCK.x)>=130 && !G.panelOpen && !G.narrActive && t>=G.lockUntil){
       const ka=.45+.35*((Math.sin(t/500)+1)/2);
       drawKey(x, y+44,  'W', ka);
       drawKey(x-28, y+70, 'A', ka);
