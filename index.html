@@ -694,8 +694,54 @@ function activeLandmark(){
 
 /* ================= 输入 ================= */
 const keys={};
+/* ================= 测试选关菜单( ` 键开关 ) ================= */
+function testReset(){ closePanel(); G.narrActive=false; narrEl.style.display='none';
+  G.lockUntil=0; G.worldTexts=[]; G.introDone=true;
+  document.querySelectorAll('span[style*="position:fixed"]').forEach(x=>x.remove()); }  // 清飞字残留
+const TESTS=[
+  ['① 混沌·二进制解谜', ()=>{ testReset(); G.beat='binary'; G.binLevel=0; openSeq(); }],
+  ['② 移动·巨钟(roam)', ()=>{ testReset(); G.beat='roam'; G.roadBornA=1; G.px=SPAWN+300; G.camx=G.px; }],
+  ['③ BCD 巨钟面板', ()=>{ testReset(); G.beat='roam'; G.roadBornA=1; G.px=CLOCK.x; G.camx=G.px; openBCD(); }],
+  ['④ ASCII 面板', ()=>{ testReset(); G.beat='clock'; G.clockLitAt=1; G.px=BYTES.x; G.camx=G.px; openASCII(); }],
+  ['⑤ Unicode 面板', ()=>{ testReset(); G.beat='clock'; G.clockLitAt=1; G.px=TERMINUS.x; G.camx=G.px; openUni(); }],
+  ['⑥ 语言路·选英文后', ()=>{ testReset(); G.beat='uni'; G.chosenWord='HELLO'; G.uniRoadBorn=1; G.clockLitAt=1; G.asciiSolvedAt=1; G.px=TERMINUS.x+120; G.camx=G.px; spawnUniTexts('HELLO',true); }],
+  ['⑦ 语言路·选中文后', ()=>{ testReset(); G.beat='uni'; G.chosenWord='你好'; G.uniRoadBorn=1; G.clockLitAt=1; G.asciiSolvedAt=1; G.px=TERMINUS.x+120; G.camx=G.px; spawnUniTexts('你好',true); }],
+  ['⑧ PIXEL·照不出你的镜子', ()=>{ testReset(); G.beat='uni'; G.chosenWord=G.chosenWord||'HELLO'; G.uniRoadBorn=1; G.px=TERMINUS2.x-170; G.camx=G.px; }],
+  ['⑨ PIXEL·绘制自己(谜题)', ()=>{ testReset(); G.beat='uni'; openPixel(); }],
+  ['⑩ PIXEL·分辨率细化演出', ()=>{ testReset(); G.beat='pixel'; G.px=TERMINUS2.x; G.camx=G.px; G.pixelBornAt=performance.now(); G.pixelRoadBorn=performance.now()+6200; G.lockUntil=performance.now()+8800; }],
+  ['⑪ PIXEL·小人行走·pixel路', ()=>{ testReset(); G.beat='pixel'; G.pixelBornAt=1; G.pixelRoadBorn=1; G.px=TERMINUS2.x+160; G.camx=G.px; }],
+  ['⑫ 章末卡', ()=>{ testReset(); G.beat='pixel'; G.pixelBornAt=1; showEndCard(); }],
+];
+let testOpen=false, testEl=null;
+function toggleTest(){
+  testOpen=!testOpen;
+  if(!testOpen){ if(testEl){testEl.remove(); testEl=null;} return; }
+  testEl=document.createElement('div');
+  testEl.style.cssText='position:fixed;left:10px;top:10px;z-index:200;background:#050a06;'+
+    'border:1px solid #3fae5c;border-radius:6px;padding:12px 14px;max-width:260px;'+
+    'box-shadow:0 0 30px rgba(40,220,90,.25);font-family:monospace';
+  testEl.innerHTML='<div style="color:#5ad477;font-size:12px;letter-spacing:2px;margin-bottom:8px">TEST · 选关 ( ` 开关 )</div>';
+  TESTS.forEach(([label,fn])=>{
+    const b=document.createElement('div');
+    b.textContent=label;
+    b.style.cssText='color:#b8e6c0;font-size:12px;padding:4px 8px;border-radius:4px;cursor:pointer;line-height:1.5';
+    b.onmouseenter=()=>b.style.background='rgba(90,212,119,.14)';
+    b.onmouseleave=()=>b.style.background='none';
+    b.onclick=()=>{ toggleTest(); fn(); save(); };
+    testEl.appendChild(b);
+  });
+  const rst=document.createElement('div');
+  rst.textContent='✕ 清存档并从头';
+  rst.style.cssText='color:#7fa886;font-size:11px;padding:6px 8px;margin-top:6px;border-top:1px solid #1d4d28;cursor:pointer';
+  rst.onclick=()=>{ localStorage.removeItem(SAVE_KEY); location.href=location.pathname; };
+  testEl.appendChild(rst);
+  document.body.appendChild(testEl);
+}
+
 addEventListener('keydown',e=>{
-  if(e.key==='Escape'){ if(G.panelOpen && G.panelOpen!=='end') closePanel(); return; }
+  if(e.key==='`'||e.key==='~'){ toggleTest(); e.preventDefault(); return; }   // 测试选关菜单
+  if(e.key==='Escape'){ if(testOpen){ toggleTest(); return; }
+    if(G.panelOpen && G.panelOpen!=='end') closePanel(); return; }
   if(G.narrActive){ if(['Enter',' ','e','E'].includes(e.key)){ nextNarr(); e.preventDefault(); } return; }
   if(G.panelOpen) return;
   keys[e.key.toLowerCase()]=true;
@@ -1067,6 +1113,7 @@ if(past('uni') && G.chosenWord){ spawnUniTexts(G.chosenWord, true); }   // 所�
 if(G.beat==='uni'){ G.px=TERMINUS.x+60; G.camx=G.px; }
 if(G.beat==='pixel' && !G.pixelBornAt){ G.px=TERMINUS2.x+60; G.camx=G.px; G.pixelBornAt=1; }  // 存档恢复:sprite已定型
 /* beat==='ascii' 恢复时不弹独白——台词已经写在路上了 */
+if(new URLSearchParams(location.search).get('test')) setTimeout(toggleTest,60);   // 调试:自动开选关菜单
 </script>
 </body>
 </html>
