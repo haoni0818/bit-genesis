@@ -36,6 +36,10 @@
   .bit.on{background:#0d2d14;color:#7dffa0;border-color:#3fae5c;
     box-shadow:0 0 14px rgba(80,255,130,.35);}
   .bit.locked{opacity:.55;cursor:default;}
+  .bit.bad{border-color:#8a3a32;color:#d96a5c;}
+  .panel.bare{background:none;border:none;box-shadow:none;padding:10px;}
+  .seqcap{text-align:center;color:#4a7050;font-size:13px;margin-top:18px;
+    font-style:italic;min-height:18px;}
   .wlabel{font-size:12px;color:#4a7050;height:16px;}
   .wdots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:46px;min-height:16px;}
   .wdots i{width:5px;height:5px;background:#2a4a30;border-radius:1px;}
@@ -162,80 +166,90 @@ function wireHints(hints){
   };
 }
 
-/* ================= 谜题一：二进制火花 ================= */
-const BIN_LEVELS=[
- {bits:4, target:5,  dots:true,  name:'火花 · I',
-  desc:'四个沉睡的火花。点亮它们——每个火花苏醒时会贡献不同数量的光点。<br>让绿色的光点数追上琥珀色的印记。',
-  hints:['先挨个点亮试试：每个火花各贡献多少光点？',
-         '从右往左，每个火花的光点数都是前一个的两倍：1、2、4……',
-         '同构例：想凑 3 个光点，就点亮值为 2 和 1 的两个火花。现在想想这里的目标怎么拆。']},
- {bits:4, target:11, dots:false, name:'火花 · II',
-  desc:'"数"诞生了。现在印记直接以数的形态出现。<br>同样的四个位：把它们的和凑成目标。',
-  hints:['4 个位从右到左的值是 1、2、4、8。',
-         '目标比 8 大，所以 8 那一位一定要亮。剩下还差多少？',
-         '同构例：13 = 8 + 4 + 1 → 1101。用同样的拆法拆这里的目标。']},
- {bits:8, target:42, dots:false, name:'火花 · III',
-  desc:'火花连成了一排——八个位，一个 byte。<br>这是这个世界最基本的骨骼。',
-  hints:['8 个位从右到左：1、2、4、8、16、32、64、128。',
-         '目标比 64 小，所以 64 和 128 不亮。从 32 开始考虑。',
-         '同构例：37 = 32 + 4 + 1 → 00100101。用同样的办法拆这里的目标。']},
+/* ================= 谜题一：无言的计数（找规律，零文字） ================= */
+/* 设计：灯序列自己按二进制数数给你看→停住→玩家摆出下一个数。
+   无言提示阶梯：摆错→轻红+重播；错2次→重播时高亮翻动的位；错4次→一行极简独白。 */
+const SEQ_ROUNDS=[
+  {pre:[1,2,3],  ans:4,  step:1},   // 0011→0100 自己完成进位
+  {pre:[5,6,7],  ans:8,  step:1},   // 0111→1000 大进位 aha
+  {pre:[3,6,9],  ans:12, step:3},   // 等差找规律：真把它当"数"了吗
 ];
-function openBinary(){
-  const L=BIN_LEVELS[G.binLevel];
-  const w=[]; for(let i=L.bits-1;i>=0;i--) w.push(1<<i);
-  let html='<h2>'+L.name+'<span class="esc">Esc 离开</span></h2><div class="desc">'+L.desc+'</div>';
-  html+='<div class="bitrow">'+w.map((v,i)=>{
-    let lab;
-    if(L.dots){ lab='<div class="wdots">'+'<i></i>'.repeat(v)+'</div>'; }
-    else{ lab='<div class="wlabel">'+v+'</div>'; }
-    return '<div class="bitcol" data-i="'+i+'">'+lab+
-      '<button class="bit" data-v="'+v+'">0</button></div>';
-  }).join('')+'</div>';
-  if(L.dots){
-    html+='<div class="tally"><span class="lab">印记</span><div class="dotbar tgt">'+
-      '<i class="lit"></i>'.repeat(L.target)+'</div></div>'+
-      '<div class="tally"><span class="lab">光点</span><div class="dotbar cur" id="curbar"></div></div>';
-  }else{
-    html+='<div class="tally"><span class="lab">目标</span><span class="target">'+L.target+
-      '</span><span class="lab">当前</span><span class="numval" id="curval">0</span></div>';
-  }
-  html+=hintBoxHTML();
-  openPanel(html,'binary'); wireHints(L.hints);
+let seqFails=0;
+function openSeq(){
+  const R=SEQ_ROUNDS[G.binLevel];
+  let html='<div class="bitrow">';
+  for(let i=3;i>=0;i--) html+='<button class="bit" data-v="'+(1<<i)+'">0</button>';
+  html+='</div><div class="seqcap" id="seqcap"></div>';
+  openPanel(html,'seq');
+  overlay.querySelector('.panel').classList.add('bare');
   const bits=[...overlay.querySelectorAll('.bit')];
-  const refresh=()=>{
-    let sum=0; bits.forEach(b=>{ if(b.classList.contains('on')) sum+=+b.dataset.v; });
-    if(L.dots){ document.getElementById('curbar').innerHTML='<i class="lit"></i>'.repeat(sum)||''; }
-    else{ document.getElementById('curval').textContent=sum; }
-    if(sum===L.target) setTimeout(()=>binSolved(),350);
-  };
+  let interactive=false, idleTimer=null;
+  const setRow=v=>bits.forEach(b=>{ const on=!!(v & +b.dataset.v);
+    b.classList.toggle('on',on); b.textContent=on?'1':'0'; });
+  const val=()=>bits.reduce((s,b)=>s+(b.classList.contains('on')?+b.dataset.v:0),0);
+  function play(hl){
+    interactive=false; clearTimeout(idleTimer);
+    let i=0;
+    (function step(){
+      if(G.panelOpen!=='seq') return;
+      if(i<R.pre.length){
+        setRow(R.pre[i]);
+        if(hl && i>0){          // 把"翻动的位"指给你看
+          const diff=R.pre[i]^R.pre[i-1];
+          bits.forEach(b=>{ if(diff & +b.dataset.v){
+            b.style.borderColor='#ffd97d';
+            setTimeout(()=>{ b.style.borderColor=''; },650);
+          }});
+        }
+        i++; setTimeout(step,950);
+      }else{ setRow(0); interactive=true; armIdle(); }
+    })();
+  }
+  function armIdle(){
+    clearTimeout(idleTimer);
+    idleTimer=setTimeout(()=>{
+      if(G.panelOpen!=='seq' || !interactive) return;
+      if(val()===0){ play(seqFails>=2); return; }      // 发呆 → 重播序列
+      seqFails++;                                       // 停在错误答案上
+      interactive=false;
+      bits.forEach(b=>b.classList.add('bad'));
+      setTimeout(()=>bits.forEach(b=>b.classList.remove('bad')),550);
+      if(seqFails>=4) document.getElementById('seqcap').textContent='(它们在数数。满了，就往前进一位。)';
+      setTimeout(()=>play(seqFails>=2),750);
+    }, val()===0?6000:2600);
+  }
   bits.forEach(b=>b.onclick=()=>{
+    if(!interactive) return;
     b.classList.toggle('on'); b.textContent=b.classList.contains('on')?'1':'0';
-    b.parentElement.classList.toggle('on', b.classList.contains('on'));
-    refresh();
+    if(val()===R.ans){
+      interactive=false; clearTimeout(idleTimer);
+      let v=R.ans, n=0;                                 // 世界确认你的答案：序列自己接着走
+      const cont=setInterval(()=>{
+        v+=R.step; n++; setRow(v&15);
+        if(n>=(R.step===1?2:1)){ clearInterval(cont); seqSolved(); }
+      },520);
+    }else armIdle();
   });
+  play(false);
 }
-function binSolved(){
-  if(G.panelOpen!=='binary') return;
+function seqSolved(){
+  if(G.panelOpen!=='seq') return;
   overlay.querySelector('.panel').classList.add('flash');
   setTimeout(()=>{
-    closePanel();
-    G.binLevel++;
-    if(G.binLevel===1){
-      narrate(['光点在数着自己……一、二、三。',
-               '原来"多少"是可以被表示的。这个世界有了<b style="color:#7dffa0">数</b>。'],
-        openBinary);
-    }else if(G.binLevel===2){
-      narrate(['两倍，再两倍。四个位就能数到十五。','再来。'], openBinary);
-    }else{
+    closePanel(); G.binLevel++; seqFails=0;
+    if(G.binLevel<SEQ_ROUNDS.length){ setTimeout(openSeq,750); }   // 轮间不说话，黑一拍继续
+    else{
       G.beat='roam'; save();
-      narrate(['一整个 byte 亮起来的瞬间——',
-               '<b style="color:#7dffa0">0 和 1</b> 像雨一样落了下来。世界有了最初的质料。',
-               '我感觉到了"方向"。我能动了。',
-               '<span style="font-style:normal;color:#5ad477">( WASD / 方向键 移动 )</span>',
-               '东边……很远的地方，有一道竖着的微光。'],
+      narrate(['最后一道光落下的瞬间，我看懂了——',
+        '满了，就向前进一位。它们在<b style="color:#7dffa0">数数</b>。',
+        '原来"多少"是可以被表示的。这个世界有了<b style="color:#7dffa0">数</b>。',
+        '<b style="color:#7dffa0">0 和 1</b> 像雨一样落了下来。世界有了最初的质料。',
+        '我感觉到了"方向"。我能动了。',
+        '<span style="font-style:normal;color:#5ad477">( WASD / 方向键 移动 )</span>',
+        '东边——那个圆形的轮廓。'],
         null);
     }
-  },450);
+  },500);
 }
 
 /* ================= 谜题二：BCD 巨钟 ================= */
@@ -385,7 +399,7 @@ addEventListener('keydown',e=>{
   keys[e.key.toLowerCase()]=true;
   if(e.key==='e'||e.key==='E'||e.key==='Enter'){
     if(G.beat==='void'||G.beat==='binary'){
-      if(G.introDone){ G.beat='binary'; openBinary(); }
+      if(G.introDone){ G.beat='binary'; openSeq(); }
     }else{
       const L=activeLandmark();
       if(L && Math.abs(G.px-L.x)<L.r) L.act();
@@ -396,7 +410,7 @@ addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
 cv.addEventListener('click',()=>{
   if(G.narrActive){ nextNarr(); return; }
   if(G.panelOpen) return;
-  if((G.beat==='void'||G.beat==='binary') && G.introDone){ G.beat='binary'; openBinary(); }
+  if((G.beat==='void'||G.beat==='binary') && G.introDone){ G.beat='binary'; openSeq(); }
 });
 
 /* ================= 粒子 ================= */
@@ -572,7 +586,7 @@ const qpanel=new URLSearchParams(location.search).get('panel');
 const qbin=parseInt(new URLSearchParams(location.search).get('bin'));
 if(!isNaN(qbin) && qbin>=0 && qbin<BIN_LEVELS.length) G.binLevel=qbin;
 if(qpanel) setTimeout(()=>{
-  if(qpanel==='binary') openBinary();
+  if(qpanel==='binary') openSeq();
   else if(qpanel==='bcd') openBCD();
   else if(qpanel==='ascii') openASCII();
 },600);
