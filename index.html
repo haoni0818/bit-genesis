@@ -422,8 +422,7 @@ function openUni(){
       '<div style="text-align:center;color:#ffd97d;font-size:12px;letter-spacing:3px;margin-bottom:6px">UNICODE · 2–4 BYTES</div>'+
       '<div style="display:flex;gap:12px">'+colHTML(2)+colHTML(3)+colHTML(4)+colHTML(5)+'</div></div>'+
     '</div>'+
-    '<div id="uassembly" style="display:flex;gap:8px;justify-content:center;min-height:50px;margin-top:12px"></div>'+
-    '<div id="ucap" class="seqcap" style="visibility:hidden">CHOOSE YOUR LANGUAGE</div>';
+    '<div id="ucap" class="seqcap" style="visibility:hidden;margin-top:16px">CHOOSE YOUR LANGUAGE</div>';
   openPanel(html,'uni');
   /* 打字机顺序：列优先——左框第一列(上→下)→第二列→右框各列 */
   const colEls=[...overlay.querySelectorAll('.ucol')];
@@ -468,30 +467,33 @@ function openUni(){
     chosen=true;
     overlay.querySelectorAll('.choosable').forEach(x=>x.classList.remove('choosable'));
     document.getElementById('ucap').style.visibility='hidden';
-    const asm=document.getElementById('uassembly');
+    /* 和 HI 一样：框体消失，选中语言的字留下，飞到屏幕中央放大拼成词 */
     const srcCells=[...el.querySelectorAll('.ucell')].filter(c=>c.textContent!=='···');
-    const slots=[...word].map(ch=>{
-      const s=document.createElement('span');
-      s.textContent=ch;
-      s.style.cssText='width:44px;height:48px;line-height:48px;text-align:center;'+
-        'font-size:30px;color:#7dffa0;opacity:0;text-shadow:0 0 14px rgba(125,255,160,.5)';
-      asm.appendChild(s); return s;
-    });
-    [...word].forEach((ch,k)=>{
+    const chars=[...word];
+    const cw=46, cx0=innerWidth/2-(chars.length*cw)/2+cw/2, cy=innerHeight*.42;
+    const flies=chars.map((ch,k)=>{
       const src=srcCells[(k*7+2)%srcCells.length].getBoundingClientRect();
-      const fly=document.createElement('span');
-      fly.textContent=ch;
-      fly.style.cssText='position:fixed;left:'+src.left+'px;top:'+src.top+'px;'+
-        'font-size:15px;color:#7dffa0;z-index:99;'+
-        'transition:all .9s cubic-bezier(.2,.7,.3,1) '+(k*160)+'ms';
-      document.body.appendChild(fly);
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        const d=slots[k].getBoundingClientRect();
-        fly.style.left=(d.left+7)+'px'; fly.style.top=(d.top+4)+'px'; fly.style.fontSize='30px';
-      }));
-      setTimeout(()=>{ fly.remove(); slots[k].style.opacity=1; }, 980+k*160);
+      const f=document.createElement('span');
+      f.textContent=ch;
+      f.style.cssText='position:fixed;left:'+src.left+'px;top:'+src.top+'px;'+
+        'font-size:15px;color:#7dffa0;z-index:120;text-shadow:0 0 16px rgba(125,255,160,.6);'+
+        'transition:all 1s cubic-bezier(.2,.7,.3,1) '+(k*140)+'ms';
+      document.body.appendChild(f); return f;
     });
-    setTimeout(()=>uniSolved(word), 1100+word.length*160+500);
+    ['uboxA','uboxU'].forEach(id=>{                  // 框体渐隐
+      const b=document.getElementById(id);
+      b.style.transition='opacity .6s'; b.style.opacity='0';
+    });
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      chars.forEach((ch,k)=>{
+        flies[k].style.left=(cx0+k*cw)+'px';
+        flies[k].style.top=cy+'px';
+        flies[k].style.fontSize='40px';
+      });
+    }));
+    G.chosenWord=word;                               // 之后的路/文本用所选语言
+    setTimeout(()=>{ flies.forEach(f=>f.remove()); uniSolved(word); },
+      1000+chars.length*140+900);
   }
   reveal();
 }
