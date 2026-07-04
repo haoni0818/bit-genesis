@@ -368,35 +368,105 @@ function asciiSolved(){
   },5000);
 }
 
-/* ================= 谜题四：Unicode 豆腐块 ================= */
-/* 路的尽头是两个显示不出来的字(▯▯)。一个 byte 装不下的语言，给它两个。 */
-const UNI_GLYPHS=[
-  {b:['01001111','01100000'], ch:'你'},   // U+4F60
-  {b:['01011001','01111101'], ch:'好'},   // U+597D
-];
+/* ================= 谜题四：活的编码字典（ASCII→Unicode 滚动演出 + 拖拽配对） ================= */
+/* 左列编码右列字符，从 A 一行行往下打印滚动；到数字后左列拓宽 8→16 位=Unicode 诞生；
+   滚过各国文字直到中文；滚到 你/好 时停顿并存到一边；最后玩家把两个字拖进对应编码的框。 */
 function openUni(){
-  let html='<h2>BROKEN GLYPHS</h2>'+
-    '<div class="desc">ONE BYTE NAMES 256 SYMBOLS. ENGLISH FITS.<br>'+
-    'SOME LANGUAGES DO NOT — THESE GLYPHS NEED <b>TWO BYTES EACH</b>. FUSE THEM.</div>';
-  UNI_GLYPHS.forEach((g,gi)=>{
-    html+='<div style="display:flex;align-items:center;justify-content:center;gap:16px;margin:18px 0">'+
-      '<span class="bytes" style="margin:0;color:#8a7a4a">'+g.b[0]+'</span>'+
-      '<button class="hintbtn ufuse" data-g="'+gi+'" style="font-size:18px;padding:4px 14px">+</button>'+
-      '<span class="bytes" style="margin:0;color:#8a7a4a">'+g.b[1]+'</span>'+
-      '<span id="tofu'+gi+'" style="font-size:32px;color:#ffd97d;width:48px;text-align:center">▯</span></div>';
-  });
+  const SEQ=[];
+  [65,66,67,-1,88,89,90,-1,97,98,99,-1,48,49,50,-1].forEach(c=>SEQ.push(c<0?{gap:1}:{c:c}));
+  SEQ.push({widen:1});
+  [0x3B1,0x42F,0x3042,0xD55C].forEach(u=>SEQ.push({u:u}));   // α Я あ 한：语言的丰富性
+  SEQ.push({gap:1});
+  SEQ.push({u:0x4F60,park:1});                               // 你 —— 停顿并保留
+  [0x4FE1,0x5149].forEach(u=>SEQ.push({u:u}));               // 信 光
+  SEQ.push({u:0x597D,park:1});                               // 好 —— 停顿并保留
+  let html='<div id="uwin" style="height:220px;overflow:hidden"></div>'+
+    '<div id="upocket" style="text-align:center;min-height:52px;margin-top:10px"></div>'+
+    '<div id="udrop" style="display:none;text-align:center;margin-top:4px">'+
+      [0x4F60,0x597D].map(u=>{
+        const b=u.toString(2).padStart(16,'0');
+        return '<div class="ubox" data-u="'+u+'" style="display:inline-block;margin:0 16px;text-align:center">'+
+          '<div style="font-size:13px;color:#ffd97d;letter-spacing:1px">'+b.slice(0,8)+' '+b.slice(8)+'</div>'+
+          '<div class="uslot" style="width:54px;height:54px;border:1px dashed #3fae5c;'+
+            'border-radius:4px;margin:8px auto 0"></div></div>';
+      }).join('')+
+      '<div class="seqcap">CLICK AND DRAG EACH GLYPH TO ITS CODE.</div></div>';
   openPanel(html,'uni');
-  let fused=0;
-  overlay.querySelectorAll('.ufuse').forEach(btn=>btn.onclick=()=>{
-    if(btn.disabled) return;
-    btn.disabled=true; btn.style.opacity=.25;
-    const gi=+btn.dataset.g, row=btn.parentElement;
-    row.querySelectorAll('.bytes').forEach(s=>{ s.style.color='#7dffa0'; });
-    const tofu=document.getElementById('tofu'+gi);
-    tofu.textContent=UNI_GLYPHS[gi].ch; tofu.style.color='#7dffa0';
-    fused++;
-    if(fused===UNI_GLYPHS.length) setTimeout(uniSolved,800);
-  });
+  const win=document.getElementById('uwin'), pocket=document.getElementById('upocket');
+  let idx=0, fast=false, timer=null, done=0;
+  const addRow=(code,ch,amber)=>{
+    const r=document.createElement('div');
+    r.style.cssText='display:flex;gap:20px;justify-content:center;font-size:15px;line-height:1.9';
+    r.innerHTML='<span style="min-width:160px;text-align:right;letter-spacing:1px;color:'+
+      (amber?'#ffd97d':'#5a8a62')+'">'+code+'</span>'+
+      '<span style="width:34px;text-align:left;color:#b8e6c0">'+ch+'</span>';
+    win.appendChild(r); win.scrollTop=win.scrollHeight;
+  };
+  function wireDrag(chip){
+    chip.addEventListener('pointerdown',ev=>{
+      if(chip.dataset.lock) return;
+      ev.preventDefault();
+      chip.setPointerCapture(ev.pointerId);
+      const rect=chip.getBoundingClientRect();
+      const ox=ev.clientX-rect.left, oy=ev.clientY-rect.top;
+      chip.style.position='fixed'; chip.style.zIndex=99;
+      chip.style.left=rect.left+'px'; chip.style.top=rect.top+'px';
+      chip.style.cursor='grabbing';
+      const move=e2=>{ chip.style.left=(e2.clientX-ox)+'px'; chip.style.top=(e2.clientY-oy)+'px'; };
+      const reset=()=>{ chip.style.position=''; chip.style.left=''; chip.style.top='';
+        chip.style.zIndex=''; chip.style.cursor='grab'; };
+      const up=e2=>{
+        chip.removeEventListener('pointermove',move);
+        chip.removeEventListener('pointerup',up);
+        let hit=null;
+        overlay.querySelectorAll('.ubox').forEach(bx=>{
+          const r2=bx.getBoundingClientRect();
+          if(e2.clientX>=r2.left&&e2.clientX<=r2.right&&e2.clientY>=r2.top&&e2.clientY<=r2.bottom) hit=bx;
+        });
+        if(hit && !hit.dataset.filled && String.fromCharCode(+hit.dataset.u)===chip.textContent){
+          hit.dataset.filled='1'; reset();
+          chip.dataset.lock='1'; chip.style.cursor='default'; chip.style.margin='0';
+          const slot=hit.querySelector('.uslot');
+          slot.appendChild(chip);
+          slot.style.borderStyle='solid'; slot.style.borderColor='#7dffa0';
+          done++; if(done===2) setTimeout(uniSolved,700);
+        }else{
+          if(hit && !hit.dataset.filled){
+            const slot=hit.querySelector('.uslot');
+            slot.style.borderColor='#ff6a5c';
+            setTimeout(()=>{ if(!hit.dataset.filled) slot.style.borderColor='#3fae5c'; },500);
+          }
+          reset();
+        }
+      };
+      chip.addEventListener('pointermove',move);
+      chip.addEventListener('pointerup',up);
+    });
+  }
+  const park=ch=>{
+    const chip=document.createElement('span');
+    chip.textContent=ch;
+    chip.style.cssText='display:inline-block;font-size:26px;color:#7dffa0;border:1px solid #3fae5c;'+
+      'border-radius:4px;padding:5px 12px;margin:0 10px;cursor:grab;user-select:none;'+
+      'background:#0d2d14;touch-action:none';
+    pocket.appendChild(chip); wireDrag(chip);
+  };
+  function step(){
+    if(G.panelOpen!=='uni') return;
+    if(idx>=SEQ.length){ document.getElementById('udrop').style.display='block'; return; }
+    const s=SEQ[idx++]; let delay=210;
+    if(s.gap){ addRow('','···',false); delay=380; }
+    else if(s.widen){ addRow('········ → ················','',true); delay=850; }
+    else if(s.c!=null){ addRow(s.c.toString(2).padStart(8,'0'), String.fromCharCode(s.c), false); }
+    else{
+      const b=s.u.toString(2).padStart(16,'0');
+      addRow(b.slice(0,8)+' '+b.slice(8), String.fromCharCode(s.u), true);
+      if(s.park){ park(String.fromCharCode(s.u)); delay=1050; }
+    }
+    if(fast){ step(); } else { timer=setTimeout(step,delay); }
+  }
+  win.addEventListener('click',()=>{ if(fast) return; fast=true; clearTimeout(timer); step(); });
+  step();
 }
 function uniSolved(){
   if(G.panelOpen!=='uni') return;
