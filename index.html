@@ -423,6 +423,7 @@ function activeLandmark(){
   if(G.beat==='roam') return {x:CLOCK.x, act:openBCD, r:110};
   if(G.beat==='clock') return {x:BYTES.x, act:openASCII, r:110};
   if(G.beat==='ascii') return {x:TERMINUS.x, act:openUni, r:90};
+  if(G.beat==='end') return {x:TERMINUS.x, act:showEndCard, r:90};   // 通关后重看章末卡/重开入口
   return null;
 }
 
