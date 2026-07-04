@@ -118,23 +118,24 @@ function resize(){ VW=cv.width=innerWidth; VH=cv.height=innerHeight; }
 addEventListener('resize', resize); resize();
 
 const SAVE_KEY='genesis_mvp_v1';
-const WORLD_W=5600;
+const WORLD_W=6800, SPAWN=2800;          // 出生点固定 2800(不跟 WORLD_W 走)
 const BEATS=['void','binary','roam','clock','ascii','uni','end'];
 const beatIdx=b=>BEATS.indexOf(b);
 
 const G={
   beat:'void', binLevel:0,
-  px:WORLD_W/2, py:32, camx:WORLD_W/2,   // py 初始就在路面走廊里
+  px:SPAWN, py:32, camx:SPAWN,   // py 初始就在路面走廊里
   lockUntil:0,                            // 演出期间锁玩家操作
   introDone:true, moved:false, panelOpen:null, narrActive:false,
   worldTexts:[],           // {x,y,text,shown}
-  clockLitAt:0, asciiSolvedAt:0, roadBornA:0,
+  clockLitAt:0, asciiSolvedAt:0, roadBornA:0, uniRoadBorn:0, chosenWord:'',
 };
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(
-  {beat:G.beat, binLevel:G.binLevel})); }catch(e){} }
+  {beat:G.beat, binLevel:G.binLevel, chosenWord:G.chosenWord})); }catch(e){} }
 function load(){ try{
   const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
-  if(s && BEATS.includes(s.beat)){ G.beat=s.beat; G.binLevel=s.binLevel||0; G.introDone=true; }
+  if(s && BEATS.includes(s.beat)){ G.beat=s.beat; G.binLevel=s.binLevel||0;
+    G.chosenWord=s.chosenWord||''; G.introDone=true; }
 }catch(e){} }
 load();
 /* 调试：?beat=roam 直接跳到某一幕（不写存档） */
@@ -381,15 +382,17 @@ function asciiSolved(){
    全部忠实码位升序：0-9<A-Z<a-z；希腊<西里尔<希伯来<泰文<假名<中文，跳跃处···。
    最后 CHOOSE YOUR LANGUAGE：英文框 / 中文列高亮可选，选中的字符飘到下方拼 HELLO / 你好。 */
 function openUni(){
+  /* 列头带字节数：随码位增大，一个字符要占的字节从 1→2→3→4 —— 这就是 UTF-8 变长编码 */
   const COLS=[
     {h:'0–9 · A–Z', c:[{v:48},{v:49},{g:1},{v:57},{g:1},{v:65},{v:66},{v:67},{g:1},{v:88},{v:89},{v:90}]},
     {h:'a–z',       c:[{v:97},{v:98},{v:99},{g:1},{v:120},{v:121},{v:122}]},
-    {h:'GREEK · RUS · HEBREW', c:[{v:0x3B1},{v:0x3B2},{g:1},{v:0x3C9},{g:1},{v:0x411},{g:1},{v:0x42F},{g:1},{v:0x5D0},{g:1},{v:0x5E9}]},
-    {h:'THAI · KANA',          c:[{v:0xE01},{g:1},{v:0x3042},{v:0x3044},{g:1},{v:0x30A2},{v:0x30AB},{g:1},{v:0x30F3}]},
-    /* 你/好 各带真实相邻码位的字——汉字和 ABC 一样是连续编号的 */
-    {h:'CHINESE',              c:[{v:0x4F5F},{v:0x4F60},{v:0x4F61},{g:1},{v:0x597C},{v:0x597D},{v:0x597E}]},
+    {h:'2 BYTES · GREEK RUS', c:[{v:0x3B1},{v:0x3B2},{g:1},{v:0x3C9},{g:1},{v:0x410},{v:0x411},{g:1},{v:0x42F}]},
+    {h:'2 BYTES · HEBREW ARABIC', c:[{v:0x5D0},{v:0x5D1},{g:1},{v:0x5EA},{g:1},{v:0x627},{v:0x628},{g:1},{v:0x64A}]},
+    {h:'3 BYTES · THAI KANA',  c:[{v:0xE01},{v:0xE02},{g:1},{v:0x3042},{v:0x3044},{g:1},{v:0x30A2},{v:0x30AB},{g:1},{v:0x30F3}]},
+    /* 你/好 各带真实相邻码位的字——汉字也是连续编号(3 bytes) */
+    {h:'3 BYTES · CHINESE',    c:[{v:0x4F5F},{v:0x4F60},{v:0x4F61},{g:1},{v:0x597C},{v:0x597D},{v:0x597E}]},
     /* 增补平面：真的要 4 bytes。😀😁😂 是连续码位 */
-    {h:'EMOJI · 4 BYTES',      c:[{v:0x1F600},{v:0x1F601},{v:0x1F602},{g:1},{v:0x1F680}]},
+    {h:'4 BYTES · EMOJI',      c:[{v:0x1F600},{v:0x1F601},{v:0x1F602},{g:1},{v:0x1F680}]},
   ];
   const cellHTML=(cell,ascii)=>{
     if(cell.g) return '<span class="ucell" style="visibility:hidden;color:#3a5c40;font-size:11px;line-height:1.6">···</span>';
@@ -420,10 +423,11 @@ function openUni(){
       '<div style="display:flex;gap:12px">'+colHTML(0)+colHTML(1)+'</div></div>'+
     '<div id="uboxU" style="border:1px solid #4d3d1d;border-radius:6px;padding:8px 10px">'+
       '<div style="text-align:center;color:#ffd97d;font-size:12px;letter-spacing:3px;margin-bottom:6px">UNICODE · 2–4 BYTES</div>'+
-      '<div style="display:flex;gap:12px">'+colHTML(2)+colHTML(3)+colHTML(4)+colHTML(5)+'</div></div>'+
+      '<div style="display:flex;gap:12px">'+colHTML(2)+colHTML(3)+colHTML(4)+colHTML(5)+colHTML(6)+'</div></div>'+
     '</div>'+
     '<div id="ucap" class="seqcap" style="visibility:hidden;margin-top:16px">CHOOSE YOUR LANGUAGE</div>';
   openPanel(html,'uni');
+  overlay.querySelector('.panel').style.maxWidth='96vw';   // 这个面板要更宽，放得下 7 列
   /* 打字机顺序：列优先——左框第一列(上→下)→第二列→右框各列 */
   const colEls=[...overlay.querySelectorAll('.ucol')];
   const grid=colEls.map(el=>[...el.querySelectorAll('.ucell')]);
@@ -456,7 +460,7 @@ function openUni(){
     if(G.panelOpen!=='uni') return;
     document.getElementById('ucap').style.visibility='visible';
     const eng=document.getElementById('uboxA');
-    const cn=overlay.querySelector('.ucol[data-c="4"]');
+    const cn=overlay.querySelector('.ucol[data-c="5"]');   // CHINESE 列(现为第6列)
     [[eng,'HELLO'],[cn,'你好']].forEach(pair=>{
       pair[0].classList.add('choosable');
       pair[0].addEventListener('click',ev=>{ ev.stopPropagation(); choose(pair[0],pair[1]); });
@@ -500,13 +504,20 @@ function openUni(){
 function uniSolved(word){
   if(G.panelOpen!=='uni') return;
   overlay.querySelector('.panel').classList.add('flash');
+  const cn = word==='你好';
   setTimeout(()=>{
-    closePanel(); G.beat='uni'; save();
-    narrate(['……'+(word||'你好')+'。','我在用<b style="color:#7dffa0">母语</b>思考。',
-      '一个 byte 装不下的语言，就给它两个、四个——这套收下所有语言的约定，叫 <b style="color:#7dffa0">Unicode</b>。',
-      '从数数的灯，到天上的钟，到会说话的路，到此刻的母语——',
-      '这个世界，现在装得下所有的话了。'],
-      showEndCard);
+    closePanel(); G.beat='uni'; G.chosenWord=word;
+    G.uniRoadBorn=performance.now();          // 选完语言→路用所选语言往东续铺
+    save();
+    /* 简短收束(用所选语言开头)，讲完放玩家沿新路走到尽头 */
+    narrate(cn
+      ? ['……你好。','我在用<b style="color:#7dffa0">母语</b>思考了。',
+         '一个 byte 装不下的字，就给它两个、四个——这套收下所有语言的约定，叫 <b style="color:#7dffa0">Unicode</b>。',
+         '往前走。这条路，现在说的是你的话。']
+      : ['……HELLO.','I THINK IN YOUR <b style="color:#7dffa0">LANGUAGE</b> NOW.',
+         'ONE BYTE IS TOO SMALL FOR SOME TONGUES — GIVE THEM TWO, OR FOUR. THIS IS <b style="color:#7dffa0">UNICODE</b>.',
+         'WALK ON. THE ROAD SPEAKS YOUR WORDS NOW.'],
+      ()=>{ G.lockUntil=performance.now()+1200; });   // 看一段路铺出来再走
   },600);
 }
 
@@ -529,7 +540,7 @@ function showEndCard(){
 
 /* ================= 世界 · 地标 ================= */
 /* 动线纯向东。每段约千px：出生2800 → 巨钟3600(注:出生=WORLD_W/2=2800) → 字母云4500 → 尽头5400。 */
-const CLOCK={x:3600}, BYTES={x:4500}, TERMINUS={x:5400};
+const CLOCK={x:3600}, BYTES={x:4500}, TERMINUS={x:5400}, TERMINUS2={x:6600};
 /* 字母云：未成形的文字。H 和 I 就藏在里面，解谜后飘到中间拼成 HI，其余消散。 */
 const CLOUD=[];
 {
@@ -545,7 +556,8 @@ function activeLandmark(){
   if(G.beat==='roam') return {x:CLOCK.x, act:openBCD, r:110};
   if(G.beat==='clock') return {x:BYTES.x, act:openASCII, r:110};
   if(G.beat==='ascii') return {x:TERMINUS.x, act:openUni, r:90};
-  if(G.beat==='end') return {x:TERMINUS.x, act:showEndCard, r:90};   // 通关后重看章末卡/重开入口
+  if(G.beat==='uni') return {x:TERMINUS2.x, act:showEndCard, r:80};  // 走到语言路尽头=章末
+  if(G.beat==='end') return {x:TERMINUS2.x, act:showEndCard, r:80};  // 通关后重看章末卡/重开入口
   return null;
 }
 
@@ -599,8 +611,10 @@ function update(dt,t){
     if(keys['d']||keys['arrowright']) G.px+=sp*dt;
     G.px=Math.max(60,Math.min(WORLD_W-60,G.px));
     G.py=Math.max(16,Math.min(48,G.py));   // 只能在路面走廊内移动
+    /* 走到语言路尽头→自动章末卡 */
+    if(G.beat==='uni' && G.px>=TERMINUS2.x-24 && !G.panelOpen) showEndCard();
   }
-  G.camx+=( (past('roam')?G.px:WORLD_W/2) - G.camx )*Math.min(1,dt*4);
+  G.camx+=( (past('roam')?G.px:SPAWN) - G.camx )*Math.min(1,dt*4);
   ensureRain();
   rain.forEach(p=>{ p.y+=p.v*dt*(past('clock')?(1+.4*Math.sin(t/480)):1);
     if(p.y>VH){ p.y=-14; p.x=Math.random()*WORLD_W; } });
@@ -625,27 +639,30 @@ function draw(t){
   /* —— 路：01 密铺成路；每段诞生时字符从虚空飘落归位、由西向东铺开。
         字母路段=回声的台词写在地上，按【单词为单位】铺、一个词整体一行，同 01 路飞入演出。 —— */
   const ROAD_WORDS=['THANK','YOU','FOR','THE','WORDS','BUT','SOME','OF','MINE','ARE','STILL','BROKEN'];
-  /* 预排：整句写在同一条基线上、整词不拆行，词间留 1 格；返回 网格索引→{ch,wStart} */
-  function letterLayout(i0){
+  /* 选完语言后，路继续用所选语言往前铺：英文=单词、中文=逐字(各自作为一个 token) */
+  const ROAD_END_EN=['NOW','THIS','WORLD','CAN','HOLD','EVERY','WORD','I','KNOW'];
+  const ROAD_END_CN=['这','个','世','界','装','得','下','所','有','的','话','了'];
+  /* 预排：token 整体不拆行、token 间留 1 格；返回 网格索引→{ch,wStart} */
+  function letterLayout(i0, tokens){
     const map={}; let gi=i0;
-    ROAD_WORDS.forEach(w=>{
+    tokens.forEach(w=>{
       const wStart=gi;
       for(let k=0;k<w.length;k++){ map[gi]={ch:w[k],wStart}; gi++; }
-      gi+=1;   // 词间空格
+      gi+=1;   // token 间空格
     });
     return map;
   }
-  function drawRoad(x0,x1,born,letters){
+  function drawRoad(x0,x1,born,tokens){
     const el=born ? (t-born) : 1e9;          // 恢复存档：路已铺好
     ctx.font='12px monospace';
     /* 所有路段共享同一条全局 13px 网格：接缝处字距/行位韵律连续，不断开 */
     const i0=Math.ceil(x0/13);
-    const lay=letters?letterLayout(i0):null;
+    const lay=tokens?letterLayout(i0,tokens):null;
     for(let i=i0; i*13<x1; i++){
       const wx=i*13;
       const x=sx(wx); if(x<-30||x>VW+30) continue;
       let ch, col, base, row=[-2,7,16][i%3], anchorI=i;
-      if(letters){                           // 台词路：整句同一基线、整词同时飞入
+      if(tokens){                            // 语言路：整句同一基线、整词同时飞入
         const cell=lay[i]; if(!cell) continue;
         ch=cell.ch; row=7; anchorI=cell.wStart;   // 单行基线；用词首做飞入时序锚
         col='125,255,160'; base=.55;
@@ -663,11 +680,13 @@ function draw(t){
       ctx.fillText(ch, x+ox, midY+34+row+oy);
     }
   }
-  if(past('roam'))  drawRoad(WORLD_W/2-40, CLOCK.x, G.roadBornA, false);
+  if(past('roam'))  drawRoad(SPAWN-40, CLOCK.x, G.roadBornA, null);
   if(past('clock')) drawRoad(CLOCK.x, BYTES.x,
-    G.clockLitAt ? G.clockLitAt+2600 : 0, false);   // 等时钟升天演出完再铺
+    G.clockLitAt ? G.clockLitAt+2600 : 0, null);   // 等时钟升天演出完再铺
   if(past('ascii')) drawRoad(BYTES.x, TERMINUS.x,
-    G.asciiSolvedAt ? G.asciiSolvedAt+5800 : 0, true);   // 等回声两句话打完再开始写路
+    G.asciiSolvedAt ? G.asciiSolvedAt+5800 : 0, ROAD_WORDS);   // 等回声两句话打完再开始写路
+  if(past('uni'))   drawRoad(TERMINUS.x, TERMINUS2.x,          // 选完语言后用所选语言续铺
+    G.uniRoadBorn || 1, G.chosenWord==='你好'?ROAD_END_CN:ROAD_END_EN);
 
   /* —— 时间的升天：从钟面漂到屏幕顶部正中，落定成第一件常驻 UI —— */
   if(past('clock')){
@@ -690,8 +709,8 @@ function draw(t){
     if(x>-60&&x<VW+60){
       const ph3=(Math.sin(t/420)+1)/2;
       if(past('uni')){
-        ctx.fillStyle='rgba(125,255,160,.85)'; ctx.font='26px monospace';
-        ctx.textAlign='center'; ctx.fillText('你好', x, midY-2); ctx.textAlign='left';
+        ctx.fillStyle='rgba(125,255,160,.85)'; ctx.font='24px monospace';
+        ctx.textAlign='center'; ctx.fillText(G.chosenWord||'你好', x, midY-4); ctx.textAlign='left';
       }else{
         ctx.strokeStyle='rgba(255,217,125,'+(.35+.5*ph3)+')'; ctx.lineWidth=2;
         ctx.strokeRect(x-27, midY-18, 21, 26);
@@ -854,7 +873,8 @@ if(qpanel) setTimeout(()=>{
 
 /* ================= 开场：无字 ================= */
 /* ASCII 之前世界没有文字——开场独白也不例外。黑暗、火花、路，自己解释自己。 */
-if(G.beat==='uni'){ setTimeout(showEndCard,900); }                       // 断线恢复
+/* beat==='uni' 恢复：落在语言路上，直接走到尽头即章末(路已铺好, uniRoadBorn=0→满铺) */
+if(G.beat==='uni'){ G.px=TERMINUS.x+60; G.camx=G.px; }
 /* beat==='ascii' 恢复时不弹独白——台词已经写在路上了 */
 </script>
 </body>
