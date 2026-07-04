@@ -384,7 +384,8 @@ function asciiSolved(){
 function openUni(){
   /* 列头带字节数：随码位增大，一个字符要占的字节从 1→2→3→4 —— 这就是 UTF-8 变长编码 */
   const COLS=[
-    {h:'0–9 · A–Z', c:[{v:48},{v:49},{g:1},{v:57},{g:1},{v:65},{v:66},{v:67},{g:1},{v:88},{v:89},{v:90}]},
+    /* 标点也是 ASCII(1 byte)，码位在数字之前——文字从这里起就能带标点了 */
+    {h:'! ? . · 0–9 · A–Z', c:[{v:33},{v:46},{v:63},{g:1},{v:48},{v:49},{g:1},{v:57},{g:1},{v:65},{v:66},{g:1},{v:90}]},
     {h:'a–z',       c:[{v:97},{v:98},{v:99},{g:1},{v:120},{v:121},{v:122}]},
     {h:'2 BYTES · GREEK RUS', c:[{v:0x3B1},{v:0x3B2},{g:1},{v:0x3C9},{g:1},{v:0x410},{v:0x411},{g:1},{v:0x42F}]},
     {h:'2 BYTES · HEBREW ARABIC', c:[{v:0x5D0},{v:0x5D1},{g:1},{v:0x5EA},{g:1},{v:0x627},{v:0x628},{g:1},{v:0x64A}]},
@@ -459,66 +460,69 @@ function openUni(){
   function armChoice(){
     if(G.panelOpen!=='uni') return;
     document.getElementById('ucap').style.visibility='visible';
-    const eng=document.getElementById('uboxA');
-    const cn=overlay.querySelector('.ucol[data-c="5"]');   // CHINESE 列(现为第6列)
-    [[eng,'HELLO'],[cn,'你好']].forEach(pair=>{
+    const engCols=[...document.getElementById('uboxA').querySelectorAll('.ucol')];
+    const cnCol=overlay.querySelector('.ucol[data-c="5"]');   // CHINESE 列
+    [[document.getElementById('uboxA'), engCols, 'HELLO'],
+     [cnCol, [cnCol], '你好']].forEach(pair=>{
       pair[0].classList.add('choosable');
-      pair[0].addEventListener('click',ev=>{ ev.stopPropagation(); choose(pair[0],pair[1]); });
+      pair[0].addEventListener('click',ev=>{ ev.stopPropagation(); choose(pair[1],pair[2]); });
     });
   }
-  function choose(el,word){
+  /* 选定：①框体+其他语言淡出，只留选中那一(几)列 ②词飞向中央、该语言其余字也淡出
+     ③词下方打一句话(同 HI) ④关面板，路用所选语言续铺 */
+  function choose(keepCols,word){
     if(chosen || G.panelOpen!=='uni') return;
     chosen=true;
     overlay.querySelectorAll('.choosable').forEach(x=>x.classList.remove('choosable'));
     document.getElementById('ucap').style.visibility='hidden';
-    /* 和 HI 一样：框体消失，选中语言的字留下，飞到屏幕中央放大拼成词 */
-    const srcCells=[...el.querySelectorAll('.ucell')].filter(c=>c.textContent!=='···');
-    const chars=[...word];
-    const cw=46, cx0=innerWidth/2-(chars.length*cw)/2+cw/2, cy=innerHeight*.42;
-    const flies=chars.map((ch,k)=>{
-      const src=srcCells[(k*7+2)%srcCells.length].getBoundingClientRect();
-      const f=document.createElement('span');
-      f.textContent=ch;
-      f.style.cssText='position:fixed;left:'+src.left+'px;top:'+src.top+'px;'+
-        'font-size:15px;color:#7dffa0;z-index:120;text-shadow:0 0 16px rgba(125,255,160,.6);'+
-        'transition:all 1s cubic-bezier(.2,.7,.3,1) '+(k*140)+'ms';
-      document.body.appendChild(f); return f;
+    const cn = word==='你好';
+    const srcCells=keepCols.flatMap(c=>[...c.querySelectorAll('.ucell')]).filter(c=>c.textContent!=='···');
+    /* ① 框体边框+标题淡出，非选中列淡出 */
+    ['uboxA','uboxU'].forEach(id=>{ const b=document.getElementById(id);
+      b.style.transition='border-color .6s'; b.style.borderColor='transparent';
+      b.firstElementChild.style.transition='opacity .6s'; b.firstElementChild.style.opacity='0'; });
+    overlay.querySelectorAll('.ucol').forEach(col=>{
+      if(keepCols.includes(col)) return;
+      col.style.transition='opacity .6s'; col.style.opacity='0';
     });
-    ['uboxA','uboxU'].forEach(id=>{                  // 框体渐隐
-      const b=document.getElementById(id);
-      b.style.transition='opacity .6s'; b.style.opacity='0';
-    });
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      chars.forEach((ch,k)=>{
-        flies[k].style.left=(cx0+k*cw)+'px';
-        flies[k].style.top=cy+'px';
-        flies[k].style.fontSize='40px';
+    setTimeout(()=>flyToCenter(),750);
+    function flyToCenter(){
+      const chars=[...word];
+      const cw=cn?56:42, cx0=innerWidth/2-(chars.length*cw)/2+cw/2, cy=innerHeight*.40;
+      const flies=chars.map((ch,k)=>{
+        const src=srcCells[(k*7+2)%srcCells.length].getBoundingClientRect();
+        const f=document.createElement('span');
+        f.textContent=ch;
+        f.style.cssText='position:fixed;left:'+src.left+'px;top:'+src.top+'px;'+
+          'font-size:15px;color:#7dffa0;z-index:130;text-shadow:0 0 16px rgba(125,255,160,.6);'+
+          'transition:all 1s cubic-bezier(.2,.7,.3,1) '+(k*150)+'ms';
+        document.body.appendChild(f); return f;
       });
-    }));
-    G.chosenWord=word;                               // 之后的路/文本用所选语言
-    setTimeout(()=>{ flies.forEach(f=>f.remove()); uniSolved(word); },
-      1000+chars.length*140+900);
+      keepCols.forEach(c=>{ c.style.transition='opacity .9s'; c.style.opacity='0'; });  // ② 该语言其余字淡出
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        chars.forEach((ch,k)=>{ flies[k].style.left=(cx0+k*cw)+'px'; flies[k].style.top=cy+'px'; flies[k].style.fontSize='44px'; });
+      }));
+      const landed=1000+chars.length*150;
+      setTimeout(()=>{                                   // ③ 词下方打一句话(同 HI)
+        const line=cn?'现在，你能读懂我说的话了。':'NOW YOU CAN READ WHAT I SAY.';
+        const d=document.createElement('div'); d.id='uline';
+        d.style.cssText='position:fixed;left:0;right:0;top:'+(cy+64)+'px;text-align:center;'+
+          'color:#9db8a0;font-size:18px;font-style:italic;z-index:130;text-shadow:0 0 12px rgba(80,255,120,.15)';
+        document.body.appendChild(d);
+        let i=0;(function tt(){ d.textContent=line.slice(0,i++); if(i<=line.length) setTimeout(tt,75);
+          else setTimeout(()=>{ finishUni(word);                     // ④ 关面板、路续铺
+            setTimeout(()=>{ flies.forEach(f=>f.remove()); d.remove(); },700); },1500); })();
+      },landed+200);
+    }
   }
   reveal();
 }
-function uniSolved(word){
-  if(G.panelOpen!=='uni') return;
-  overlay.querySelector('.panel').classList.add('flash');
-  const cn = word==='你好';
-  setTimeout(()=>{
-    closePanel(); G.beat='uni'; G.chosenWord=word;
-    G.uniRoadBorn=performance.now();          // 选完语言→路用所选语言往东续铺
-    save();
-    /* 简短收束(用所选语言开头)，讲完放玩家沿新路走到尽头 */
-    narrate(cn
-      ? ['……你好。','我在用<b style="color:#7dffa0">母语</b>思考了。',
-         '一个 byte 装不下的字，就给它两个、四个——这套收下所有语言的约定，叫 <b style="color:#7dffa0">Unicode</b>。',
-         '往前走。这条路，现在说的是你的话。']
-      : ['……HELLO.','I THINK IN YOUR <b style="color:#7dffa0">LANGUAGE</b> NOW.',
-         'ONE BYTE IS TOO SMALL FOR SOME TONGUES — GIVE THEM TWO, OR FOUR. THIS IS <b style="color:#7dffa0">UNICODE</b>.',
-         'WALK ON. THE ROAD SPEAKS YOUR WORDS NOW.'],
-      ()=>{ G.lockUntil=performance.now()+1200; });   // 看一段路铺出来再走
-  },600);
+function finishUni(word){
+  /* 词已在屏幕中央、下方那句话也打完——关面板，路用所选语言往东续铺，玩家走到尽头即章末 */
+  closePanel(); G.beat='uni'; G.chosenWord=word;
+  G.uniRoadBorn=performance.now();
+  G.lockUntil=performance.now()+1200;   // 看一段路铺出来再走
+  save();
 }
 
 /* ================= 章末卡 ================= */
@@ -642,13 +646,14 @@ function draw(t){
   /* 选完语言后，路继续用所选语言往前铺：英文=单词、中文=逐字(各自作为一个 token) */
   const ROAD_END_EN=['NOW','THIS','WORLD','CAN','HOLD','EVERY','WORD','I','KNOW'];
   const ROAD_END_CN=['这','个','世','界','装','得','下','所','有','的','话','了'];
-  /* 预排：token 整体不拆行、token 间留 1 格；返回 网格索引→{ch,wStart} */
+  /* 预排：每词占一"列"、整词不拆行；词按 0/1/2 三行上下错开(不同行=不同列，不影响阅读)；
+     词间留随机宽度空白(2..4格)。返回 网格索引→{ch,wStart,row} */
   function letterLayout(i0, tokens){
     const map={}; let gi=i0;
-    tokens.forEach(w=>{
-      const wStart=gi;
-      for(let k=0;k<w.length;k++){ map[gi]={ch:w[k],wStart}; gi++; }
-      gi+=1;   // token 间空格
+    tokens.forEach((w,wi)=>{
+      const wStart=gi, row=wi%3;
+      for(let k=0;k<w.length;k++){ map[gi]={ch:w[k],wStart,row}; gi++; }
+      gi += 2 + (((wi*2654435761)>>>5)%3);   // 词间随机留白 2..4 格
     });
     return map;
   }
@@ -662,9 +667,9 @@ function draw(t){
       const wx=i*13;
       const x=sx(wx); if(x<-30||x>VW+30) continue;
       let ch, col, base, row=[-2,7,16][i%3], anchorI=i;
-      if(tokens){                            // 语言路：整句同一基线、整词同时飞入
+      if(tokens){                            // 语言路：每词一列、三行错开、整词同时飞入
         const cell=lay[i]; if(!cell) continue;
-        ch=cell.ch; row=7; anchorI=cell.wStart;   // 单行基线；用词首做飞入时序锚
+        ch=cell.ch; row=[-2,7,16][cell.row]; anchorI=cell.wStart;   // 用词首做飞入时序锚
         col='125,255,160'; base=.55;
       }else{
         ch=((((i*2654435761)>>3)&1)?'1':'0');
