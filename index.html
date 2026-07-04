@@ -316,10 +316,8 @@ function openASCII(){
      无言兜底：输错2次 → 字节下方浮现十进制值(数字合法)。 */
   const tbl=Array.from({length:26},(_,i)=>
     '<span style="display:inline-block;width:64px">'+String.fromCharCode(65+i)+' = '+(65+i)+'</span>').join('');
-  let html='<div class="ref" style="line-height:2.1;font-size:14px">'+
-      '01000001 = 65 = A<br>01000010 = 66 = B<br>01000011 = 67 = C　'+
-      '<button class="hintbtn" id="tblbtn">···</button></div>'+
-    '<div class="ref" id="asctbl" style="display:none;line-height:2">'+tbl+'</div>'+
+  let html='<div class="ref" style="line-height:2.1;font-size:14px">01000001 = 65 = A</div>'+
+    '<div class="ref" style="line-height:2">'+tbl+'</div>'+
     '<div class="bytes">'+ASCII_BYTES.join('　')+'</div>'+
     '<div class="ref" id="decs" style="visibility:hidden;font-size:16px;color:#ffd97d">'+
       ASCII_BYTES.map(b=>parseInt(b,2)).join('　　　　')+'</div>'+
@@ -330,10 +328,6 @@ function openASCII(){
       '<input id="asciiin" maxlength="1" autocomplete="off" spellcheck="false" style="width:52px">'+
     '</div>';
   openPanel(html,'ascii');
-  document.getElementById('tblbtn').onclick=()=>{
-    const el=document.getElementById('asctbl');
-    el.style.display=el.style.display==='none'?'block':'none';
-  };
   /* 第一个字节已解出 H(=72)。两个字节只差最后一位——用刚学的+1推出下一个字母。 */
   let wrong=0;
   const inp=document.getElementById('asciiin');
@@ -374,33 +368,35 @@ function asciiSolved(){
 /* 左列编码右列字符，从 A 一行行往下打印滚动；到数字后左列拓宽 8→16 位=Unicode 诞生；
    滚过各国文字直到中文；滚到 你/好 时停顿并存到一边；最后玩家把两个字拖进对应编码的框。 */
 function openUni(){
-  const SEQ=[];
+  const SEQ=[{label:'ASCII',amber:false}];
   [65,66,67,-1,88,89,90,-1,97,98,99,-1,48,49,50,-1].forEach(c=>SEQ.push(c<0?{gap:1}:{c:c}));
-  SEQ.push({widen:1});
-  [0x3B1,0x42F,0x3042,0xD55C].forEach(u=>SEQ.push({u:u}));   // α Я あ 한：语言的丰富性
-  SEQ.push({gap:1});
-  SEQ.push({u:0x4F60,park:1});                               // 你 —— 停顿并保留
-  [0x4FE1,0x5149].forEach(u=>SEQ.push({u:u}));               // 信 光
+  SEQ.push({widen:1},{label:'UNICODE',amber:true});
+  [0x3B1,-1,0x42F,-1,0x3042,-1,0xD55C,-1].forEach(u=>       // α Я あ 한：语言的丰富性(码位不连续处都有···)
+    SEQ.push(u<0?{gap:1}:{u:u}));
+  SEQ.push({u:0x4F60,park:1},{gap:1});                       // 你 —— 停顿并保留
+  SEQ.push({u:0x4FE1},{gap:1},{u:0x5149},{gap:1});           // 信 ··· 光 ···
   SEQ.push({u:0x597D,park:1});                               // 好 —— 停顿并保留
   let html='<div id="uwin" style="height:220px;overflow:hidden"></div>'+
     '<div id="upocket" style="text-align:center;min-height:52px;margin-top:10px"></div>'+
     '<div id="udrop" style="display:none;text-align:center;margin-top:4px">'+
       [0x4F60,0x597D].map(u=>{
         const b=u.toString(2).padStart(16,'0');
-        return '<div class="ubox" data-u="'+u+'" style="display:inline-block;margin:0 16px;text-align:center">'+
+        return '<div class="ubox" data-u="'+u+'" style="display:inline-block;vertical-align:top;'+
+            'margin:0 16px;text-align:center">'+
           '<div style="font-size:13px;color:#ffd97d;letter-spacing:1px">'+b.slice(0,8)+' '+b.slice(8)+'</div>'+
-          '<div class="uslot" style="width:54px;height:54px;border:1px dashed #3fae5c;'+
+          '<div class="uslot" style="width:48px;height:48px;border:1px dashed #3fae5c;'+
             'border-radius:4px;margin:8px auto 0"></div></div>';
       }).join('')+
       '<div class="seqcap">CLICK AND DRAG EACH GLYPH TO ITS CODE.</div></div>';
   openPanel(html,'uni');
   const win=document.getElementById('uwin'), pocket=document.getElementById('upocket');
   let idx=0, fast=false, timer=null, done=0;
-  const addRow=(code,ch,amber)=>{
+  const addRow=(code,ch,amber,label)=>{
     const r=document.createElement('div');
     r.style.cssText='display:flex;gap:20px;justify-content:center;font-size:15px;line-height:1.9';
-    r.innerHTML='<span style="min-width:160px;text-align:right;letter-spacing:1px;color:'+
-      (amber?'#ffd97d':'#5a8a62')+'">'+code+'</span>'+
+    const col=label ? (amber?'#ffd97d':'#5ad477') : (amber?'#ffd97d':'#5a8a62');
+    r.innerHTML='<span style="min-width:160px;text-align:right;'+
+      'letter-spacing:'+(label?'3px':'1px')+';color:'+col+(label?';font-weight:bold':'')+'">'+code+'</span>'+
       '<span style="width:34px;text-align:left;color:#b8e6c0">'+ch+'</span>';
     win.appendChild(r); win.scrollTop=win.scrollHeight;
   };
@@ -428,6 +424,7 @@ function openUni(){
         if(hit && !hit.dataset.filled && String.fromCharCode(+hit.dataset.u)===chip.textContent){
           hit.dataset.filled='1'; reset();
           chip.dataset.lock='1'; chip.style.cursor='default'; chip.style.margin='0';
+          chip.style.border='none';   // 框体边框由 slot 负责，避免双边框
           const slot=hit.querySelector('.uslot');
           slot.appendChild(chip);
           slot.style.borderStyle='solid'; slot.style.borderColor='#7dffa0';
@@ -446,11 +443,13 @@ function openUni(){
     });
   }
   const park=ch=>{
+    /* 尺寸与目标框完全一致(48×48)，放进去严丝合缝不跳动 */
     const chip=document.createElement('span');
     chip.textContent=ch;
-    chip.style.cssText='display:inline-block;font-size:26px;color:#7dffa0;border:1px solid #3fae5c;'+
-      'border-radius:4px;padding:5px 12px;margin:0 10px;cursor:grab;user-select:none;'+
-      'background:#0d2d14;touch-action:none';
+    chip.style.cssText='display:inline-block;vertical-align:top;width:48px;height:48px;'+
+      'line-height:46px;text-align:center;font-size:26px;color:#7dffa0;'+
+      'border:1px solid #3fae5c;border-radius:4px;margin:0 10px;cursor:grab;'+
+      'user-select:none;background:#0d2d14;touch-action:none;box-sizing:border-box';
     pocket.appendChild(chip); wireDrag(chip);
   };
   function step(){
@@ -458,6 +457,7 @@ function openUni(){
     if(idx>=SEQ.length){ document.getElementById('udrop').style.display='block'; return; }
     const s=SEQ[idx++]; let delay=210;
     if(s.gap){ addRow('','···',false); delay=380; }
+    else if(s.label){ addRow(s.label,'',s.amber,true); delay=550; }
     else if(s.widen){ addRow('········ → ················','',true); delay=850; }
     else if(s.c!=null){ addRow(s.c.toString(2).padStart(8,'0'), String.fromCharCode(s.c), false); }
     else{
