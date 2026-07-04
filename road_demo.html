@@ -29,13 +29,13 @@
 const ROAD_SPACING   = 13;    // 路面字符间距 px（和游戏 tile 13px 网格一致）
 const ROAD_FONT_PX   = 12;    // 路面字符落定字号 px
 const ROW_OFFSETS    = [-2, 7, 16]; // 三行错位：i%3 → 相对基线 midY 的行偏移 px（与游戏侧 index.html 三行布局一致）
-const WAVE_SPEED     = 200;   // 建造波前推进速度 px/s（演出期间游戏侧锁玩家操作，宁慢有仪式感）
+const WAVE_SPEED     = 67;    // 建造波前推进速度 px/s（用户验收：再放慢3倍）
 const FLY_R_MIN      = 60;    // 浮现起点距最终位置的最小半径 px（收小：重点是"从虚空浮现飘近"，不是"飞行"）
 const FLY_R_MAX      = 120;   // 浮现最大半径 px
 const FLY_X_GAIN     = 1.4;   // 水平位移增益：路是横线，纯垂直来向最扎眼，放大水平分量让"从左右斜向来"看得见
 const GOLDEN_ANG     = 2.399963229; // 黄金角 137.5°(弧度)：叠加 i*黄金角，相邻字符来向强制错开，不会局部同向
-const FLY_DUR_MIN    = 1400;  // 单字符入场时长下限 ms（大幅放慢 → 慢慢浮现的仪式感）
-const FLY_DUR_MAX    = 2200;  // 入场时长上限 ms（hash 决定，错落感）
+const FLY_DUR_MIN    = 2400;  // 单字符入场时长下限 ms（大幅放慢 → 慢慢浮现的仪式感）
+const FLY_DUR_MAX    = 3600;  // 入场时长上限 ms（hash 决定，错落感）
 const SCALE_START_MIN= 0.25;  // 浮现起始字号比例下限（越小越像"从深处来"）
 const SCALE_START_MAX= 0.35;  // 起始字号比例上限（hash 逐字符分布 25%~35%）
 const FADE_POW       = 1.6;   // alpha 入场指数：>1 → 前半程更暗更虚（近似远处虚焦），后半程快速变实

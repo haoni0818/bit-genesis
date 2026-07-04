@@ -611,15 +611,16 @@ function draw(t){
   function drawRoad(x0,x1,born,letters){
     const el=born ? (t-born) : 1e9;          // 恢复存档：路已铺好
     ctx.font='12px monospace';
-    for(let wx=x0; wx<x1; wx+=13){
+    /* 所有路段共享同一条全局 13px 网格：接缝处字距/行位韵律连续，不断开 */
+    const i0=Math.ceil(x0/13);
+    for(let i=i0; i*13<x1; i++){
+      const wx=i*13;
       const x=sx(wx); if(x<-30||x>VW+30) continue;
-      const i=Math.floor(wx/13);
-      const start=((wx-x0)/(x1-x0))*1400;    // 由西向东铺开
+      const start=((wx-x0)/(x1-x0))*4200;    // 由西向东铺开(放慢3倍)
       if(letters){
-        /* 台词路：FOLLOW ME 沿路循环，以步行速度(50ms/格≈260px/s)逐字亮起，引人向东 */
-        const li=i-Math.floor(x0/13);
-        if(li<0) continue;
-        const lp=Math.min(1, Math.max(0,(el-li*50)/250));
+        /* 台词路：FOLLOW ME 沿路循环逐字亮起(150ms/格)，引人向东 */
+        const li=i-i0;
+        const lp=Math.min(1, Math.max(0,(el-li*150)/400));
         if(lp<=0) continue;
         const L2=ROAD_MSG.length;
         const la=(.55+.12*Math.sin(t/700+i*.7))*lp;
@@ -627,7 +628,7 @@ function draw(t){
         ctx.fillText(ROAD_MSG[li%L2], x, midY+34+[-2,7,16][i%3]);
         continue;
       }
-      const p=Math.min(1, Math.max(0,(el-start)/700));
+      const p=Math.min(1, Math.max(0,(el-start)/2100));   // 单字入场也放慢3倍
       if(p<=0) continue;
       const e=1-Math.pow(1-p,3);
       const ch=((((i*2654435761)>>3)&1)?'1':'0');
