@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>BIT://GENESIS — road build demo</title>
+<style>
+  html,body{margin:0;padding:0;background:#000;overflow:hidden;height:100%}
+  canvas{display:block;position:fixed;inset:0}
+  #hint{
+    position:fixed;right:14px;bottom:10px;
+    font:10px/1 monospace;letter-spacing:2px;
+    color:rgba(120,170,135,0.35);
+    pointer-events:none;user-select:none;
+  }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="hint">CLICK TO REPLAY</div>
+<script>
+'use strict';
+/* ============================================================
+ * BIT://GENESIS  —— "01 铺路" 动画演示
+ * 核心逻辑 = 纯函数 drawRoadBuild(ctx, t, bornTime, x0, x1, midY)
+ * 无内部状态，可整体移植回游戏主循环。
+ * ============================================================ */
+
+/* ---------------- 调参区（手感全在这里） ---------------- */
+const ROAD_SPACING   = 13;    // 路面字符间距 px（和游戏 tile 13px 网格一致）
+const ROAD_FONT      = '12px monospace';
+const ROAD_STAGGER   = 5;     // 两条微错行：偶数字符 -5px，奇数 +5px
+const WAVE_SPEED     = 300;   // 建造波前推进速度 px/s（900px 可见路 ≈ 3s 波前扫完）
+const FLY_R_MIN      = 80;    // 飞入起点距最终位置的最小半径 px
+const FLY_R_MAX      = 160;   // 飞入最大半径 px（越大越"从四面八方汇聚"）
+const FLY_DUR_MIN    = 600;   // 单字符入场时长下限 ms
+const FLY_DUR_MAX    = 900;   // 入场时长上限 ms（hash 决定，错落感）
+const OVERSHOOT      = 1.35;  // easeOutBack 过冲量（1.7=标准，1.35=轻微回弹）
+const FLASH_TAU      = 220;   // 落定闪光衰减时间常数 ms（越大闪得越久）
+const FLASH_ALPHA    = 0.9;   // 落定瞬间峰值亮度 rgba(125,255,160,·)
+const SETTLE_A_MIN   = 0.30;  // 落定后路面基础 alpha 下限
+const SETTLE_A_MAX   = 0.42;  // 上限（逐字符 hash 分布在区间内）
+const BREATH_AMP     = 0.05;  // 呼吸闪烁幅度（叠加在基础 alpha 上）
+const BREATH_SPEED   = 0.0016;// 呼吸速度 rad/ms
+
+/* 玩家与场景 */
+const PLAYER_SIZE = 14;       // 玩家方块边长
+const PLAYER_X_R  = 0.30;     // 玩家水平位置（屏宽比例）
+const PLAYER_Y_R  = 0.46;     // 玩家垂直位置（屏高比例）
+
+/* 背景字符雨 */
+const RAIN_COLS_EVERY = 52;   // 每 ~52px 一列（稀疏）
+const RAIN_FONT   = '13px monospace';
+const RAIN_A_MIN  = 0.06;
+const RAIN_A_MAX  = 0.18;
+const RAIN_V_MIN  = 12;       // 下落速度 px/s
+const RAIN_V_MAX  = 30;
+
+/* ---------------- 确定性哈希（可回放的伪随机） ---------------- */
+// Knuth 乘法哈希：同一 (i,salt) 永远得到同一 [0,1) 值 —— 不用 Math.random，
+// 保证每次重播、每台机器动画完全一致。
+function hash01(i, salt){
+  let h = ((i + salt * 374761393) * 2654435761) >>> 0;
+  h ^= h >>> 13;
+  h = (h * 1274126177) >>> 0;
+  return ((h >>> 8) & 0xffff) / 0x10000;
+}
+
+/* easeOutBack：冲过头一点再回弹，s 越大过冲越猛 */
+function easeOutBack(p, s){
+  const c3 = s + 1;
+  const q = p - 1;
+  return 1 + c3 * q * q * q + s * q * q;
+}
+
+/* ============================================================
+ * drawRoadBuild —— 纯函数，绘制"01 铺路"的任意一帧
+ *   ctx      : 2d 上下文（假定已按 CSS 像素坐标系设置好 transform）
+ *   t        : 当前时刻 ms（performance.now() 同源即可）
+ *   bornTime : 铺路动画开始时刻 ms；t < bornTime 时什么都不画
+ *   x0, x1   : 路的起点/终点 x（x0=玩家右侧脚下，x1 可给到屏幕外）
+ *   midY     : 路的中线 y（字符在 midY±ROAD_STAGGER 两条错行上）
+ * 返回 true 表示整条路已全部落定（可供游戏侧触发后续事件）。
+ * ============================================================ */
+function drawRoadBuild(ctx, t, bornTime, x0, x1, midY){
+  if (t < bornTime) return false;
+  const n = Math.max(0, Math.floor((x1 - x0) / ROAD_SPACING) + 1);
+  ctx.font = ROAD_FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  let allSettled = true;
+
+  for (let i = 0; i < n; i++){
+    const fx = x0 + i * ROAD_SPACING;                     // 最终 x
+    const fy = midY + (i % 2 === 0 ? -ROAD_STAGGER : ROAD_STAGGER); // 两条错行
+    // 波前：该字符的入场从"波前扫到它"那一刻开始，再叠加一点 hash 抖动
+    const delay = (fx - x0) / WAVE_SPEED * 1000 + hash01(i, 7) * 180;
+    const dur   = FLY_DUR_MIN + hash01(i, 11) * (FLY_DUR_MAX - FLY_DUR_MIN);
+    const local = t - bornTime - delay;                   // 该字符自己的时间轴
+    if (local <= 0){ allSettled = false; continue; }      // 波前还没到
+
+    const ch = hash01(i, 3) < 0.5 ? '0' : '1';            // 字符内容也由 hash 定
+
+    if (local < dur){
+      /* ---- 飞入阶段：从四面八方 80~160px 外淡入汇聚 ---- */
+      allSettled = false;
+      const p   = local / dur;
+      const e   = easeOutBack(p, OVERSHOOT);
+      const ang = hash01(i, 5) * Math.PI * 2;             // 随机方向（全角度均匀）
+      const rad = FLY_R_MIN + hash01(i, 9) * (FLY_R_MAX - FLY_R_MIN);
+      const off = (1 - e) * rad;                          // e 可 >1 → 轻微过冲回弹
+      const x = fx + Math.cos(ang) * off;
+      const y = fy + Math.sin(ang) * off;
+      // 飞行中亮度快速拉起（p^0.6 前段起得快），明显亮于背景雨
+      const a = Math.min(1, Math.pow(p, 0.6)) * 0.8;
+      ctx.fillStyle = 'rgba(125,255,160,' + a.toFixed(3) + ')';
+      ctx.fillText(ch, x, y);
+    } else {
+      /* ---- 已落定：暗绿路面 + 呼吸，叠加落定闪光的指数衰减 ---- */
+      const settleA = SETTLE_A_MIN + hash01(i, 13) * (SETTLE_A_MAX - SETTLE_A_MIN);
+      const breath  = BREATH_AMP * Math.sin(t * BREATH_SPEED + i * 1.7);
+      ctx.fillStyle = 'rgba(90,212,119,' + Math.max(0, settleA + breath).toFixed(3) + ')';
+      ctx.fillText(ch, fx, fy);
+      // 落定瞬间的高亮确认闪：exp 衰减，叠画一层亮绿
+      const sinceLand = local - dur;
+      const flash = FLASH_ALPHA * Math.exp(-sinceLand / FLASH_TAU);
+      if (flash > 0.01){
+        ctx.fillStyle = 'rgba(125,255,160,' + flash.toFixed(3) + ')';
+        ctx.fillText(ch, fx, fy);
+      }
+    }
+  }
+  return allSettled;
+}
+
+/* ============================================================
+ * 以下为演示页外壳：canvas 主循环 / 字符雨 / 玩家 / 暗角 / 重播
+ * ============================================================ */
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);   // 之后全部按 CSS 像素坐标画
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* 背景字符雨：初始化用 hash（同样确定性，截图可复现），稀疏且暗 */
+const rain = [];
+(function initRain(){
+  const cols = Math.ceil(1920 / RAIN_COLS_EVERY);        // 按最大宽度铺列
+  for (let c = 0; c < cols; c++){
+    rain.push({
+      x: c * RAIN_COLS_EVERY + hash01(c, 21) * 30,
+      y0: hash01(c, 23) * 1200,
+      v: RAIN_V_MIN + hash01(c, 25) * (RAIN_V_MAX - RAIN_V_MIN),
+      a: RAIN_A_MIN + hash01(c, 27) * (RAIN_A_MAX - RAIN_A_MIN),
+      seed: (c * 131 + 7) | 0
+    });
+  }
+})();
+
+function drawRain(t){
+  ctx.font = RAIN_FONT;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  for (const col of rain){
+    if (col.x > W) continue;
+    // 每列 3 个字符，缓慢下落循环
+    const yBase = (col.y0 + t / 1000 * col.v) % (H + 60) - 30;
+    for (let k = 0; k < 3; k++){
+      const y = (yBase + k * 22 + H + 60) % (H + 60) - 30;
+      const ch = hash01(col.seed + k + ((t / 1400) | 0), 31) < 0.5 ? '0' : '1';
+      ctx.fillStyle = 'rgba(90,212,119,' + col.a.toFixed(3) + ')';
+      ctx.fillText(ch, col.x, y);
+    }
+  }
+}
+
+function drawPlayer(px, py, t){
+  // 光晕
+  const pulse = 0.85 + 0.15 * Math.sin(t * 0.003);
+  const g = ctx.createRadialGradient(px, py, 2, px, py, 26 * pulse);
+  g.addColorStop(0, 'rgba(168,255,196,0.5)');
+  g.addColorStop(1, 'rgba(90,212,119,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(px - 30, py - 30, 60, 60);
+  // 本体
+  ctx.fillStyle = '#a8ffc4';
+  ctx.fillRect(px - PLAYER_SIZE / 2, py - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+}
+
+function drawVignette(){
+  const r = Math.max(W, H) * 0.72;
+  const g = ctx.createRadialGradient(W / 2, H / 2, r * 0.45, W / 2, H / 2, r);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/* 主循环：打开自动播放；点击重播（重置 bornTime 即可，drawRoadBuild 无状态） */
+let bornTime = performance.now() + 400;   // 开场留 400ms 静场
+document.addEventListener('pointerdown', () => { bornTime = performance.now() + 200; });
+
+function renderFrame(t, born){
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  drawRain(t);
+
+  const px = W * PLAYER_X_R, py = H * PLAYER_Y_R;
+  // 路：从玩家右侧脚下开始，延伸到屏幕右缘之外
+  drawRoadBuild(ctx, t, born, px + PLAYER_SIZE + 6, W + 40, py + 4);
+  drawPlayer(px, py, t);
+  drawVignette();
+}
+
+/* 调试/截图模式：?t=1500 → 直接静态渲染动画开始后第 1500ms 的那一帧。
+ * drawRoadBuild 是纯函数，任意时刻一帧都可确定复现（headless 截图自验用）。 */
+const dbgT = new URLSearchParams(location.search).get('t');
+if (dbgT !== null){
+  // 每帧都重绘同一时刻 → 画面静止但确定，headless 一定能合成到
+  const fixed = Number(dbgT);
+  (function dbgLoop(){
+    renderFrame(fixed, 0);
+    requestAnimationFrame(dbgLoop);
+  })();
+} else {
+  (function frame(t){
+    renderFrame(t, bornTime);
+    requestAnimationFrame(frame);
+  })(performance.now());
+}
+</script>
+</body>
+</html>
