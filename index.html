@@ -114,58 +114,296 @@
 /* ================= 基础 ================= */
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let VW=0, VH=0;
-function resize(){ VW=cv.width=innerWidth; VH=cv.height=innerHeight; }
+const FONT='"Cascadia Mono","Consolas","Courier New",monospace';   // 全局统一字体(canvas 与 DOM 一致)
+/* 按屏幕像素比缩放画布→高清屏也清晰不糊；VW/VH 仍用 CSS 像素, 绘制逻辑不变 */
+function resize(){ const dpr=Math.min(2, window.devicePixelRatio||1);
+  VW=innerWidth; VH=innerHeight;
+  cv.width=Math.round(VW*dpr); cv.height=Math.round(VH*dpr);
+  cv.style.width=VW+'px'; cv.style.height=VH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0); }
 addEventListener('resize', resize); resize();
 
 const SAVE_KEY='genesis_mvp_v1';
-const WORLD_W=8200, SPAWN=2800;          // 出生点固定 2800(不跟 WORLD_W 走)
-const BEATS=['void','binary','roam','clock','ascii','uni','pixel','end'];
-/* 小人 sprite：8×12 位图。上半身固定，下面三行腿由行走循环替换 */
-const SPR_W=8, SPR_H=12;
-const SPR=[0b00111100,0b01111110,0b01011110,0b00111100,0b00011000,0b01111110,
-          0b10111101,0b01111110,0b00111100,0,0,0];   // 第2行留单片镜缺口
-/* 行走循环：交替抬脚的"踏步"(不是整条腿甩出去)，配合身体轻微起伏 bob */
-const WALK=[
-  {legs:[0b00100100,0b00100100,0b01100110], bob:0},   // 触地
-  {legs:[0b00100100,0b00100100,0b00100110], bob:-1},  // 抬左脚+身体抬
-  {legs:[0b00100100,0b00100100,0b01100110], bob:0},   // 触地
-  {legs:[0b00100100,0b00100100,0b01100100], bob:-1},  // 抬右脚+身体抬
-];
-/* 64×64 主角肖像(囚徒：乱发+单片镜+条纹囚服)，程序化生成→细化演出逐级清晰 */
-const CHARG=(function(){
-  const S=64, g=Array.from({length:S},()=>new Array(S).fill(false));
-  const on=(x,y)=>{ x|=0;y|=0; if(x>=0&&y>=0&&x<S&&y<S) g[y][x]=true; };
-  const off=(x,y)=>{ x|=0;y|=0; if(x>=0&&y>=0&&x<S&&y<S) g[y][x]=false; };
-  const disc=(cx,cy,r,set)=>{ for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++) if(x*x+y*y<=r*r) (set?on:off)(cx+x,cy+y); };
-  const ring=(cx,cy,r)=>{ for(let a=0;a<360;a+=4) on(cx+Math.cos(a*Math.PI/180)*r, cy+Math.sin(a*Math.PI/180)*r); };
-  // ① 乱发先铺(头顶不规则尖发) → ② 头实心画在其上(把脸区盖回, 发只剩四周) → ③ 最后掏五官
-  for(let x=17;x<=47;x++){ const h=9+((x*7)%8);
-    for(let y=4;y<4+h;y++) if(((x*13+y*7)%9)<5) on(x,y); }
-  disc(32,22,12,1);                                 // 头(实心, 盖住脸区的乱发)
-  disc(26,21,3,0); disc(38,21,3,0);                 // 掏两个眼窝
-  ring(26,21,4);                                    // 左眼=单片镜圈
-  disc(26,21,1,1); disc(38,21,1,1);                 // 两个瞳孔
-  on(30,28);on(31,28);on(32,28);on(33,28);          // 嘴一横
-  // ④ 躯干+横条纹囚服
-  for(let y=35;y<=56;y++)for(let x=19;x<=45;x++){
-    if((y-35)%6<3) on(x,y); else if(x<=20||x>=44) on(x,y);
+const WORLD_W=9600, SPAWN=2800;          // 出生点固定 2800(不跟 WORLD_W 走)
+const TERMINUS4_X=9400;                  // 祭坛法阵世界 x；提前声明供调试入口使用
+/* 章末祭坛插画(有版权, 已 .gitignore)。图内: 左砖路x208起 → 台阶 → 圆台法阵(圆心≈img770,215) */
+const ALTAR_IMG=new Image(); let altarReady=false, altarPix=null;
+ALTAR_IMG.onload=()=>{ altarReady=true;
+  try{ const c=document.createElement('canvas'); c.width=1080; c.height=603;
+    const g=c.getContext('2d'); g.drawImage(ALTAR_IMG,0,0); altarPix=g.getImageData(0,0,1080,603).data; }catch(e){} };
+ALTAR_IMG.src='altar_edit.webp';
+/* 可行走遮罩(白=能站)。运行时按角色脚底采样→真·按脚碰撞 */
+const WALK_MASK=new Image(); let maskData=null, maskFailed=false;
+WALK_MASK.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=1080; c.height=603;
+  const g=c.getContext('2d'); g.drawImage(WALK_MASK,0,0); maskData=g.getImageData(0,0,1080,603).data; }
+  catch(e){ maskFailed=true; console.warn('walk mask unavailable, using geometry fallback', e); } };
+WALK_MASK.onerror=()=>{ maskFailed=true; };
+WALK_MASK.src='walk_mask.png';
+function maskFallback(fx,fy){
+  if(fx<208||fy<0||fx>=1080||fy>=603) return false;
+  if(fx>=208&&fx<=410&&fy>=324&&fy<=397) return true;
+  if(fx>=548&&fx<=1012){
+    const nx=(fx-780)/232, ny=(fy-230)/94;
+    if(nx*nx+ny*ny<=1) return true;
   }
-  for(let y=36;y<=50;y++){ on(17,y);on(18,y);on(46,y);on(47,y); }      // 手臂
-  disc(17,51,2,1); disc(47,51,2,1);                 // 手
-  for(let y=56;y<=63;y++){ on(27,y);on(28,y);on(35,y);on(36,y); }      // 双腿
-  for(let x=24;x<=30;x++) on(x,63); for(let x=34;x<=40;x++) on(x,63);  // 双脚
+  const top=[
+    [410,324],[438,299],[468,274],[500,247],[536,218],[574,193],[612,180],[652,188],
+    [708,250],[700,292],[640,306],[600,288],[560,270],[520,298],[480,330],[440,365],[410,397]
+  ];
+  let inside=false;
+  for(let i=0,j=top.length-1;i<top.length;j=i++){
+    const xi=top[i][0], yi=top[i][1], xj=top[j][0], yj=top[j][1];
+    if(((yi>fy)!==(yj>fy)) && fx<(xj-xi)*(fy-yi)/(yj-yi)+xi) inside=!inside;
+  }
+  return inside;
+}
+function maskWalk(fx,fy){ const x=fx|0,y=fy|0;
+  if(x<0||y<0||x>=1080||y>=603) return false;
+  if(!maskData) return maskFallback(fx,fy);
+  return maskData[(y*1080+x)*4+3]>40; }
+const AIMG_W=1080, AIMG_H=603, AIMG_CIRCLE_X=775, AIMG_CIRCLE_Y=222, AIMG_EDGE=208;
+const AIMG_SCALE=0.8, AIMG_YOFF=252;                          // 插画缩放+竖直落位(IMG_Y0=midY-AIMG_YOFF)
+const IMG_LTOP=324, IMG_LBOT=448;                             // 图左缘石板路横截面上下沿: 顶面上沿→侧面下沿
+/* 三段可走区(图内坐标, fx=图内x, fy=脚的图内y):
+   平路 fx[208,425]=上下带[318,400]自由; 台阶 fx[425,640]=踩亮色台阶顶(锁线); 圆盘 fx≥640=椭圆内自由(按脚碰撞) */
+const FLAT_X1=425, STAIR_X1=640, FLAT_TOP=318, FLAT_BOT=400;
+const DISC_CX=770, DISC_CY=235, DISC_RX=168, DISC_RY=62;
+const STAIR_FY0=360, STAIR_FY1=245;                            // 台阶脚线两端 fy(中心线)
+function discTop(fx){ const nx=(fx-DISC_CX)/DISC_RX; return DISC_CY-DISC_RY*Math.sqrt(Math.max(0,1-nx*nx)); }
+function discBot(fx){ const nx=(fx-DISC_CX)/DISC_RX; return DISC_CY+DISC_RY*Math.sqrt(Math.max(0,1-nx*nx)); }
+function stairFy(fx){ return STAIR_FY0+(STAIR_FY1-STAIR_FY0)*((fx-FLAT_X1)/(STAIR_X1-FLAT_X1)); }
+/* 图内 fy ↔ G.py：脚屏幕y = (midY-AIMG_YOFF)+fy*AIMG_SCALE = midY+py+8 */
+const fyToPy=fy=>fy*AIMG_SCALE-(AIMG_YOFF+8), pyToFy=py=>(py+AIMG_YOFF+8)/AIMG_SCALE;
+const altarImgLeft=()=>TERMINUS4_X-AIMG_CIRCLE_X*AIMG_SCALE;
+function preferAltarFy(fx){
+  if(fx<AIMG_EDGE) return pyToFy(40);
+  if(fx<FLAT_X1) return 354;
+  if(fx<STAIR_X1) return stairFy(fx);
+  return 236;   // 圆盘面中心偏前，角色身体压在法阵中央
+}
+function nearestMaskFy(fx, prefer){
+  const x=Math.max(0,Math.min(1079,Math.round(fx)));
+  const p=Math.max(0,Math.min(602,Math.round(prefer)));
+  for(let d=0; d<170; d++){
+    const y1=p-d, y2=p+d;
+    if(y1>=0 && maskWalk(x,y1)) return y1;
+    if(y2<603 && maskWalk(x,y2)) return y2;
+  }
+  return prefer;
+}
+function snapPyToMask(px, py){
+  const fx=(px-altarImgLeft())/AIMG_SCALE;
+  return fyToPy(nearestMaskFy(fx, pyToFy(py)));
+}
+function rgbOfHex(h){
+  return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+}
+function mixRgb(a,b,m){
+  return 'rgb('+Math.round(a[0]+(b[0]-a[0])*m)+','+Math.round(a[1]+(b[1]-a[1])*m)+','+Math.round(a[2]+(b[2]-a[2])*m)+')';
+}
+function altarEdgeRgb(fy){
+  if(!altarPix) return null;
+  const x=AIMG_EDGE, y=Math.max(0,Math.min(602,Math.round(fy)));
+  const o=(y*1080+x)*4;
+  if(altarPix[o+3]<20) return null;
+  return [altarPix[o],altarPix[o+1],altarPix[o+2]];
+}
+const BEATS=['void','binary','roam','clock','ascii','uni','pixel','colour','end'];
+/* 64×64 主角=卢卡·巴尔萨(囚徒:单片圆镜/呆毛乱发/脏辫/高领围巾/工具带外套/粗腿靴)。
+   绘制目标/细化/地图小人全用它,一脉相承(char_lab.html 打磨) */
+/* 调色板+像素图=从参考图 ref.png 逐格采样(26×29,11色)。索引0=空。COLOUR前显示单色绿,之后真彩 */
+const PAL=['','#010101','#824920','#955634','#f5f5f5','#80806b','#d4a2d8','#f5c2cb','#282421','#bfbfc0','#a19582','#4358a6'];
+//            1黑     2发棕    3发浅    4白/肤   5灰绿(镜/纹) 6镜紫   7腮红    8深(衫/廓) 9浅灰   10棕(带)  11蓝(裤)
+/* CHARC: 64×64 颜色索引图(0=空)。CHARG=其布尔轮廓(单色时用) */
+/* 角色像素图 26×29(从 ref.png 逐格采样, 每字符=调色板索引 hex)。再等比放大填满 64×64 */
+const CHAR_ART=[
+".......1..................",
+"......121.................",
+"......1221....111.........",
+".......12211112221.1111...",
+".....1112232222222122221..",
+"....1222232232222212221...",
+"...1222233222322221211....",
+"..122222223222322211......",
+"..1222242324224322221.....",
+".1222242234222242221......",
+"12222222232222223221......",
+".12222123221122232221.....",
+"..122141221441224421......",
+"..121455121661224421......",
+"..121455414554124421......",
+"..13145544455412221.......",
+"...117744444771221........",
+".....18889588881..........",
+"....14444599444411........",
+"..11488889588888481.......",
+".1484444444444411841......",
+"1484888888888881.141......",
+"1441114444444411..11......",
+".11..1222aa22158..........",
+".....11bb11bb158..........",
+"......1bb11bb188..........",
+"......1bb11bb1............",
+"......15511551............",
+"......11111111............",
+];
+const CHARC=(function(){
+  const S=64, g=Array.from({length:S},()=>new Array(S).fill(0));
+  const AW=26, AH=CHAR_ART.length, sc=Math.min((S-2)/AW, S/AH);   // 等比放大填满画框
+  const ox=Math.round((S-AW*sc)/2), oy=Math.round((S-AH*sc)/2);
+  for(let ay=0;ay<AH;ay++){ const row=CHAR_ART[ay]; for(let ax=0;ax<AW;ax++){
+    const ch=row[ax]||'.'; if(ch==='.') continue;
+    const c=parseInt(ch,16); if(!c) continue;
+    const x0=Math.round(ox+ax*sc), x1=Math.round(ox+(ax+1)*sc);
+    const y0=Math.round(oy+ay*sc), y1=Math.round(oy+(ay+1)*sc);
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++) if(x>=0&&y>=0&&x<S&&y<S) g[y][x]=c;
+  }}
   return g;
 })();
-/* 把 64×64 主图降采样到 N×N(块内过半即亮)，画到以(cx,cy)为中心、边长 box 的方框 */
-function drawCharRes(cx,cy,box,N){
-  const cell=box/N, x0=cx-box/2, y0=cy-box/2, s=64/N;
-  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+const CHARG=CHARC.map(row=>row.map(v=>v>0));   // 布尔轮廓(单色/位深=1时用)
+/* 把 64×64 降采样到 N×N(块内过半即亮), 返回布尔网格 */
+function charDown(N){
+  const s=64/N, out=[];
+  for(let r=0;r<N;r++){ const row=[]; for(let c=0;c<N;c++){
     let hit=0,tot=0;
-    for(let yy=0;yy<s;yy++)for(let xx=0;xx<s;xx++){
-      const sr=(r*s+yy)|0, sc=(c*s+xx)|0; tot++; if(CHARG[sr]&&CHARG[sr][sc]) hit++;
+    for(let yy=0;yy<s;yy++)for(let xx=0;xx<s;xx++){ const sr=(r*s+yy)|0,sc=(c*s+xx)|0; tot++; if(CHARG[sr][sc]) hit++; }
+    row.push(hit*2>=tot); } out.push(row); }
+  return out;
+}
+/* 绘制谜题目标 = 角色的 8×8 缩略版(所以你画的就是细化的第 0 层, 之后原地分格加细) */
+const DRAW8=(function(){ const d=charDown(8);
+  return d.map(row=>{ let b=0; for(let c=0;c<8;c++) if(row[c]) b|=1<<(7-c); return b; }); })();
+/* 画降采样网格(单色绿)到以(cx,cy)为中心、边长 box 的方框——分辨率细化用 */
+function drawCharRes(cx,cy,box,N){
+  const grid=charDown(N), cell=box/N, x0=cx-box/2, y0=cy-box/2;
+  ctx.fillStyle='#a8ffc4';
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++) if(grid[r][c]) ctx.fillRect(x0+c*cell,y0+r*cell,cell-0.5,cell-0.5);
+}
+/* 把 64×64 颜色图降采样到 N×N, 每格取块内出现最多的非空色号(0=空) */
+function charDownC(N){
+  const s=64/N, out=[];
+  for(let r=0;r<N;r++){ const row=[]; for(let c=0;c<N;c++){
+    const cnt={};
+    for(let yy=0;yy<s;yy++)for(let xx=0;xx<s;xx++){ const v=CHARC[(r*s+yy)|0][(c*s+xx)|0]; if(v) cnt[v]=(cnt[v]||0)+1; }
+    let best=0,bn=0; for(const k in cnt) if(cnt[k]>bn){ bn=cnt[k]; best=+k; }
+    row.push(best); } out.push(row); }
+  return out;
+}
+const CHARDISS=charDownC(16);   // 传送溶解用的降采样彩色网格(格子大些, 原尺寸下 0/1 也看得清)
+/* 传送溶解: 未转化的部分保持【和普通小人完全一样的 64 分辨率彩色像素】(不变粗);
+   转化前沿由头到脚扫过, 扫过的 4×4 块变成一个 0/1; 过半后 0/1 从头开始向上飞升渐隐。el=传送已过毫秒 */
+function drawCharDissolve(cx,cy,box,el){
+  const NB=CHARDISS.length, bs=64/NB;              // 4px 块(数字以块为单位, 保证可读)
+  const scale=box/64, x0=Math.round(cx-64*scale/2), y0=Math.round(cy-64*scale/2);
+  const DISS=1400, HALF=DISS*0.5, RSPREAD=1700, RDUR=1300, sz=Math.ceil(scale)+0.5;
+  ctx.textAlign='center';
+  for(let br=0;br<NB;br++){
+    const convT=(br/(NB-1))*DISS;
+    if(el<convT){
+      /* 该块行还没转化 → 用满分辨率 CHARC 原样画彩色像素(与 drawCharSprite 一致, 完全不变) */
+      for(let yy=0;yy<bs;yy++){ const rr=br*bs+yy, row=CHARC[rr];
+        for(let cc=0;cc<64;cc++){ const v=row[cc]; if(!v) continue;
+          ctx.fillStyle=PAL[v]; ctx.fillRect(Math.round(x0+cc*scale),Math.round(y0+rr*scale),sz,sz); } }
+    }else{
+      /* 已转化 → 每个有内容的 4×4 块变成一个 0/1, 按头→脚顺序飞升渐隐 */
+      ctx.font=Math.round(bs*scale*1.5)+'px '+FONT;
+      for(let bc=0;bc<NB;bc++){ const v=CHARDISS[br][bc]; if(!v) continue;
+        const seed=((br+3)*73856093^(bc+5)*19349663^(v+11)*83492791)>>>0;
+        const rnd=(seed%1000)/1000, rnd2=((seed>>>10)%1000)/1000;
+        const rs=HALF+(br/(NB-1))*RSPREAD+rnd*420;       // 同一排内部随机冒泡
+        let dy=0,a=1;
+        if(el>rs){
+          const rp=(el-rs)/(RDUR*(.85+rnd2*.35));
+          if(rp>=1) continue;
+          const acc=rp*rp*(1.15+.55*rp);                // 慢起步→越来越快
+          dy=-acc*(118+rnd*90);
+          a=Math.max(0,1-rp*.9);
+        }
+        ctx.fillStyle='rgba(150,255,185,'+a+')';
+        const dig=((br*7+bc*13+v)&1)?'1':'0';
+        ctx.fillText(dig, x0+(bc*bs+bs/2)*scale, y0+(br*bs+bs*0.95)*scale+dy); }
     }
-    if(hit*2>=tot){ ctx.fillStyle='#a8ffc4'; ctx.fillRect(x0+c*cell,y0+r*cell,cell-0.5,cell-0.5); }
   }
+  ctx.textAlign='left';
+}
+/* 章末祭坛插画(缩放绘制) + 法阵仪式(平面亮阵 + 轻微竖光, 不加圆罩辉光)。圆阵圆心对齐世界 TERMINUS4 */
+function drawAltarScene(el,t,midY){
+  const T4=TERMINUS4.x, IMG_LEFT=T4-AIMG_CIRCLE_X*AIMG_SCALE, IMG_Y0=Math.round(midY-AIMG_YOFF);
+  if(altarReady){
+    const dx=Math.round(sx(IMG_LEFT)), dw=Math.round(AIMG_W*AIMG_SCALE), dh=Math.round(AIMG_H*AIMG_SCALE);
+    if(dx<VW+40 && dx+dw>-40) ctx.drawImage(ALTAR_IMG, dx, IMG_Y0, dw, dh);
+  }
+  const ccx=sx(T4), ccy=IMG_Y0+AIMG_CIRCLE_Y*AIMG_SCALE;
+  if(ccx<-220||ccx>VW+220) return;
+  const tel=G.teleAt?(t-G.teleAt):-1;
+  /* 仪式: 先让插画上的圆阵本身亮起来，再升起很暗的垂直光；不画圆罩/白闪。 */
+  if(tel>=900){
+    const flash1=Math.max(0,1-Math.abs(tel-1040)/140);
+    const flash2=Math.max(0,1-Math.abs(tel-1450)/160);
+    const steady=Math.min(1,Math.max(0,(tel-1700)/700));
+    const fade=tel>5200?Math.max(0,1-(tel-5200)/900):1;
+    const a=(.05*steady+.13*Math.max(flash1,flash2))*fade;
+    const rx=144*AIMG_SCALE, ry=62*AIMG_SCALE;
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ctx.lineWidth=1.2;
+    ctx.strokeStyle='rgba(118,220,255,'+a+')';
+    ctx.fillStyle='rgba(75,185,255,'+(a*.20)+')';
+    ctx.beginPath(); ctx.ellipse(ccx,ccy,rx,ry,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='rgba(160,235,255,'+(a*.8)+')';
+    ctx.beginPath(); ctx.ellipse(ccx,ccy,rx*.66,ry*.58,0,0,Math.PI*2); ctx.stroke();
+    for(let k=0;k<6;k++){
+      const ang=k*Math.PI/3+t*.00012;
+      const x1=ccx+Math.cos(ang)*rx*.38, y1=ccy+Math.sin(ang)*ry*.38;
+      const x2=ccx+Math.cos(ang+Math.PI)*rx*.38, y2=ccy+Math.sin(ang+Math.PI)*ry*.38;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  const upP=(tel>=0)?Math.min(1,Math.max(0,(tel-2300)/900)):0;
+  if(upP>0){
+    const RX=110*AIMG_SCALE;
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    for(let k=0;k<11;k++){ const fx=ccx+(k/10-.5)*RX*1.7, h=120;
+      const a=upP*(.10+.05*Math.sin(t/280+k*1.3));      // 压暗(原来太亮看不清)
+      const lg=ctx.createLinearGradient(0,ccy,0,ccy-h);
+      lg.addColorStop(0,'rgba(150,205,255,'+a+')'); lg.addColorStop(1,'rgba(150,205,255,0)');
+      ctx.fillStyle=lg; ctx.fillRect(fx-2, ccy-h, 4, h); }
+    ctx.restore();
+  }
+}
+/* 走路四帧: 站/抬左脚/站/抬右脚(把该脚最下两行清掉=抬起, 不甩腿) */
+function legLift(x0,x1){ const g=CHARC.map(r=>r.slice()); for(let y=62;y<=63;y++)for(let x=x0;x<=x1;x++) g[y][x]=0; return g; }
+const CHAR_WALK=[CHARC, legLift(16,24), CHARC, legLift(26,34)];
+/* 地图角色 sprite: 64×64 缩放。colored=true 用调色板真彩, 否则单色绿。整数对齐保证清晰 */
+function drawCharSprite(cx,cy,scale,walking,phase,glow,colored){
+  const g=walking?CHAR_WALK[phase&3]:CHARC;
+  const bob=walking&&(phase&1)?-1.5:0;
+  if(glow){ const gl=ctx.createRadialGradient(cx,cy,0,cx,cy,64*scale*.75);
+    gl.addColorStop(0,'rgba(125,255,160,.4)'); gl.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(cx,cy,64*scale*.8,0,7); ctx.fill(); }
+  const x0=Math.round(cx-64*scale/2), y0=Math.round(cy-64*scale/2+bob), sz=Math.ceil(scale)+0.5;
+  for(let r=0;r<64;r++){ const row=g[r]; for(let c=0;c<64;c++){ const v=row[c]; if(!v) continue;
+    ctx.fillStyle=colored?PAL[v]:'#a8ffc4';
+    ctx.fillRect(Math.round(x0+c*scale),Math.round(y0+r*scale),sz,sz); } }
+}
+/* 灰阶调色板(PAL 各色的亮度)——位深演出的中间档 */
+const PAL_GREY=PAL.map((h,i)=>{ if(!h) return '';
+  const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+  const y=Math.round(.3*r+.59*g+.11*b).toString(16).padStart(2,'0'); return '#'+y+y+y; });
+/* 十六进制颜色线性插值 */
+function lerpHex(a,b,m){
+  const pa=[parseInt(a.slice(1,3),16),parseInt(a.slice(3,5),16),parseInt(a.slice(5,7),16)];
+  const pb=[parseInt(b.slice(1,3),16),parseInt(b.slice(3,5),16),parseInt(b.slice(5,7),16)];
+  return 'rgb('+Math.round(pa[0]+(pb[0]-pa[0])*m)+','+Math.round(pa[1]+(pb[1]-pa[1])*m)+','+Math.round(pa[2]+(pb[2]-pa[2])*m)+')';
+}
+/* 位深演出: stage 为小数 0..2, 在 0=1bit(单色绿) 1=灰阶 2=真彩 之间平滑过渡。box 为显示边长 */
+function drawCharDepth(cx,cy,box,stage){
+  const s=box/64, x0=cx-box/2, y0=cy-box/2;
+  const st=Math.max(0,Math.min(2,stage)), i=Math.min(1,Math.floor(st)), f=st-i;
+  for(let r=0;r<64;r++)for(let c=0;c<64;c++){ const v=CHARC[r][c]; if(!v) continue;
+    const cols=['#a8ffc4', PAL_GREY[v], PAL[v]];
+    ctx.fillStyle = f<=0 ? cols[i] : lerpHex(cols[i],cols[i+1],f);
+    ctx.fillRect(Math.round(x0+c*s),Math.round(y0+r*s),Math.ceil(s)+0.4,Math.ceil(s)+0.4); }
 }
 const beatIdx=b=>BEATS.indexOf(b);
 
@@ -175,8 +413,11 @@ const G={
   lockUntil:0,                            // 演出期间锁玩家操作
   introDone:true, moved:false, panelOpen:null, narrActive:false,
   worldTexts:[],           // {x,y,text,shown}
-  clockLitAt:0, asciiSolvedAt:0, roadBornA:0, uniRoadBorn:0, chosenWord:'',
-  pixelBornAt:0, pixelRoadBorn:0, walkPhase:0,
+  clockLitAt:0, asciiSolvedAt:0, roadBornA:0, uniRoadBorn:0, chosenWord:'', genesisAt:0,
+  pixelBornAt:0, pixelRoadBorn:0, walkPhase:0, pixelBox:null,
+  greyBornAt:0, colourBornAt:0, colourRoadBorn:0,
+  teleAt:0, teleStartX:0, teleEnded:false,
+  lastGoodPx:null, lastGoodPy:null,
 };
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(
   {beat:G.beat, binLevel:G.binLevel, chosenWord:G.chosenWord})); }catch(e){} }
@@ -190,8 +431,20 @@ load();
 const qbeat=new URLSearchParams(location.search).get('beat');
 if(qbeat && BEATS.includes(qbeat)){ G.beat=qbeat; G.introDone=true;
   if(qbeat==='pixel'){ G.px=6600; G.camx=6600;   // 调试：播放细化演出(TERMINUS2=6600)
-    G.pixelBornAt=performance.now(); G.pixelRoadBorn=performance.now()+6200; G.lockUntil=performance.now()+8800; }
+    G.pixelBornAt=performance.now(); G.pixelRoadBorn=performance.now()+6200; G.lockUntil=performance.now()+9000; }
+  if(qbeat==='colour'){ G.px=8000; G.camx=8000;  // 调试：播放真彩上色演出(TERMINUS3=8000)
+    G.pixelBornAt=1; G.greyBornAt=0; G.colourBornAt=performance.now(); G.colourRoadBorn=performance.now()+3400; G.lockUntil=performance.now()+3200; }
 }
+const qscene=parseInt(new URLSearchParams(location.search).get('scene'));  // 调试：?scene=8880 颜色路全铺好,静止站在某世界x
+if(!isNaN(qscene)){ G.beat='colour'; G.introDone=true; G.pixelBornAt=1; G.colourBornAt=-1e6; G.colourRoadBorn=-1e6;
+  G.px=Math.max(60,Math.min(WORLD_W-60,qscene)); G.camx=G.px;
+  const fx=(G.px-altarImgLeft())/AIMG_SCALE;
+  G.py = fx<AIMG_EDGE ? 40 : fyToPy(preferAltarFy(fx));
+  G._snapSceneToMask=true; }
+const qtele=parseInt(new URLSearchParams(location.search).get('tele'));  // 调试：?tele=1500 从传送开始1500ms定格(TERMINUS4=9400)
+if(!isNaN(qtele)){ G.beat='colour'; G.introDone=true; G.pixelBornAt=1; G.colourBornAt=-1e6; G.colourRoadBorn=-1e6;
+  G.px=TERMINUS4_X; G.camx=TERMINUS4_X; G.teleStartX=TERMINUS4_X-70; G.py=fyToPy(236);
+  G.teleAt=performance.now()-qtele; G.lockUntil=performance.now()+1e7; }
 const qx=parseInt(new URLSearchParams(location.search).get('x'));   // 调试：?x=4600 指定出生位置
 if(!isNaN(qx)){ G.px=Math.max(60,Math.min(WORLD_W-60,qx)); G.camx=G.px; }
 const past=b=>beatIdx(G.beat)>=beatIdx(b);   // 已到达/越过某节拍
@@ -310,9 +563,11 @@ function openSeq(){
 function seqSolved(){
   if(G.panelOpen!=='seq') return;
   overlay.querySelector('.panel').classList.add('flash');
-  /* 无言演出：01 雨落下 + 路从虚空铺开 + WASD 键帽浮现。世界还没有字。 */
-  setTimeout(()=>{ closePanel(); G.beat='roam'; G.roadBornA=performance.now();
-    G.lockUntil=performance.now()+1800;   // 原地看一秒多铺路，之后不会追上波前
+  /* 创世演出: 满屏 0/1 收缩汇聚成 [0 1 / 1 0] 方块(世界现在由二进制构成)→再化作 01 雨与路。演出中锁移动 */
+  setTimeout(()=>{ closePanel(); G.beat='roam';
+    G.genesisAt=performance.now();
+    G.roadBornA=performance.now()+2600;   // 方块成形后才开始铺路
+    G.lockUntil=performance.now()+3000;   // 汇聚演出期间不能动
     save(); },700);
 }
 
@@ -424,9 +679,10 @@ function spawnEchoTexts(instant){
 function spawnUniTexts(word, instant){
   const cn=word==='你好';
   const line=cn?'现在，你能读懂我说的话了。':'NOW YOU CAN READ WHAT I SAY.';
+  /* 与左边 HI 那组保持一致高度与字号(词≈HI:0.335/20, 句≈"I HAVE BEEN…":0.42/20) */
   G.worldTexts.push(
-    {x:5400, y:0.40, text:word, sz:26, notype:true, t0:0},                       // TERMINUS=5400
-    {x:5400, y:0.475, text:line, sz:17, t0:instant?0:performance.now()+500});
+    {x:5400, y:0.335, text:word, sz:20, notype:true, t0:0},                      // TERMINUS=5400
+    {x:5400, y:0.42, text:line, sz:20, spd:115, t0:instant?0:performance.now()+500});  // 句子打慢一点
 }
 function asciiSolved(){
   /* 文字诞生。不弹独白——旁白以"路"的形式从左到右拼在地上(见 drawRoad 字母段)。 */
@@ -441,18 +697,19 @@ function asciiSolved(){
    全部忠实码位升序：0-9<A-Z<a-z；希腊<西里尔<希伯来<泰文<假名<中文，跳跃处···。
    最后 CHOOSE YOUR LANGUAGE：英文框 / 中文列高亮可选，选中的字符飘到下方拼 HELLO / 你好。 */
 function openUni(){
-  /* 列头带字节数：随码位增大，一个字符要占的字节从 1→2→3→4 —— 这就是 UTF-8 变长编码 */
+  /* 列头带字节数：随码位增大，一个字符占的字节从 1→2→3→4 —— UTF-8 变长编码。
+     每列首尾都留 ···(说明这只是整张码表的一个窗口，上下都还有)，各列填到相近高度 */
+  const wrap=arr=>[{g:1},...arr,{g:1}];
   const COLS=[
-    /* 标点也是 ASCII(1 byte)，码位在数字之前——文字从这里起就能带标点了 */
-    {h:'! ? . · 0–9 · A–Z', c:[{v:33},{v:46},{v:63},{g:1},{v:48},{v:49},{g:1},{v:57},{g:1},{v:65},{v:66},{g:1},{v:90}]},
-    {h:'a–z',       c:[{v:97},{v:98},{v:99},{g:1},{v:120},{v:121},{v:122}]},
-    {h:'2 BYTES · GREEK RUS', c:[{v:0x3B1},{v:0x3B2},{g:1},{v:0x3C9},{g:1},{v:0x410},{v:0x411},{g:1},{v:0x42F}]},
-    {h:'2 BYTES · HEBREW ARABIC', c:[{v:0x5D0},{v:0x5D1},{g:1},{v:0x5EA},{g:1},{v:0x627},{v:0x628},{g:1},{v:0x64A}]},
-    {h:'3 BYTES · THAI KANA',  c:[{v:0xE01},{v:0xE02},{g:1},{v:0x3042},{v:0x3044},{g:1},{v:0x30A2},{v:0x30AB},{g:1},{v:0x30F3}]},
-    /* 你/好 各带真实相邻码位的字——汉字也是连续编号(3 bytes) */
-    {h:'3 BYTES · CHINESE',    c:[{v:0x4F5F},{v:0x4F60},{v:0x4F61},{g:1},{v:0x597C},{v:0x597D},{v:0x597E}]},
-    /* 增补平面：真的要 4 bytes。😀😁😂 是连续码位 */
-    {h:'4 BYTES · EMOJI',      c:[{v:0x1F600},{v:0x1F601},{v:0x1F602},{g:1},{v:0x1F680}]},
+    {h:'! ? . · 0–9 · A–Z', c:wrap([{v:33},{v:46},{v:63},{g:1},{v:48},{v:49},{g:1},{v:57},{g:1},{v:65},{v:66},{g:1},{v:90}])},
+    {h:'a–z',       c:wrap([{v:97},{v:98},{v:99},{g:1},{v:107},{v:108},{g:1},{v:115},{v:116},{g:1},{v:120},{v:121},{v:122}])},
+    {h:'2 BYTES · GREEK RUS', c:wrap([{v:0x3B1},{v:0x3B2},{v:0x3B3},{g:1},{v:0x3C9},{g:1},{v:0x410},{v:0x411},{v:0x412},{g:1},{v:0x42E},{v:0x42F}])},
+    {h:'2 BYTES · HEBREW ARABIC', c:wrap([{v:0x5D0},{v:0x5D1},{v:0x5D2},{g:1},{v:0x5EA},{g:1},{v:0x627},{v:0x628},{v:0x62A},{g:1},{v:0x649},{v:0x64A}])},
+    {h:'3 BYTES · THAI KANA',  c:wrap([{v:0xE01},{v:0xE02},{v:0xE03},{g:1},{v:0x3042},{v:0x3044},{g:1},{v:0x30A2},{v:0x30AB},{g:1},{v:0x30F3}])},
+    /* 汉字也是连续编号(3 bytes)——你/好 各带真实相邻码位的字 */
+    {h:'3 BYTES · CHINESE',    c:wrap([{v:0x4E2D},{v:0x4E3E},{g:1},{v:0x4F5F},{v:0x4F60},{v:0x4F61},{g:1},{v:0x597C},{v:0x597D},{v:0x597E},{g:1},{v:0x5B57}])},
+    /* 增补平面：真的要 4 bytes。😀😁😂🚀 连续码位(每格 32 位分两行, 行更高) */
+    {h:'4 BYTES · EMOJI',      c:wrap([{v:0x1F600},{v:0x1F601},{v:0x1F602},{g:1},{v:0x1F680},{v:0x1F681},{g:1},{v:0x1F4A1}])},
   ];
   const cellHTML=(cell,ascii)=>{
     if(cell.g) return '<span class="ucell" style="visibility:hidden;color:#3a5c40;font-size:11px;line-height:1.6">···</span>';
@@ -542,7 +799,7 @@ function openUni(){
     panel.style.transition='opacity .6s'; panel.style.opacity='0';
     overlay.style.transition='background .6s'; overlay.style.background='rgba(0,0,0,0)';
     /* ② 词飞到世界里 TERMINUS(路尽头)略偏上的位置 */
-    const cw=cn?30:26;
+    const cw=cn?22:13;
     const flies=chars.map((ch,k)=>{
       const f=document.createElement('span'); f.textContent=ch;
       f.style.cssText='position:fixed;left:'+srcRects[k].left+'px;top:'+srcRects[k].top+'px;'+
@@ -551,8 +808,8 @@ function openUni(){
       document.body.appendChild(f); return f;
     });
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      const bx=sx(5400)-(chars.length-1)*cw/2, ty=VH*0.40-9;   // 世界文字锚点(5400=TERMINUS)
-      chars.forEach((ch,k)=>{ flies[k].style.left=(bx+k*cw)+'px'; flies[k].style.top=ty+'px'; flies[k].style.fontSize='26px'; });
+      const bx=sx(5400)-(chars.length-1)*cw/2, ty=VH*0.335-15;   // 落到词 worldText 处(5400=TERMINUS)
+      chars.forEach((ch,k)=>{ flies[k].style.left=(bx+k*cw)+'px'; flies[k].style.top=ty+'px'; flies[k].style.fontSize='20px'; });
     }));
     const landed=1100+chars.length*120;
     setTimeout(()=>{
@@ -576,35 +833,41 @@ function finishUni(word){
 function openPixel(){
   let html='<h2>THE MIRROR<span class="esc">Esc 离开</span></h2>'+
     '<div class="desc">这面镜子映不出你——你至今只是<b>一个颜色</b>，还没有形状。<br>'+
-    '一张图 = 一个二维的比特网格。<b>照着淡影，把自己画出来</b>：每格一个 bit，'+
-    '按住拖动可以连续涂。</div>'+
-    '<div id="pxgrid" style="display:grid;grid-template-columns:repeat('+SPR_W+',26px);'+
-      'gap:2px;justify-content:center;margin:6px auto;touch-action:none;user-select:none"></div>';
+    '一张图 = 一个二维的比特网格：每格一个 bit，<b>0 空、1 亮</b>。'+
+    '把所有 <b>1</b> 填满，就把自己画出来了(按住拖动可连续涂)。</div>'+
+    '<div style="text-align:center;margin:10px 0"><div id="pxgrid" '+
+      'style="display:inline-grid;grid-template-columns:repeat(8,30px);'+
+      'gap:2px;touch-action:none;user-select:none"></div></div>';
   openPanel(html,'pixel');
+  const N=8, TGT=DRAW8;                    // 8×8 网格, 目标=DRAW8
   const grid=document.getElementById('pxgrid');
-  const cur=Array(SPR_H).fill(0);
+  const cur=Array(N).fill(0);
   const cells=[];
-  for(let r=0;r<SPR_H;r++)for(let c=0;c<SPR_W;c++){
-    const on=SPR[r]&(1<<(7-c));           // 目标淡影
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const on=TGT[r]&(1<<(7-c));           // 目标: 1=要填, 0=空
     const b=document.createElement('div');
     b.dataset.r=r; b.dataset.c=c;
-    b.style.cssText='width:26px;height:26px;border-radius:3px;'+
-      'border:1px solid '+(on?'#284d30':'#152315')+';'+
-      'background:'+(on?'rgba(90,212,119,.06)':'#080f0a')+';cursor:pointer';
+    b.textContent=on?'1':'0';
+    b.style.cssText='width:30px;height:30px;border-radius:3px;'+
+      'display:flex;align-items:center;justify-content:center;font-size:15px;user-select:none;'+
+      'border:1px solid '+(on?'#3a5c40':'#182518')+';'+
+      'background:'+(on?'#0c160e':'#080f0a')+';'+
+      'color:'+(on?'#6aa872':'#2a3a2c')+';cursor:pointer';
     grid.appendChild(b); cells.push(b);
   }
-  const idx=(r,c)=>r*SPR_W+c;
+  const idx=(r,c)=>r*N+c;
   const paint=(r,c,mode)=>{
-    if(r<0||c<0||r>=SPR_H||c>=SPR_W) return;
-    const bit=1<<(7-c), was=!!(cur[r]&bit);
+    if(r<0||c<0||r>=N||c>=N) return;
+    const bit=1<<(7-c), was=!!(cur[r]&bit), tgtOn=!!(TGT[r]&bit);
     if(mode===was) return;
     if(mode) cur[r]|=bit; else cur[r]&=~bit;
     const b=cells[idx(r,c)];
-    b.style.background=mode?'#7dffa0':'#080f0a';
-    b.style.borderColor=mode?'#7dffa0':((SPR[r]&bit)?'#284d30':'#152315');
+    b.style.background=mode?'#7dffa0':(tgtOn?'#0c160e':'#080f0a');
+    b.style.color=mode?'#08140b':(tgtOn?'#6aa872':'#2a3a2c');
+    b.style.borderColor=mode?'#7dffa0':(tgtOn?'#3a5c40':'#182518');
     check();
   };
-  const check=()=>{ if(cur.every((v,r)=>v===SPR[r])) setTimeout(pixelSolved,300); };
+  const check=()=>{ if(cur.every((v,r)=>v===TGT[r])) setTimeout(pixelSolved,300); };
   let painting=false, mode=1;
   const cellAt=e=>{ const el=document.elementFromPoint(e.clientX,e.clientY);
     return el&&el.dataset&&el.dataset.r!==undefined?el:null; };
@@ -624,31 +887,125 @@ function openPixel(){
    5600–6200 缩小成小人   6200–7400 低头看手   7400–8800 雀跃   >8800 行走循环 */
 function pixelSolved(){
   if(G.panelOpen!=='pixel') return;
+  const gr=document.getElementById('pxgrid');   // 记下填色框的屏幕位置/大小→细化原地开始
+  if(gr){ const r=gr.getBoundingClientRect(); G.pixelBox={cx:r.left+r.width/2, cy:r.top+r.height/2, box:r.width}; }
   overlay.querySelector('.panel').classList.add('flash');
   setTimeout(()=>{
     closePanel(); G.beat='pixel'; G.pixelBornAt=performance.now();
     G.pixelRoadBorn=performance.now()+6200;   // 细化完+缩小后再铺 pixel 路
-    G.lockUntil=performance.now()+8800;
+    G.lockUntil=performance.now()+9000;
     save();
   },500);
 }
-/* 小人 sprite 绘制：rows=12字节, px=像素大小, glow=光晕 */
-function drawSprite(cx,cy,px,rows,glow){
-  if(glow){ const g=ctx.createRadialGradient(cx,cy,0,cx,cy,px*SPR_H*.9);
-    g.addColorStop(0,'rgba(125,255,160,.4)'); g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,px*SPR_H,0,7); ctx.fill(); }
-  const x0=cx-SPR_W*px/2, y0=cy-SPR_H*px/2;
-  for(let r=0;r<SPR_H;r++){ const b=rows[r];
-    for(let c=0;c<SPR_W;c++) if(b&(1<<(7-c))){
-      ctx.fillStyle='#a8ffc4'; ctx.fillRect(x0+c*px, y0+r*px, px-0.3, px-0.3);
-    } }
+
+/* ================= 第 2 章 · COLOUR DEPTH：给世界上色 ================= */
+/* 位深=每像素几个 bit=能有几种颜色。两段解谜，各配说明：
+     第一段 openColour(): 8-bit 灰阶——拼 8 位二进制凑目标灰度 → greySolved() 播 1-bit→灰阶演出(停在灰)
+     第二段 openColourTrue(): 24-bit 真彩——拨 R/G/B 的位凑目标发棕 → colourSolved() 播 灰阶→真彩演出
+   演出时间轴:
+     grey演出(相对 greyBornAt):   0–1600 1-BIT(单色绿)  1600– 8-BIT 灰阶(之后一直停在灰)
+     colour演出(相对 colourBornAt):0–1200 灰阶  1200–2600 24-BIT 真彩  2600–3200 缩成彩色小人  >3200 行走 */
+
+/* —— 第一段：8-bit 灰阶。拼 8 位二进制(128..1)凑目标灰度值 —— */
+function openColour(){
+  if(G.beat!=='pixel' || G.greyBornAt) return;
+  const PLACES=[128,64,32,16,8,4,2,1], TGT=180;   // 目标灰度 180 = 10110100
+  let html='<h2>COLOUR DEPTH · 灰阶<span class="esc">Esc 离开</span></h2>'+
+    '<div class="desc">位深 = 每个像素用几个 <b>bit</b>。1 bit 只能黑或白（2 色）；位越多，灰阶越细。<br>'+
+    '灰阶图每像素 <b>8 bit → 2⁸ = 256 级灰</b>。拨动 8 个位，拼出右边的目标灰度。</div>'+
+    '<div style="display:flex;gap:26px;justify-content:center;align-items:center;margin:14px 0">'+
+      '<div style="text-align:center"><div id="cmix" style="width:64px;height:64px;border-radius:6px;border:1px solid #3fae5c;background:rgb(0,0,0)"></div><div style="font-size:11px;color:#5a8a62;margin-top:4px">你调的 = <b id="cval">0</b></div></div>'+
+      '<div style="color:#4a7050;font-size:20px">→</div>'+
+      '<div style="text-align:center"><div style="width:64px;height:64px;border-radius:6px;border:1px solid #8a8a8a;background:rgb('+TGT+','+TGT+','+TGT+')"></div><div style="font-size:11px;color:#5a8a62;margin-top:4px">目标 = <b>'+TGT+'</b></div></div>'+
+    '</div><div id="crow" style="display:flex;gap:6px;justify-content:center;align-items:flex-start;margin:6px 0"></div>';
+  openPanel(html,'colour');
+  const rowEl=document.getElementById('crow');
+  const val=()=>[...rowEl.querySelectorAll('button')].reduce((s,x)=>s+(x.classList.contains('on')?+x.dataset.v:0),0);
+  PLACES.forEach(bv=>{
+    const wrap=document.createElement('div'); wrap.style.cssText='text-align:center';
+    const b=document.createElement('button'); b.textContent='0'; b.dataset.v=bv;
+    b.style.cssText='width:40px;height:46px;border:1px solid #1d4d28;border-radius:4px;background:#060d08;color:#2a4a30;font-size:20px;font-family:inherit;cursor:pointer';
+    b.onclick=()=>{ const on=b.classList.toggle('on');
+      b.textContent=on?'1':'0'; b.style.background=on?'#0d2d14':'#060d08'; b.style.color=on?'#d8e8dc':'#2a4a30'; b.style.borderColor=on?'#8fd9a0':'#1d4d28';
+      const v=val();
+      document.getElementById('cmix').style.background='rgb('+v+','+v+','+v+')';
+      document.getElementById('cval').textContent=v;
+      if(v===TGT){ overlay.querySelector('.panel').classList.add('flash'); setTimeout(greySolved,450); }
+    };
+    wrap.appendChild(b);
+    const cap=document.createElement('div'); cap.textContent=bv;
+    cap.style.cssText='font-size:9px;color:#4a7050;margin-top:3px'; wrap.appendChild(cap);
+    rowEl.appendChild(wrap);
+  });
 }
-/* 组装当前帧 sprite：行走循环取 WALK 帧, 返回 {rows, bob} */
-function sprFrame(walking,phase){
-  const rows=SPR.slice();
-  const f=WALK[walking?(phase&3):0];
-  rows[9]=f.legs[0]; rows[10]=f.legs[1]; rows[11]=f.legs[2];
-  return {rows, bob:walking?f.bob:0};
+function greySolved(){
+  if(G.panelOpen!=='colour') return;
+  closePanel(); G.greyBornAt=performance.now(); G.lockUntil=performance.now()+3400; save();
+  setTimeout(openColourTrue, 3400);   // 灰阶演出结束后自动进入真彩段
+}
+
+/* —— 第二段：24-bit 真彩。拨 R/G/B 的位凑目标发棕色 —— */
+function openColourTrue(){
+  if(G.beat!=='pixel') return;
+  const T=[4,2,1];                                   // 目标每通道 0..7 级: R=4 G=2 B=1 → 发棕
+  const CH=[{n:'R',col:'#e06a6a',v:0},{n:'G',col:'#6ae06a',v:0},{n:'B',col:'#6a9ae0',v:0}];
+  const lvl=v=>Math.round(v/7*255);
+  const mix=()=>'rgb('+lvl(CH[0].v)+','+lvl(CH[1].v)+','+lvl(CH[2].v)+')';
+  const tgt='rgb('+lvl(T[0])+','+lvl(T[1])+','+lvl(T[2])+')';
+  let html='<h2>COLOUR DEPTH · 真彩<span class="esc">Esc 离开</span></h2>'+
+    '<div class="desc">灰阶只有明暗。要真正的颜色，就把 <b style="color:#e06a6a">红</b>/<b style="color:#6ae06a">绿</b>/<b style="color:#6a9ae0">蓝</b> 三种光按不同强度混合。<br>'+
+    '真彩每通道 8 位、合计 <b>24 bit → 1600 万色</b>。这里每通道给你 3 个位，<b>拨 R/G/B 调出目标发棕色</b>。</div>'+
+    '<div style="display:flex;gap:26px;justify-content:center;align-items:center;margin:14px 0">'+
+      '<div style="text-align:center"><div id="cmix" style="width:64px;height:64px;border-radius:6px;border:1px solid #3fae5c;background:'+mix()+'"></div><div style="font-size:11px;color:#5a8a62;margin-top:4px">你调的</div></div>'+
+      '<div style="color:#4a7050;font-size:20px">→</div>'+
+      '<div style="text-align:center"><div style="width:64px;height:64px;border-radius:6px;border:1px solid #6b4a2a;background:'+tgt+'"></div><div style="font-size:11px;color:#5a8a62;margin-top:4px">目标</div></div>'+
+    '</div><div id="crows"></div>';
+  openPanel(html,'colour');
+  const rowsEl=document.getElementById('crows');
+  CH.forEach((ch)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;gap:8px;justify-content:center;align-items:center;margin:7px 0';
+    row.innerHTML='<span style="width:18px;color:'+ch.col+';font-weight:bold;font-size:16px">'+ch.n+'</span>';
+    [4,2,1].forEach(bv=>{
+      const b=document.createElement('button'); b.textContent='0'; b.dataset.v=bv;
+      b.style.cssText='width:42px;height:46px;border:1px solid #1d4d28;border-radius:4px;background:#060d08;color:#2a4a30;font-size:20px;font-family:inherit;cursor:pointer';
+      b.onclick=()=>{ const on=b.classList.toggle('on');
+        b.textContent=on?'1':'0'; b.style.background=on?'#0d2d14':'#060d08'; b.style.color=on?ch.col:'#2a4a30'; b.style.borderColor=on?ch.col:'#1d4d28';
+        ch.v=[...row.querySelectorAll('button')].reduce((s,x)=>s+(x.classList.contains('on')?+x.dataset.v:0),0);
+        document.getElementById('cmix').style.background=mix();
+        if(CH[0].v===T[0]&&CH[1].v===T[1]&&CH[2].v===T[2]){
+          overlay.querySelector('.panel').classList.add('flash'); setTimeout(colourSolved,450);
+        }
+      };
+      row.appendChild(b);
+    });
+    rowsEl.appendChild(row);
+  });
+}
+function colourSolved(){
+  if(G.panelOpen!=='colour') return;
+  closePanel(); G.beat='colour'; G.colourBornAt=performance.now();
+  G.colourRoadBorn=performance.now()+3400; G.lockUntil=performance.now()+3200;
+  save();
+}
+
+/* ================= 章末 · 传送阵：离开这个世界 ================= */
+/* 彩色路走到尽头=一座传送阵。交互→确认→自动走到阵心→阵由暗变亮→白光→(传送到主地图,后续再做,此处先落章末卡)。 */
+function openTeleport(){
+  if(G.beat!=='colour' || G.teleAt) return;
+  openPanel('<h2>传送阵<span class="esc">Esc 离开</span></h2>'+
+    '<div class="desc">石阶尽头是一座祭坛，坛面刻着一圈还没点亮的传送阵。<br>'+
+    '没有铭文说明它通向哪里——也许是这个世界之外，也许什么都不是。<br>踏进去，就再没有回头路。</div>'+
+    '<div style="text-align:center;margin:22px 0"><b style="color:#7dffa0;font-size:15px">是否站入这座传送阵？</b></div>'+
+    '<div style="display:flex;gap:16px;justify-content:center">'+
+      '<button id="teyes">踏进去</button><button class="sub" id="teno">再等等</button></div>','tele');
+  document.getElementById('teyes').onclick=startTeleport;
+  document.getElementById('teno').onclick=()=>closePanel();
+}
+function startTeleport(){
+  if(G.panelOpen!=='tele') return;
+  closePanel(); G.teleAt=performance.now(); G.teleStartX=G.px;
+  G.lockUntil=performance.now()+1e7;   // 传送全程锁操作
 }
 
 /* ================= 章末卡 ================= */
@@ -656,21 +1013,21 @@ function showEndCard(){
   G.beat='end'; save();
   openPanel('<div class="endcard"><h2>第 0 章 · 创世</h2>'+
     '<div class="got">这个混沌的世界，因为你而有了——<br>'+
-    '<b>数 (binary)</b> · <b>时间 (BCD)</b> · <b>文字 (ASCII)</b> · <b>万语 (Unicode)</b></div>'+
-    '<div class="next">但它还看不清自己的样子 —— PIXEL<br>'+
-    '它还只认识黑与白 —— COLOUR DEPTH<br>'+
-    '它还听不见任何声音 —— SAMPLING<br><br>'+
+    '<b>数</b> · <b>时间</b> · <b>文字</b> · <b>万语</b> · <b>形状 (PIXEL)</b> · <b>颜色 (COLOUR DEPTH)</b></div>'+
+    '<div class="next">但这些颜色太占地方了，磁盘要满了 —— RLE 压缩<br>'+
+    '它还听不见任何声音 —— SAMPLING<br>'+
+    '它还没法和外面说话 —— NETWORK<br><br>'+
     '(这个世界至今一片寂静。这不是缺陷，是尚未被你创造。)<br><br>'+
     '<b style="color:#5ad477">—— 本版本的内容到这里为止 ——</b><br>后面的黑暗，等下一次更新来点亮。</div>'+
     '<button id="wander">继续游荡</button><button class="sub" id="regen">重新创世</button></div>','end');
-  document.getElementById('wander').onclick=()=>{ closePanel();
+  document.getElementById('wander').onclick=()=>{ closePanel(); G.teleAt=0; G.teleEnded=false;
     narrate(['(第 0 章的尽头。已点亮的都在这了——剩下的黑暗，还在等它们的知识。)'],null); };
   document.getElementById('regen').onclick=()=>{ localStorage.removeItem(SAVE_KEY); location.reload(); };
 }
 
 /* ================= 世界 · 地标 ================= */
 /* 动线纯向东。每段约千px：出生2800 → 巨钟3600(注:出生=WORLD_W/2=2800) → 字母云4500 → 尽头5400。 */
-const CLOCK={x:3600}, BYTES={x:4500}, TERMINUS={x:5400}, TERMINUS2={x:6600}, TERMINUS3={x:8000};
+const CLOCK={x:3600}, BYTES={x:4500}, TERMINUS={x:5400}, TERMINUS2={x:6600}, TERMINUS3={x:8000}, TERMINUS4={x:TERMINUS4_X};
 /* 字母云：未成形的文字。H 和 I 就藏在里面，解谜后飘到中间拼成 HI，其余消散。 */
 const CLOUD=[];
 {
@@ -687,8 +1044,9 @@ function activeLandmark(){
   if(G.beat==='clock') return {x:BYTES.x, act:openASCII, r:110};
   if(G.beat==='ascii') return {x:TERMINUS.x, act:openUni, r:90};
   if(G.beat==='uni') return {x:TERMINUS2.x, act:openPixel, r:80};    // 语言路尽头=照不出你的镜子
-  if(G.beat==='pixel') return {x:TERMINUS3.x, act:showEndCard, r:80}; // pixel 路尽头=章末
-  if(G.beat==='end') return {x:TERMINUS3.x, act:showEndCard, r:80};  // 通关后重看章末卡/重开入口
+  if(G.beat==='pixel') return {x:TERMINUS3.x, act:openColour, r:80}; // pixel 路尽头=颜色棱镜
+  if(G.beat==='colour') return {x:TERMINUS4.x, act:openTeleport, r:80}; // 颜色路尽头=传送阵
+  if(G.beat==='end') return {x:TERMINUS4.x, act:showEndCard, r:80};  // 通关后重看章末卡/重开入口
   return null;
 }
 
@@ -696,7 +1054,7 @@ function activeLandmark(){
 const keys={};
 /* ================= 测试选关菜单( ` 键开关 ) ================= */
 function testReset(){ closePanel(); G.narrActive=false; narrEl.style.display='none';
-  G.lockUntil=0; G.worldTexts=[]; G.introDone=true;
+  G.lockUntil=0; G.worldTexts=[]; G.introDone=true; G.teleAt=0; G.teleEnded=false;
   document.querySelectorAll('span[style*="position:fixed"]').forEach(x=>x.remove()); }  // 清飞字残留
 const TESTS=[
   ['① 混沌·二进制解谜', ()=>{ testReset(); G.beat='binary'; G.binLevel=0; openSeq(); }],
@@ -708,9 +1066,15 @@ const TESTS=[
   ['⑦ 语言路·选中文后', ()=>{ testReset(); G.beat='uni'; G.chosenWord='你好'; G.uniRoadBorn=1; G.clockLitAt=1; G.asciiSolvedAt=1; G.px=TERMINUS.x+120; G.camx=G.px; spawnUniTexts('你好',true); }],
   ['⑧ PIXEL·照不出你的镜子', ()=>{ testReset(); G.beat='uni'; G.chosenWord=G.chosenWord||'HELLO'; G.uniRoadBorn=1; G.px=TERMINUS2.x-170; G.camx=G.px; }],
   ['⑨ PIXEL·绘制自己(谜题)', ()=>{ testReset(); G.beat='uni'; openPixel(); }],
-  ['⑩ PIXEL·分辨率细化演出', ()=>{ testReset(); G.beat='pixel'; G.px=TERMINUS2.x; G.camx=G.px; G.pixelBornAt=performance.now(); G.pixelRoadBorn=performance.now()+6200; G.lockUntil=performance.now()+8800; }],
+  ['⑩ PIXEL·分辨率细化演出', ()=>{ testReset(); G.beat='pixel'; G.px=TERMINUS2.x; G.camx=G.px; G.pixelBornAt=performance.now(); G.pixelRoadBorn=performance.now()+6200; G.lockUntil=performance.now()+9000; }],
   ['⑪ PIXEL·小人行走·pixel路', ()=>{ testReset(); G.beat='pixel'; G.pixelBornAt=1; G.pixelRoadBorn=1; G.px=TERMINUS2.x+160; G.camx=G.px; }],
-  ['⑫ 章末卡', ()=>{ testReset(); G.beat='pixel'; G.pixelBornAt=1; showEndCard(); }],
+  ['⑫ COLOUR·①灰阶解谜', ()=>{ testReset(); G.beat='pixel'; G.pixelBornAt=1; G.greyBornAt=0; G.px=TERMINUS3.x; G.camx=G.px; openColour(); }],
+  ['⑫a COLOUR·②真彩解谜', ()=>{ testReset(); G.beat='pixel'; G.pixelBornAt=1; G.greyBornAt=0; G.px=TERMINUS3.x; G.camx=G.px; openColourTrue(); }],
+  ['⑫b COLOUR·灰阶演出', ()=>{ testReset(); G.beat='pixel'; G.px=TERMINUS3.x; G.camx=G.px; G.pixelBornAt=1; G.greyBornAt=performance.now(); G.lockUntil=performance.now()+3400; }],
+  ['⑫c COLOUR·真彩上色演出', ()=>{ testReset(); G.beat='colour'; G.px=TERMINUS3.x; G.camx=G.px; G.pixelBornAt=1; G.greyBornAt=0; G.colourBornAt=performance.now(); G.colourRoadBorn=performance.now()+3400; G.lockUntil=performance.now()+3200; }],
+  ['⑬ COLOUR·彩色小人行走', ()=>{ testReset(); G.beat='colour'; G.pixelBornAt=1; G.colourBornAt=1; G.colourRoadBorn=1; G.px=TERMINUS3.x+160; G.camx=G.px; }],
+  ['⑭ 传送阵·完整传送', ()=>{ testReset(); G.beat='colour'; G.pixelBornAt=1; G.colourBornAt=1; G.colourRoadBorn=1; G.px=TERMINUS4.x-70; G.camx=G.px; openTeleport(); }],
+  ['⑮ 章末卡', ()=>{ testReset(); G.beat='colour'; G.pixelBornAt=1; G.colourBornAt=1; showEndCard(); }],
 ];
 let testOpen=false, testEl=null;
 function toggleTest(){
@@ -747,6 +1111,7 @@ addEventListener('keydown',e=>{
   keys[e.key.toLowerCase()]=true;
   if(e.key==='e'||e.key==='E'||e.key==='Enter'){
     e.preventDefault();   // 别让开面板的这一下按键漏进面板里的输入框
+    if(performance.now()<G.lockUntil) return;   // 演出锁定期间不能重新触发地标
     if(G.beat==='void'||G.beat==='binary'){
       if(G.introDone){ G.beat='binary'; openSeq(); }
     }else{
@@ -780,19 +1145,49 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 function update(dt,t){
+  const IMG_LEFT=TERMINUS4.x-AIMG_CIRCLE_X*AIMG_SCALE, ALT_ZONE=IMG_LEFT+AIMG_EDGE*AIMG_SCALE;   // 进入可走面的世界x
+  const wkW=(px,py)=>maskWalk((px-IMG_LEFT)/AIMG_SCALE, pyToFy(py));   // 世界坐标→遮罩(按脚)
+  if(G._snapSceneToMask && maskData){
+    if(G.px>=ALT_ZONE) G.py=snapPyToMask(G.px,G.py);
+    G._snapSceneToMask=false;
+  }
   if(past('roam') && !G.narrActive && !G.panelOpen && t>=G.lockUntil){
-    const sp=260;
-    if(keys['w']||keys['arrowup'])    G.py-=sp*dt;
-    if(keys['s']||keys['arrowdown'])  G.py+=sp*dt;
-    if(keys['a']||keys['arrowleft'])  G.px-=sp*dt;
-    if(keys['d']||keys['arrowright']) G.px+=sp*dt;
-    const moving=keys['w']||keys['a']||keys['s']||keys['d']||
-      keys['arrowup']||keys['arrowdown']||keys['arrowleft']||keys['arrowright'];
-    if(moving) G.walkPhase += dt*9;        // 走路换腿相位
+    const sp=260, px0=G.px, py0=G.py;
+    let mv=false;
+    const mx=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0);
+    const my=(keys['s']||keys['arrowdown']?1:0)-(keys['w']||keys['arrowup']?1:0);
+    if(mx<0) { G.px-=sp*dt; mv=true; }
+    if(mx>0) { G.px+=sp*dt; mv=true; }
+    if(my<0) { G.py-=sp*dt; mv=true; }
+    if(my>0) { G.py+=sp*dt; mv=true; }
     G.px=Math.max(60,Math.min(WORLD_W-60,G.px));
-    G.py=Math.max(16,Math.min(48,G.py));   // 只能在路面走廊内移动
-    /* 走到 pixel 路尽头→自动章末卡 */
-    if(G.beat==='pixel' && G.px>=TERMINUS3.x-24 && !G.panelOpen) showEndCard();
+    if(G.beat==='colour' && G.px>=ALT_ZONE){
+      /* 遮罩碰撞: 脚底不在白区就退回, 分轴回退实现沿边滑动 */
+      if(!wkW(G.px,G.py)){
+        const fx=(G.px-IMG_LEFT)/AIMG_SCALE;
+        const stairAssist=mx && fx>395 && fx<700 ? fyToPy(nearestMaskFy(fx, pyToFy(G.py))) : null;
+        if(stairAssist!==null && Math.abs(stairAssist-G.py)<56 && wkW(G.px,stairAssist)) G.py=stairAssist;
+        else if(wkW(G.px,py0)) G.py=py0;   // 竖直被挡
+        else if(wkW(px0,G.py)) G.px=px0;   // 水平被挡
+        else if(G.lastGoodPx!==null){ G.px=G.lastGoodPx; G.py=G.lastGoodPy; }
+        else { G.py=snapPyToMask(G.px,G.py); }
+      }
+      if(wkW(G.px,G.py)){ G.lastGoodPx=G.px; G.lastGoodPy=G.py; }
+      else if(mv && G.lastGoodPx!==null){ G.px=G.lastGoodPx; G.py=G.lastGoodPy; }   // 遮罩迟到/缓存异常后的稳定兜底
+    }else{
+      G.lastGoodPx=null; G.lastGoodPy=null;
+      G.py=Math.max(26,Math.min(48,G.py));
+    }
+    if(mv) G.walkPhase+=dt*9;
+  }
+  /* 传送阵：确认后自动走到法阵中心(前 900ms 缓动) */
+  if(G.teleAt){
+    const el=t-G.teleAt, p=Math.min(1, el/900);
+    const e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    G.px=G.teleStartX+(TERMINUS4.x-G.teleStartX)*e;
+    G.py+=(fyToPy(236)-G.py)*Math.min(1,dt*5);   // 滑到法阵中心(脚在盘面中心偏前, 身体压住法阵)
+    if(el>200&&el<900) G.walkPhase+=dt*9;
+    if(el>=7000 && !G.teleEnded){ G.teleEnded=true; showEndCard(); }   // 阵仪式(2900)+溶解飞升(~3700)后落章末
   }
   G.camx+=( (past('roam')?G.px:SPAWN) - G.camx )*Math.min(1,dt*4);
   ensureRain();
@@ -819,17 +1214,17 @@ function draw(t){
   /* —— 路：01 密铺成路；每段诞生时字符从虚空飘落归位、由西向东铺开。
         字母路段=回声的台词写在地上，按【单词为单位】铺、一个词整体一行，同 01 路飞入演出。 —— */
   const ROAD_WORDS=['THANK','YOU','FOR','THE','WORDS','BUT','SOME','OF','MINE','ARE','STILL','BROKEN'];
-  /* 选完语言后，路继续用所选语言往前铺：英文=单词、中文=逐字(各自作为一个 token) */
-  const ROAD_END_EN=['NOW','THIS','WORLD','CAN','HOLD','EVERY','WORD','I','KNOW'];
-  const ROAD_END_CN=['这','个','世','界','装','得','下','所','有','的','话','了'];
+  /* 选完语言后路继续用所选语言铺，长度补到镜子(TERMINUS2)前一点：英文=单词、中文=逐字 */
+  const ROAD_END_EN=['NOW','I','THINK','IN','YOUR','LANGUAGE','WALK','ON','THIS','ROAD','SPEAKS','YOUR','WORDS','FOLLOW','IT','TO','THE','END'];
+  const ROAD_END_CN='你终于能用母语和这个世界说话了往前走吧路的尽头有面照不出你的镜子在等你现形'.split('');
   /* 预排：每词占一"列"、整词不拆行；词按 0/1/2 三行上下错开(不同行=不同列，不影响阅读)；
-     词间留随机宽度空白(2..4格)。返回 网格索引→{ch,wStart,row} */
+     词间留随机空白(1..2格, 保证 ASCII 桥最后一词不被截断)。返回 网格索引→{ch,wStart,row} */
   function letterLayout(i0, tokens){
     const map={}; let gi=i0;
     tokens.forEach((w,wi)=>{
       const wStart=gi, row=wi%3;
       for(let k=0;k<w.length;k++){ map[gi]={ch:w[k],wStart,row}; gi++; }
-      gi += 2 + (((wi*2654435761)>>>5)%3);   // 词间随机留白 2..4 格
+      gi += 1 + (((wi*2654435761)>>>5)%2);   // 词间随机留白 1..2 格
     });
     return map;
   }
@@ -875,13 +1270,48 @@ function draw(t){
       const wx=i*7, x=sx(wx); if(x<-10||x>VW+10) continue;
       const start=((wx-TERMINUS2.x)/(TERMINUS3.x-TERMINUS2.x))*4200;
       const p=Math.min(1,Math.max(0,(el-start)/1600)); if(p<=0) continue;
-      for(let r=0;r<3;r++){
-        if(((i*3+r)*2654435761>>>4 & 3)===0) continue;   // ~75% dither
+      for(let r=0;r<4;r++){
+        if(((i*4+r)*2654435761>>>4 & 3)===0) continue;   // ~75% dither
         const a=(.34+.14*Math.sin(t/700+i*.5))*p;
         ctx.fillStyle='rgba(125,255,160,'+a+')';
-        ctx.fillRect(x, midY+30+r*7, 6, 6);
+        ctx.fillRect(x, midY+28+r*7, 6, 6);
       }
     }
+  }
+  /* —— 颜色路：彩色像素铺路(TERMINUS3→图内左缘)。临近祭坛时像素上下逐渐扩张到【图左缘所有像素的
+        高度】(平铺, 不斜、不垒墙、不转石色), 长齐后直接接上插画 —— */
+  const IMG_LEFT_W=TERMINUS4.x-AIMG_CIRCLE_X*AIMG_SCALE;   // 图 x=0 对应世界x
+  const IMG_EDGE=IMG_LEFT_W+AIMG_EDGE*AIMG_SCALE;          // 图内左缘对应世界x
+  if(past('colour')){
+    const el=G.colourRoadBorn?(t-G.colourRoadBorn):1e9;
+    const HUES=['#7a4a28','#e6c39a','#3a5a9c','#df9298','#9a9a9a','#e9e9e9'];
+    const GRAD=86;   // 短距离接入插画左缘
+    const walkY=midY+40;                                             // 桥面行走高度(与走廊/图内路面一致)
+    const thinT=walkY-16, thinB=walkY+16;
+    const fullT=midY-AIMG_YOFF+IMG_LTOP*AIMG_SCALE, fullB=midY-AIMG_YOFF+IMG_LBOT*AIMG_SCALE; // 图左缘像素上下沿(屏幕)
+    for(let i=Math.ceil(TERMINUS3.x/7); i*7<IMG_EDGE; i++){
+      const wx=i*7, x=sx(wx); if(x<-10||x>VW+10) continue;
+      const start=((wx-TERMINUS3.x)/(TERMINUS4.x-TERMINUS3.x))*4200;
+      const p=Math.min(1,Math.max(0,(el-start)/1600)); if(p<=0) continue;
+      const near=Math.max(0,Math.min(1,(wx-(IMG_EDGE-GRAD))/GRAD));
+      const expand=near>0.015, fillP=near<.5?2*near*near:1-Math.pow(-2*near+2,2)/2;
+      let r=0;
+      const y0=expand?fullT:thinT, y1=expand?fullB:thinB;
+      for(let yy=y0; yy<y1; yy+=7, r++){
+        const inCore=yy>=thinT-2 && yy<=thinB+2;
+        const h=((i*73856093)^(r*19349663))>>>0;
+        const density=inCore ? 1 : Math.min(1, .05+fillP*.98);
+        if(!inCore && fillP<.96 && ((h%100)/100)>density) continue;
+        ctx.globalAlpha=Math.min(1, p*(inCore ? .72 : (.18+.72*fillP)));
+        const hue=HUES[(((i*7+r)*2654435761>>>6))%HUES.length];
+        const fy=(yy-(midY-AIMG_YOFF))/AIMG_SCALE;
+        const stone=altarEdgeRgb(fy), stoneMix=stone?Math.max(0,Math.min(1,(near-.66)/.34)):0;
+        ctx.fillStyle=stoneMix>0 ? mixRgb(rgbOfHex(hue), stone, stoneMix) : hue;   // 末端逐块过渡到石板边缘像素色
+        ctx.fillRect(x, Math.round(yy), fillP>.92?7:6, fillP>.92?7:6);
+      }
+    }
+    ctx.globalAlpha=1;
+    drawAltarScene(el, t, midY);   // 祭坛插画 + 法阵仪式(升光)
   }
   /* —— 照不出你的镜子(语言路尽头, 进 pixel 前) —— */
   if(G.beat==='uni'){
@@ -896,6 +1326,21 @@ function draw(t){
       }
     }
   }
+  /* —— 颜色棱镜(pixel 路尽头, 进 colour 前): 一块折出彩虹的水晶 —— */
+  if(G.beat==='pixel'){
+    const x=sx(TERMINUS3.x);
+    if(x>-80&&x<VW+80){
+      const HUES=['#e05a5a','#e0a05a','#e0e05a','#5ae05a','#5aa0e0','#a05ae0'];
+      for(let k=0;k<HUES.length;k++){
+        ctx.globalAlpha=.35+.35*((Math.sin(t/300+k)+1)/2);
+        ctx.fillStyle=HUES[k];
+        ctx.fillRect(x-18+k*6, midY-60+k*4, 8, 44-k*2);
+      }
+      ctx.globalAlpha=1;
+    }
+  }
+
+  /* (章末祭坛+法阵仪式已由 drawAltarScene 用插画绘制) */
 
   /* —— 时间的升天：从钟面漂到屏幕顶部正中，落定成第一件常驻 UI —— */
   if(past('clock')){
@@ -948,9 +1393,9 @@ function draw(t){
     }
   }
 
-  /* —— 远景光柱（同屏只有一个发光地标） —— */
+  /* —— 远景光柱（同屏只有一个发光地标）。祭坛段(colour/end)不画, 免得贯穿祭坛的绿光 —— */
   const L=activeLandmark();
-  if(L){
+  if(L && !past('colour')){
     let x=sx(L.x), clamped=false;
     if(x<36){ x=36; clamped=true; } if(x>VW-36){ x=VW-36; clamped=true; }
     let a=.10+.05*Math.sin(t/600);
@@ -1029,38 +1474,89 @@ function draw(t){
     ctx.textAlign='center';
     G.worldTexts.forEach(w=>{
       if(performance.now()<w.t0) return;
-      ctx.font=(w.sz||20)+'px monospace';
-      const n=w.notype?w.text.length:Math.min(w.text.length, Math.floor((performance.now()-w.t0)/70));
+      ctx.font=(w.sz||20)+'px '+FONT;   // 与飞字/HI 同一字体
+      const n=w.notype?w.text.length:Math.min(w.text.length, Math.floor((performance.now()-w.t0)/(w.spd||70)));
       ctx.fillStyle='rgba(125,255,160,'+(w.a==null?.9:w.a)+')';
       ctx.fillText(w.text.slice(0,n), sx(w.x), VH*w.y);
     });
     ctx.textAlign='left';
   }
 
+  /* —— 创世汇聚：满屏 0/1 收缩成 [0 1 / 1 0] 方块(世界从此由二进制构成) —— */
+  const genEl = G.genesisAt ? (t-G.genesisAt) : 1e9;
+  const genActive = genEl<2600;
+  if(genActive){
+    const cx=VW/2, cy=midY, p=Math.min(1,genEl/1600), e=1-Math.pow(1-p,3);
+    ctx.textAlign='center'; ctx.font='16px monospace';
+    for(let k=0;k<64;k++){                                  // 散落的 0/1 向中心收缩淡出
+      const ang=k*2.399, rad=(1-e)*(150+(k*53)%150);
+      const gx=cx+Math.cos(ang)*rad, gy=cy+Math.sin(ang)*rad*.8;
+      ctx.fillStyle='rgba(90,212,119,'+(.5*(1-e))+')';
+      ctx.fillText((k&1)?'1':'0', gx, gy);
+    }
+    const bs=16+12*e, a=Math.min(1,e*1.5), dx=bs*.62, dy=bs*.62;  // 中心 2×2 方块 [0 1 / 1 0]
+    ctx.font='bold '+bs+'px monospace'; ctx.fillStyle='rgba(125,255,160,'+a+')';
+    ctx.fillText('0', cx-dx, cy-dy*.15); ctx.fillText('1', cx+dx, cy-dy*.15);
+    ctx.fillText('1', cx-dx, cy+dy*1.05); ctx.fillText('0', cx+dx, cy+dy*1.05);
+    ctx.textAlign='left';
+  }
+
   /* —— 玩家 —— */
-  if(past('roam')){
+  if(past('roam') && !genActive){
     const x=sx(G.px), y=midY+G.py;
-    if(past('pixel')){
+    if(past('colour')){
+      /* 第二段演出：灰阶→24-bit真彩(~2s 平滑渐变), 之后彩色小人行走 */
+      const el=G.colourBornAt?(t-G.colourBornAt):1e9, CDUR=2600;
+      if(el<CDUR){
+        const cx2=VW/2, cy2=VH*.40, box=254;
+        const stage=1+Math.max(0,Math.min(1,(el-400)/2000));   // 1→2 over 2s
+        const lab=stage<1.5?'8-BIT · 256 GREYS':'24-BIT · 16M COLOURS';
+        drawCharDepth(cx2,cy2,box,stage);
+        ctx.fillStyle='rgba(230,240,235,.85)'; ctx.font='15px '+FONT; ctx.textAlign='center';
+        ctx.fillText(lab, cx2, cy2+box/2+24); ctx.textAlign='left';
+      }else if(G.teleAt && (t-G.teleAt)>=2900){
+        /* 传送溶解：阵仪式后, 角色【原地、原大小】从头到脚化成 0/1, 过半后由头开始飞升渐隐 */
+        drawCharDissolve(x, y-24, 64, (t-G.teleAt)-2900);
+      }else{
+        const e2=el-CDUR;
+        const teleWalk=G.teleAt && (t-G.teleAt)>200;   // 自动走进阵心
+        const moving=teleWalk || ((keys['a']||keys['d']||keys['arrowleft']||keys['arrowright']||
+          keys['w']||keys['s']||keys['arrowup']||keys['arrowdown']) && e2>500);
+        let scale=1, glow=false;
+        if(e2<600){ scale=1+(1-e2/600)*(254/64-1); glow=true; }   // 从彩色大图缩到小人
+        if(G.teleAt) glow=true;    // 阵中发光
+        drawCharSprite(x, y-24, scale, moving, Math.floor(G.walkPhase), glow, true);
+      }
+    }else if(G.greyBornAt){
+      /* 第一段演出：1-bit(绿)→8-bit灰阶(~2s 平滑渐变), 之后一直停在灰(等真彩解谜) */
+      const el=t-G.greyBornAt;
+      const cx2=VW/2, cy2=VH*.40, box=254;
+      const stage=Math.max(0,Math.min(1,(el-400)/2000));   // 0→1 over 2s
+      const lab = stage<0.5 ? '1-BIT · 2 COLOURS' : '8-BIT · 256 GREYS';
+      drawCharDepth(cx2,cy2,box,stage);
+      ctx.fillStyle='rgba(230,240,235,.85)'; ctx.font='15px '+FONT; ctx.textAlign='center';
+      ctx.fillText(lab, cx2, cy2+box/2+24); ctx.textAlign='left';
+    }else if(past('pixel')){
       const el=G.pixelBornAt?(t-G.pixelBornAt):1e9;
       const REFINE=5600;   // 细化演出总时长(比原来放慢2倍)
       if(el<REFINE){
-        /* 分辨率细化：在画框原地(屏幕正中), 8×8→16→32→64 每步×2, 逐级清晰 */
-        const mx=VW/2, my=VH*.42, box=224;
+        /* 分辨率细化：就在刚才填色框的位置、同样大小原地分格, 8×8→16→32→64 逐级清晰 */
+        const bx=G.pixelBox||{cx:VW/2,cy:VH*.42,box:254};
+        const box=Math.min(300, bx.box);   // 保险: 绝不放成巨块
         const steps=[8,16,32,64], si=Math.min(3, Math.floor(el/1400));
-        drawCharRes(mx, my, box, steps[si]);
-        ctx.fillStyle='rgba(125,255,160,.8)'; ctx.font='15px monospace'; ctx.textAlign='center';
-        ctx.fillText(steps[si]+' × '+steps[si], mx, my+box/2+24); ctx.textAlign='left';
+        drawCharRes(bx.cx, bx.cy, box, steps[si]);
+        ctx.fillStyle='rgba(125,255,160,.8)'; ctx.font='15px '+FONT; ctx.textAlign='center';
+        ctx.fillText(steps[si]+' × '+steps[si], bx.cx, bx.cy+box/2+24); ctx.textAlign='left';
       }else{
-        /* 画出自己之后：主角是像素小人。缩小登场→低头看手→雀跃→行走循环 */
+        /* 画出自己之后：地图小人=细化出的同一个角色(CHARG缩放)。缩小登场→低头看手→雀跃→行走循环 */
         const e2=el-REFINE;
         const moving=(keys['a']||keys['d']||keys['arrowleft']||keys['arrowright']||
-          keys['w']||keys['s']||keys['arrowup']||keys['arrowdown']) && e2>3200;
-        let px=3, yoff=0, glow=false;
-        if(e2<600){ px=3+(1-e2/600)*11; glow=true; }            // 64×64 缩小成小人
-        else if(e2<1800){ yoff=Math.sin((e2-600)/1200*Math.PI)*5; glow=true; }  // 低头看手
-        else if(e2<3200){ const h=(e2-1800)/1400; yoff=-Math.abs(Math.sin(h*Math.PI*2))*18; }  // 雀跃两跳
-        const fr=sprFrame(moving, Math.floor(G.walkPhase));
-        drawSprite(x, y-6+yoff+fr.bob*px, px, fr.rows, glow);
+          keys['w']||keys['s']||keys['arrowup']||keys['arrowdown']) && e2>3400;
+        let scale=1, yoff=0, glow=false;
+        if(e2<600){ scale=1+(1-e2/600)*(254/64-1); glow=true; }     // 从细化大图缩到小人
+        else if(e2<1800){ yoff=Math.sin((e2-600)/1200*Math.PI)*6; glow=true; }  // 低头看手
+        else if(e2<3400){ const h=(e2-1800)/1600; yoff=-Math.abs(Math.sin(h*Math.PI*2))*24; }  // 雀跃两跳(原地,锁移动)
+        drawCharSprite(x, y-24+yoff, scale, moving, Math.floor(G.walkPhase), glow);
       }
     }else{
       const g2=ctx.createRadialGradient(x,y,0,x,y,26);
@@ -1070,9 +1566,10 @@ function draw(t){
       ctx.fillRect(x-7,y-7,14,14);
     }
     /* 交互提示（引导交给脚下的路，不再画箭头） */
-    if(L && Math.abs(G.px-L.x)<L.r && !G.panelOpen && !G.narrActive){
+    if(L && Math.abs(G.px-L.x)<L.r && !G.panelOpen && !G.narrActive && !G.teleAt){
       const ph2=(Math.sin(t/350)+1)/2;
-      drawKey(x,y-30,'E',.6+.4*ph2);
+      const eYoff=past('pixel')?-66:-30;   // 有实体小人后(pixel/colour)E 抬到头顶上方，别被身体挡住
+      drawKey(x,y+eYoff,'E',.6+.4*ph2);
     }
     /* 移动教学：WASD 键帽（键盘上印的字），陪你走到巨钟为止；演出锁定时不显示 */
     if(G.beat==='roam' && Math.abs(G.px-CLOCK.x)>=130 && !G.panelOpen && !G.narrActive && t>=G.lockUntil){
@@ -1087,12 +1584,16 @@ function draw(t){
   /* 调试静态渲染：?dbg=char 看 32×32 角色；?dbg=sprite 看小人 */
   const dbg=new URLSearchParams(location.search).get('dbg');
   if(dbg==='char'){ const dn=+new URLSearchParams(location.search).get('n')||64; drawCharRes(VW/2, VH/2, 384, dn); }
-  else if(dbg==='sprite'){ const fr=sprFrame(true,Math.floor(t/140)); drawSprite(VW/2, VH/2, 8, fr.rows, true); }
+  else if(dbg==='sprite'){ drawCharSprite(VW/2, VH/2, 1, true, Math.floor(t/140), true); }
+  else if(dbg==='charc'){ const s=8,x0=VW/2-32*s,y0=VH/2-32*s;   // 彩色角色预览
+    for(let r=0;r<64;r++)for(let c=0;c<64;c++){ const v=CHARC[r][c]; if(!v)continue;
+      ctx.fillStyle=PAL[v]; ctx.fillRect(x0+c*s,y0+r*s,s+0.4,s+0.4); } }
 
   /* 暗角 */
   const vg=ctx.createRadialGradient(VW/2,VH/2,VH*.35,VW/2,VH/2,VH*.9);
   vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)');
   ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
+
 }
 requestAnimationFrame(frame);
 
@@ -1104,6 +1605,8 @@ if(qpanel) setTimeout(()=>{
   else if(qpanel==='ascii') openASCII();
   else if(qpanel==='uni') openUni();
   else if(qpanel==='pixel') openPixel();
+  else if(qpanel==='colour') openColour();
+  else if(qpanel==='colourt'){ G.greyBornAt=0; openColourTrue(); }
 },600);
 
 /* ================= 开场：无字 ================= */
@@ -1112,6 +1615,7 @@ if(qpanel) setTimeout(()=>{
 if(past('uni') && G.chosenWord){ spawnUniTexts(G.chosenWord, true); }   // 所选语言词/句复现
 if(G.beat==='uni'){ G.px=TERMINUS.x+60; G.camx=G.px; }
 if(G.beat==='pixel' && !G.pixelBornAt){ G.px=TERMINUS2.x+60; G.camx=G.px; G.pixelBornAt=1; }  // 存档恢复:sprite已定型
+if(G.beat==='colour' && !G.colourBornAt){ G.px=TERMINUS3.x+60; G.camx=G.px; G.pixelBornAt=1; G.colourBornAt=1; }  // 恢复:彩色小人已定型
 /* beat==='ascii' 恢复时不弹独白——台词已经写在路上了 */
 if(new URLSearchParams(location.search).get('test')) setTimeout(toggleTest,60);   // 调试:自动开选关菜单
 </script>
