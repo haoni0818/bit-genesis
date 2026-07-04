@@ -623,13 +623,13 @@ function draw(t){
   /* —— 路：01 密铺成路；每段诞生时字符从虚空飘落归位、由西向东铺开。
         字母路段=回声的台词写在地上，按【单词为单位】铺、一个词整体一行，同 01 路飞入演出。 —— */
   const ROAD_WORDS=['THANK','YOU','FOR','THE','WORDS','BUT','SOME','OF','MINE','ARE','STILL','BROKEN'];
-  /* 预排：每个词占连续网格、词内同一行、词间留 2 格；返回 网格索引→{ch,row,wStart} */
+  /* 预排：整句写在同一条基线上、整词不拆行，词间留 1 格；返回 网格索引→{ch,wStart} */
   function letterLayout(i0){
     const map={}; let gi=i0;
-    ROAD_WORDS.forEach((w,wi)=>{
-      const row=wi%3, wStart=gi;
-      for(let k=0;k<w.length;k++){ map[gi]={ch:w[k],row,wStart}; gi++; }
-      gi+=2;   // 词间空格
+    ROAD_WORDS.forEach(w=>{
+      const wStart=gi;
+      for(let k=0;k<w.length;k++){ map[gi]={ch:w[k],wStart}; gi++; }
+      gi+=1;   // 词间空格
     });
     return map;
   }
@@ -643,10 +643,10 @@ function draw(t){
       const wx=i*13;
       const x=sx(wx); if(x<-30||x>VW+30) continue;
       let ch, col, base, row=[-2,7,16][i%3], anchorI=i;
-      if(letters){                           // 台词路：整词一行、整词同时飞入
+      if(letters){                           // 台词路：整句同一基线、整词同时飞入
         const cell=lay[i]; if(!cell) continue;
-        ch=cell.ch; row=[-2,7,16][cell.row]; anchorI=cell.wStart;   // 用词首做飞入时序锚
-        col='125,255,160'; base=.5;
+        ch=cell.ch; row=7; anchorI=cell.wStart;   // 单行基线；用词首做飞入时序锚
+        col='125,255,160'; base=.55;
       }else{
         ch=((((i*2654435761)>>3)&1)?'1':'0');
         col='90,212,119'; base=.3;
