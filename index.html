@@ -108,13 +108,13 @@ addEventListener('resize', resize); resize();
 
 const SAVE_KEY='genesis_mvp_v1';
 const WORLD_W=3200;
-const BEATS=['void','binary','roam','clock','ascii','end'];
+const BEATS=['void','binary','roam','clock','ascii','uni','end'];
 const beatIdx=b=>BEATS.indexOf(b);
 
 const G={
   beat:'void', binLevel:0,
   px:WORLD_W/2, py:0, camx:WORLD_W/2,
-  introDone:false, panelOpen:null, narrActive:false,
+  introDone:true, moved:false, panelOpen:null, narrActive:false,
   worldTexts:[],           // {x,y,text,shown}
   clockLitAt:0,
 };
@@ -167,8 +167,9 @@ function wireHints(hints){
 }
 
 /* ================= 谜题一：无言的计数（找规律，零文字） ================= */
-/* 设计：灯序列自己按二进制数数给你看→停住→玩家摆出下一个数。
-   无言提示阶梯：摆错→轻红+重播；错2次→重播时高亮翻动的位；错4次→一行极简独白。 */
+/* 语言法则：ASCII 解锁前世界无字母无句子(独白也没有)；数字/符号随"数"诞生；
+   ASCII 后只有英文；Unicode 后中文才诞生。
+   无言提示阶梯：摆错→轻红+重播；错2次→重播时高亮翻动的位；错4次→放慢重播。 */
 const SEQ_ROUNDS=[
   {pre:[1,2,3],  ans:4,  step:1},   // 0011→0100 自己完成进位
   {pre:[5,6,7],  ans:8,  step:1},   // 0111→1000 大进位 aha
@@ -179,7 +180,7 @@ function openSeq(){
   const R=SEQ_ROUNDS[G.binLevel];
   let html='<div class="bitrow">';
   for(let i=3;i>=0;i--) html+='<button class="bit" data-v="'+(1<<i)+'">0</button>';
-  html+='</div><div class="seqcap" id="seqcap"></div>';
+  html+='</div>';
   openPanel(html,'seq');
   overlay.querySelector('.panel').classList.add('bare');
   const bits=[...overlay.querySelectorAll('.bit')];
@@ -187,8 +188,9 @@ function openSeq(){
   const setRow=v=>bits.forEach(b=>{ const on=!!(v & +b.dataset.v);
     b.classList.toggle('on',on); b.textContent=on?'1':'0'; });
   const val=()=>bits.reduce((s,b)=>s+(b.classList.contains('on')?+b.dataset.v:0),0);
-  function play(hl){
+  function play(hl,slow){
     interactive=false; clearTimeout(idleTimer);
+    const pace=slow?1500:950;
     let i=0;
     (function step(){
       if(G.panelOpen!=='seq') return;
@@ -198,10 +200,10 @@ function openSeq(){
           const diff=R.pre[i]^R.pre[i-1];
           bits.forEach(b=>{ if(diff & +b.dataset.v){
             b.style.borderColor='#ffd97d';
-            setTimeout(()=>{ b.style.borderColor=''; },650);
+            setTimeout(()=>{ b.style.borderColor=''; },pace*.7);
           }});
         }
-        i++; setTimeout(step,950);
+        i++; setTimeout(step,pace);
       }else{ setRow(0); interactive=true; armIdle(); }
     })();
   }
@@ -209,13 +211,12 @@ function openSeq(){
     clearTimeout(idleTimer);
     idleTimer=setTimeout(()=>{
       if(G.panelOpen!=='seq' || !interactive) return;
-      if(val()===0){ play(seqFails>=2); return; }      // 发呆 → 重播序列
+      if(val()===0){ play(seqFails>=2, seqFails>=4); return; }   // 发呆 → 重播序列
       seqFails++;                                       // 停在错误答案上
       interactive=false;
       bits.forEach(b=>b.classList.add('bad'));
       setTimeout(()=>bits.forEach(b=>b.classList.remove('bad')),550);
-      if(seqFails>=4) document.getElementById('seqcap').textContent='(它们在数数。满了，就往前进一位。)';
-      setTimeout(()=>play(seqFails>=2),750);
+      setTimeout(()=>play(seqFails>=2, seqFails>=4),750);   // 错4次→放慢重播(无言兜底)
     }, val()===0?6000:2600);
   }
   bits.forEach(b=>b.onclick=()=>{
@@ -239,15 +240,8 @@ function seqSolved(){
     closePanel(); G.binLevel++; seqFails=0;
     if(G.binLevel<SEQ_ROUNDS.length){ setTimeout(openSeq,750); }   // 轮间不说话，黑一拍继续
     else{
+      /* 无言演出：01 雨落下 + 路铺开 + 方向键键帽浮现(动一下就消失)。世界还没有字。 */
       G.beat='roam'; save();
-      narrate(['最后一道光落下的瞬间，我看懂了——',
-        '满了，就向前进一位。它们在<b style="color:#7dffa0">数数</b>。',
-        '原来"多少"是可以被表示的。这个世界有了<b style="color:#7dffa0">数</b>。',
-        '<b style="color:#7dffa0">0 和 1</b> 像雨一样落了下来。世界有了最初的质料。',
-        '我感觉到了"方向"。我能动了。',
-        '<span style="font-style:normal;color:#5ad477">( WASD / 方向键 移动 )</span>',
-        '东边——那个圆形的轮廓。'],
-        null);
     }
   },500);
 }
@@ -271,16 +265,16 @@ function openBCD(){
       '<div class="ghost">'+d+'</div>'+bitsHtml+
       '<div class="digit" id="dg'+idx+'">'+(locked?d:0)+'</div></div>';
   };
-  let html='<h2>巨钟 · BCD<span class="esc">Esc 离开</span></h2>'+
-    '<div class="desc">钟面上残留着这台机器最后记得的时间(灰色残影)。'+
-    '每个数字由 <b>4 个位单独编码</b>——这叫 BCD (Binary-Coded Decimal)。<br>'+
-    '小时的两组已经通电。给<b>分钟</b>的两组位通电，让钟重新走起来。</div>'+
-    '<div class="bcdcols">'+mk(0,true)+mk(1,true)+
-    '<div class="bcdsep">:</div>'+mk(2,false)+mk(3,false)+'</div>'+hintBoxHTML();
+  /* ASCII 之前无文字：钟面只有残影数字、位灯、解码数字。小时两列=看得懂的例题。 */
+  let html='<div class="bcdcols">'+mk(0,true)+mk(1,true)+
+    '<div class="bcdsep">:</div>'+mk(2,false)+mk(3,false)+'</div>';
   openPanel(html,'bcd');
-  wireHints(['BCD 里每个十进制数字单独用 4 位编码，位值从上到下是 8、4、2、1。',
-    '一组 4 位在 BCD 里最多表示 9——如果解出的值超过 9，会显示红色 ✕，那是无效编码。',
-    '同构例：数字 7 = 4+2+1 → 0111。用同样的办法编出残影里的数字。']);
+  const hintHours=()=>{   // 无言提示：把"例题"(小时列)照亮一下
+    overlay.querySelectorAll('.bit.locked').forEach(b=>{
+      b.style.borderColor='#ffd97d';
+      setTimeout(()=>{ b.style.borderColor=''; },900);
+    });
+  };
   const cols=[2,3];
   const refresh=()=>{
     let ok=true;
@@ -289,7 +283,7 @@ function openBCD(){
       overlay.querySelectorAll('.bit[data-col="'+c+'"]').forEach(b=>{
         if(b.classList.contains('on')) sum+=+b.dataset.v; });
       const dg=document.getElementById('dg'+c);
-      if(sum>9){ dg.textContent='✕'; dg.classList.add('bad'); ok=false; }
+      if(sum>9){ dg.textContent='✕'; dg.classList.add('bad'); ok=false; hintHours(); }
       else{ dg.textContent=sum; dg.classList.remove('bad'); if(sum!==bcdTarget[c]) ok=false; }
     });
     if(ok) setTimeout(()=>bcdSolved(),350);
@@ -302,10 +296,8 @@ function bcdSolved(){
   if(G.panelOpen!=='bcd') return;
   overlay.querySelector('.panel').classList.add('flash');
   setTimeout(()=>{
+    /* 无言演出：钟亮起显示真实时间 → 时间挂上天空(常驻UI诞生) → 路向东延伸。 */
     closePanel(); G.beat='clock'; G.clockLitAt=performance.now(); save();
-    narrate(['……滴。答。','<b style="color:#7dffa0">时间</b>。这台机器还记得时间。',
-      '整个世界跟着钟摆，开始了心跳。',
-      '西边——又有什么东西醒了。一串琥珀色的、排成两行的光。'], null);
   },450);
 }
 
@@ -313,56 +305,98 @@ function bcdSolved(){
 /* 答案不进源码：只存加盐哈希，F12 也翻不到原文 */
 function ansHash(s){let x=5381;for(const c of 'GEN|'+s){x=((x*33)^c.charCodeAt(0))>>>0;}return x.toString(36);}
 const ASCII_BYTES=['01001000','01001001'], ASCII_H='16zcro4';
-function openASCIIGate(){   // 实测反馈：没学过 ASCII 直接傻了——先给引言
-  if(G.asciiIntroDone){ openASCII(); return; }
-  narrate(['那两行光在闪。不是随机的——同样的图案，反复出现。',
-    '这个世界只有<b style="color:#7dffa0">数</b>。可是语言不是数。',
-    '除非……有一套<b style="color:#7dffa0">约定</b>：让每个数，代表一个字母。',
-    '比如约定 65 = A，那 66 自然就是 B，67 就是 C……以此类推。',
-    '钟楼的残档里，正好躺着这样一套约定的残页。它的名字叫 <b style="color:#7dffa0">ASCII</b>。'],
-    ()=>{ G.asciiIntroDone=true; openASCII(); });
-}
 function openASCII(){
+  /* ASCII 之前无句子。教学全靠"罗塞塔残页"：三行对照自示规律，···展开全表。
+     无言兜底：输错2次 → 字节下方浮现十进制值(数字合法)。 */
   const tbl=Array.from({length:26},(_,i)=>
     '<span style="display:inline-block;width:64px">'+String.fromCharCode(65+i)+' = '+(65+i)+'</span>').join('');
-  let html='<h2>悬浮的字节<span class="esc">Esc 离开</span></h2>'+
-    '<div class="desc">两个 byte 悬在空中，反复地闪。它们不是数——它们在<b>说话</b>。<br>'+
-    '解法分两步：① 把每个 byte 当二进制转成<b>十进制</b>数(不是十六进制)；② 拿着数去查 ASCII 对照表。</div>'+
-    '<div class="ref">残页开头写着：01000001 = 65 = A　(字母连续排列)　'+
-    '<button class="hintbtn" id="tblbtn">查看残页对照表</button></div>'+
+  let html='<div class="ref" style="line-height:2.1;font-size:14px">'+
+      '01000001 = 65 = A<br>01000010 = 66 = B<br>01000011 = 67 = C　'+
+      '<button class="hintbtn" id="tblbtn">···</button></div>'+
     '<div class="ref" id="asctbl" style="display:none;line-height:2">'+tbl+'</div>'+
     '<div class="bytes">'+ASCII_BYTES.join('　')+'</div>'+
-    '<div class="ansrow"><input id="asciiin" maxlength="2" autocomplete="off" spellcheck="false"></div>'+
-    hintBoxHTML();
+    '<div class="ref" id="decs" style="visibility:hidden;font-size:16px;color:#ffd97d">'+
+      ASCII_BYTES.map(b=>parseInt(b,2)).join('　　　　')+'</div>'+
+    '<div class="ansrow"><input id="asciiin" maxlength="2" autocomplete="off" spellcheck="false"></div>';
   openPanel(html,'ascii');
   document.getElementById('tblbtn').onclick=()=>{
     const el=document.getElementById('asctbl');
     el.style.display=el.style.display==='none'?'block':'none';
   };
-  wireHints(['每 8 个位编码一个字符——先转十进制，再查表。',
-    '01000001 是二进制的 65（64+1），所以 A=65、B=66、C=67……先把每个字节还原成数。',
-    '同构例：01000011 = 64+2+1 = 67 = C。照同样的路子解这两个字节。']);
+  let wrong=0;
   const inp=document.getElementById('asciiin'); inp.focus();
   inp.addEventListener('input',()=>{
-    if(ansHash(inp.value.toUpperCase())===ASCII_H){
+    const v=inp.value.toUpperCase();
+    if(ansHash(v)===ASCII_H){
       overlay.querySelector('.panel').classList.add('flash');
       setTimeout(()=>{ closePanel(); asciiSolved(); },450);
+    }else if(v.length>=2){
+      wrong++;
+      inp.style.borderColor='#8a3a32';
+      setTimeout(()=>{ inp.style.borderColor=''; },500);
+      if(wrong>=2) document.getElementById('decs').style.visibility='visible';
     }
   });
 }
 function spawnEchoTexts(instant){
   G.worldTexts=[
-    {x:1050, y:0.34, text:String.fromCharCode(72,73)+'.', t0:instant?0:performance.now()+400},
-    {x:1050, y:0.42, text:'I HAVE BEEN WAITING FOR YOU.', t0:instant?0:performance.now()+1600},
+    {x:2750, y:0.34, text:String.fromCharCode(72,73)+'.', t0:instant?0:performance.now()+400},
+    {x:2750, y:0.42, text:'I HAVE BEEN WAITING FOR YOU.', t0:instant?0:performance.now()+1600},
   ];
 }
 function asciiSolved(){
+  /* 文字诞生——从这一刻起独白合法，但只能是英文。中文要等 Unicode。 */
   G.beat='ascii'; save(); spawnEchoTexts(false);
   setTimeout(()=>{
-    narrate(['文字。这个世界有了<b style="color:#7dffa0">文字</b>。',
-      '而第一句话不是我说的。','——这个世界里，还有别的存在。'],
-      showEndCard);
+    narrate(['WORDS.','THE WORLD HAS WORDS NOW.',
+      'AND THE FIRST VOICE... WAS NOT MINE.',
+      'THE ROAD CHANGED TOO. FOLLOW IT EAST —',
+      'SOMETHING THERE IS STILL <b style="color:#ffd97d">BROKEN</b>.'],
+      null);
   },3400);
+}
+
+/* ================= 谜题四：Unicode 豆腐块 ================= */
+/* 路的尽头是两个显示不出来的字(▯▯)。一个 byte 装不下的语言，给它两个。 */
+const UNI_GLYPHS=[
+  {b:['01001111','01100000'], ch:'你'},   // U+4F60
+  {b:['01011001','01111101'], ch:'好'},   // U+597D
+];
+function openUni(){
+  let html='<h2>BROKEN GLYPHS</h2>'+
+    '<div class="desc">ONE BYTE NAMES 256 SYMBOLS. ENGLISH FITS.<br>'+
+    'SOME LANGUAGES DO NOT — THESE GLYPHS NEED <b>TWO BYTES EACH</b>. FUSE THEM.</div>';
+  UNI_GLYPHS.forEach((g,gi)=>{
+    html+='<div style="display:flex;align-items:center;justify-content:center;gap:16px;margin:18px 0">'+
+      '<span class="bytes" style="margin:0;color:#8a7a4a">'+g.b[0]+'</span>'+
+      '<button class="hintbtn ufuse" data-g="'+gi+'" style="font-size:18px;padding:4px 14px">+</button>'+
+      '<span class="bytes" style="margin:0;color:#8a7a4a">'+g.b[1]+'</span>'+
+      '<span id="tofu'+gi+'" style="font-size:32px;color:#ffd97d;width:48px;text-align:center">▯</span></div>';
+  });
+  openPanel(html,'uni');
+  let fused=0;
+  overlay.querySelectorAll('.ufuse').forEach(btn=>btn.onclick=()=>{
+    if(btn.disabled) return;
+    btn.disabled=true; btn.style.opacity=.25;
+    const gi=+btn.dataset.g, row=btn.parentElement;
+    row.querySelectorAll('.bytes').forEach(s=>{ s.style.color='#7dffa0'; });
+    const tofu=document.getElementById('tofu'+gi);
+    tofu.textContent=UNI_GLYPHS[gi].ch; tofu.style.color='#7dffa0';
+    fused++;
+    if(fused===UNI_GLYPHS.length) setTimeout(uniSolved,800);
+  });
+}
+function uniSolved(){
+  if(G.panelOpen!=='uni') return;
+  overlay.querySelector('.panel').classList.add('flash');
+  setTimeout(()=>{
+    closePanel(); G.beat='uni'; save();
+    narrate(['……你好。','我在用<b style="color:#7dffa0">母语</b>思考。',
+      '一个 byte 装不下的语言，就给它两个、四个——这套收下所有语言的约定，叫 <b style="color:#7dffa0">Unicode</b>。',
+      '从数数的灯，到天上的钟，到会说话的路，到此刻的母语——',
+      '这个世界，现在装得下所有的话了。'],
+      showEndCard);
+  },600);
 }
 
 /* ================= 章末卡 ================= */
@@ -370,7 +404,7 @@ function showEndCard(){
   G.beat='end'; save();
   openPanel('<div class="endcard"><h2>第 0 章 · 创世</h2>'+
     '<div class="got">这个混沌的世界，因为你而有了——<br>'+
-    '<b>数 (binary)</b> · <b>时间 (BCD)</b> · <b>文字 (ASCII)</b></div>'+
+    '<b>数 (binary)</b> · <b>时间 (BCD)</b> · <b>文字 (ASCII)</b> · <b>万语 (Unicode)</b></div>'+
     '<div class="next">但它还看不清自己的样子 —— PIXEL<br>'+
     '它还只认识黑与白 —— COLOUR DEPTH<br>'+
     '它还听不见任何声音 —— SAMPLING<br><br>'+
@@ -383,10 +417,12 @@ function showEndCard(){
 }
 
 /* ================= 世界 · 地标 ================= */
-const CLOCK={x:2150}, BYTES={x:1050};   // 实测反馈：太远劝退，收到出生点±550px(约2秒路程)
+/* 动线改为纯向东：出生1600 → 巨钟2150 → 字节群2750 → 路的尽头3080。路面即引导。 */
+const CLOCK={x:2150}, BYTES={x:2750}, TERMINUS={x:3080};
 function activeLandmark(){
   if(G.beat==='roam') return {x:CLOCK.x, act:openBCD, r:110};
-  if(G.beat==='clock') return {x:BYTES.x, act:openASCIIGate, r:110};
+  if(G.beat==='clock') return {x:BYTES.x, act:openASCII, r:110};
+  if(G.beat==='ascii') return {x:TERMINUS.x, act:openUni, r:90};
   return null;
 }
 
@@ -462,6 +498,57 @@ function draw(t){
 
   const midY=VH*.46;
 
+  /* —— 路：材质=学习进度（01 → 字母句子） —— */
+  const ROAD_MSG='IF YOU CAN READ THIS THE WORLD HAS WORDS ... FOLLOW ME ... ';
+  function drawRoad(x0,x1){
+    ctx.font='13px monospace';
+    for(let wx=x0; wx<x1; wx+=22){
+      const x=sx(wx); if(x<-20||x>VW+20) continue;
+      const i=Math.floor(wx/22), RB=Math.floor((WORLD_W/2-40)/22);
+      const ch=past('ascii') ? ROAD_MSG[(((i-RB)%ROAD_MSG.length)+ROAD_MSG.length)%ROAD_MSG.length]
+                             : ((((i*2654435761)>>3)&1)?'1':'0');
+      ctx.fillStyle='rgba(90,212,119,'+(.26+.1*Math.sin(t/700+i*.7))+')';
+      ctx.fillText(ch, x, midY+34+(i%2?7:-2));
+    }
+  }
+  if(past('roam'))  drawRoad(WORLD_W/2-40, CLOCK.x);
+  if(past('clock')) drawRoad(CLOCK.x, BYTES.x);
+  if(past('ascii')) drawRoad(BYTES.x, TERMINUS.x);
+
+  /* —— 天上的时间：BCD 之后诞生的第一件常驻 UI —— */
+  if(past('clock')){
+    const now=new Date();
+    const hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0');
+    const colon=(Math.floor(t/800)%2)?':':' ';
+    ctx.fillStyle='rgba(125,255,160,.75)'; ctx.font='18px monospace'; ctx.textAlign='center';
+    ctx.fillText(hh+colon+mm, VW/2, 38); ctx.textAlign='left';
+  }
+
+  /* —— 路的尽头：显示不出来的字(▯▯ 豆腐块) → Unicode 后解析成中文 —— */
+  if(past('ascii')){
+    const x=sx(TERMINUS.x);
+    if(x>-60&&x<VW+60){
+      const ph3=(Math.sin(t/420)+1)/2;
+      if(past('uni')){
+        ctx.fillStyle='rgba(125,255,160,.85)'; ctx.font='26px monospace';
+        ctx.textAlign='center'; ctx.fillText('你好', x, midY-2); ctx.textAlign='left';
+      }else{
+        ctx.strokeStyle='rgba(255,217,125,'+(.35+.5*ph3)+')'; ctx.lineWidth=2;
+        ctx.strokeRect(x-27, midY-18, 21, 26);
+        ctx.strokeRect(x+6,  midY-18, 21, 26);
+      }
+    }
+  }
+
+  /* —— 键帽（meta-UI：键盘是现实世界的东西，不受语言法则限制） —— */
+  function drawKey(cx,cy,ch,a){
+    ctx.strokeStyle='rgba(90,212,119,'+(a*.6)+')';
+    ctx.strokeRect(cx-11,cy-13,22,22);
+    ctx.fillStyle='rgba(125,255,160,'+a+')';
+    ctx.font='13px monospace'; ctx.textAlign='center';
+    ctx.fillText(ch,cx,cy+3); ctx.textAlign='left';
+  }
+
   /* —— 混沌：唯一的火花 —— */
   if(!past('roam')){
     const cxp=VW/2, cyp=midY, ph=(Math.sin(t/420)+1)/2;
@@ -474,8 +561,7 @@ function draw(t){
     if(G.introDone && !G.panelOpen && !G.narrActive){
       ctx.strokeStyle='rgba(90,212,119,'+(0.25+0.3*ph)+')';
       ctx.beginPath(); ctx.arc(cxp,cyp,26+6*ph,0,7); ctx.stroke();
-      ctx.fillStyle='rgba(90,212,119,.7)'; ctx.font='13px monospace';
-      ctx.textAlign='center'; ctx.fillText('[ E ]',cxp,cyp+52); ctx.textAlign='left';
+      drawKey(cxp,cyp+56,'E',.5+.4*ph);
     }
   }
 
@@ -555,22 +641,18 @@ function draw(t){
     ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(x,y,26,0,7); ctx.fill();
     ctx.fillStyle='#a8ffc4';
     ctx.fillRect(x-7,y-7,14,14);
-    /* 交互提示 / 方向箭头 */
-    if(L && !G.panelOpen && !G.narrActive){
+    /* 交互提示（引导交给脚下的路，不再画箭头） */
+    if(L && Math.abs(G.px-L.x)<L.r && !G.panelOpen && !G.narrActive){
       const ph2=(Math.sin(t/350)+1)/2;
-      if(Math.abs(G.px-L.x)<L.r){
-        ctx.fillStyle='rgba(90,212,119,'+(0.6+0.4*ph2)+')';
-        ctx.font='13px monospace'; ctx.textAlign='center';
-        ctx.fillText('[ E ]',x,y-26); ctx.textAlign='left';
-      }else{
-        const dir=Math.sign(L.x-G.px), bob=6*ph2;
-        const ax=x+dir*(46+bob);
-        ctx.fillStyle='rgba(125,255,160,'+(0.55+0.4*ph2)+')';
-        ctx.beginPath();
-        ctx.moveTo(ax+dir*12, y);
-        ctx.lineTo(ax, y-8); ctx.lineTo(ax, y+8);
-        ctx.closePath(); ctx.fill();
-      }
+      drawKey(x,y-30,'E',.6+.4*ph2);
+    }
+    /* 移动教学：方向键键帽，动过一次就永远消失 */
+    if(!G.moved && !G.panelOpen && !G.narrActive){
+      const ka=.45+.35*((Math.sin(t/500)+1)/2);
+      drawKey(x, y+44,  '↑', ka);
+      drawKey(x-28, y+70, '←', ka);
+      drawKey(x, y+70,  '↓', ka);
+      drawKey(x+28, y+70, '→', ka);
     }
   }
 
@@ -589,24 +671,13 @@ if(qpanel) setTimeout(()=>{
   if(qpanel==='binary') openSeq();
   else if(qpanel==='bcd') openBCD();
   else if(qpanel==='ascii') openASCII();
+  else if(qpanel==='uni') openUni();
 },600);
 
-/* ================= 开场 ================= */
-const qquiet=new URLSearchParams(location.search).get('quiet');   // 调试：?quiet=1 跳过开场独白
-if(qquiet){ G.introDone=true; }
-else if(!G.introDone){
-  setTimeout(()=>{
-    narrate(['……','这是哪里？','什么都没有。没有光，没有声音，没有形状。',
-      '等等——有个东西，在很深的地方，一闪一闪。'],
-      ()=>{ G.introDone=true; });
-  },900);
-}else if(G.beat==='binary'){
-  narrate(['(那个火花还在等着。)'],null);
-}else if(G.beat==='roam'){
-  narrate(['(东边有一道竖着的微光。)'],null);
-}else if(G.beat==='clock'){
-  narrate(['(西边——两行琥珀色的光在闪。)'],null);
-}
+/* ================= 开场：无字 ================= */
+/* ASCII 之前世界没有文字——开场独白也不例外。黑暗、火花、路，自己解释自己。 */
+if(G.beat==='uni'){ setTimeout(showEndCard,900); }                       // 断线恢复
+else if(G.beat==='ascii'){ narrate(['THE ROAD OF LETTERS LEADS EAST.'],null); }
 </script>
 </body>
 </html>
