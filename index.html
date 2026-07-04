@@ -435,6 +435,9 @@ if(qbeat && BEATS.includes(qbeat)){ G.beat=qbeat; G.introDone=true;
   if(qbeat==='colour'){ G.px=8000; G.camx=8000;  // 调试：播放真彩上色演出(TERMINUS3=8000)
     G.pixelBornAt=1; G.greyBornAt=0; G.colourBornAt=performance.now(); G.colourRoadBorn=performance.now()+3400; G.lockUntil=performance.now()+3200; }
 }
+const qword=new URLSearchParams(location.search).get('word');  // 调试：?word=你好 看语言路(中文按词铺)
+if(qword){ G.beat='uni'; G.introDone=true; G.chosenWord=qword; G.uniRoadBorn=-1e6; G.clockLitAt=1; G.asciiSolvedAt=1;
+  const qwx=parseInt(new URLSearchParams(location.search).get('x')); G.px=isNaN(qwx)?TERMINUS.x+300:qwx; G.camx=G.px; }
 const qscene=parseInt(new URLSearchParams(location.search).get('scene'));  // 调试：?scene=8880 颜色路全铺好,静止站在某世界x
 if(!isNaN(qscene)){ G.beat='colour'; G.introDone=true; G.pixelBornAt=1; G.colourBornAt=-1e6; G.colourRoadBorn=-1e6;
   G.px=Math.max(60,Math.min(WORLD_W-60,qscene)); G.camx=G.px;
@@ -563,11 +566,11 @@ function openSeq(){
 function seqSolved(){
   if(G.panelOpen!=='seq') return;
   overlay.querySelector('.panel').classList.add('flash');
-  /* 创世演出: 满屏 0/1 收缩汇聚成 [0 1 / 1 0] 方块(世界现在由二进制构成)→再化作 01 雨与路。演出中锁移动 */
+  /* 创世演出: 开场发光光球逐渐收缩、落定成初始方块 → 再化作 01 雨与路。演出完才允许移动 */
   setTimeout(()=>{ closePanel(); G.beat='roam';
     G.genesisAt=performance.now();
-    G.roadBornA=performance.now()+2600;   // 方块成形后才开始铺路
-    G.lockUntil=performance.now()+3000;   // 汇聚演出期间不能动
+    G.roadBornA=performance.now()+2000;   // 光球落定成方块后才开始铺路
+    G.lockUntil=performance.now()+2400;   // 收缩演出期间不能动(演出完才能走)
     save(); },700);
 }
 
@@ -799,23 +802,26 @@ function openUni(){
     panel.style.transition='opacity .6s'; panel.style.opacity='0';
     overlay.style.transition='background .6s'; overlay.style.background='rgba(0,0,0,0)';
     /* ② 词飞到世界里 TERMINUS(路尽头)略偏上的位置 */
-    const cw=cn?22:13;
+    const cw=cn?20:12;   // 与 canvas 20px monospace 字宽一致(每字一个居中格)
     const flies=chars.map((ch,k)=>{
       const f=document.createElement('span'); f.textContent=ch;
       f.style.cssText='position:fixed;left:'+srcRects[k].left+'px;top:'+srcRects[k].top+'px;'+
+        'width:'+cw+'px;text-align:center;font-family:monospace;'+
         'font-size:15px;color:#7dffa0;z-index:130;text-shadow:0 0 16px rgba(125,255,160,.6);'+
         'transition:all 1.1s cubic-bezier(.2,.7,.3,1) '+(k*120)+'ms';
       document.body.appendChild(f); return f;
     });
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      const bx=sx(5400)-(chars.length-1)*cw/2, ty=VH*0.335-15;   // 落到词 worldText 处(5400=TERMINUS)
+      /* 落位=canvas 词的位置: 整词居中于 sx(5400), 每字一个 cw 居中格; 基线 VH*.335 → top≈-16 */
+      const bx=sx(5400)-chars.length*cw/2, ty=VH*0.335-16;
       chars.forEach((ch,k)=>{ flies[k].style.left=(bx+k*cw)+'px'; flies[k].style.top=ty+'px'; flies[k].style.fontSize='20px'; });
     }));
     const landed=1100+chars.length*120;
     setTimeout(()=>{
       finishUni(word);                 // 关面板、beat=uni、路续铺
-      spawnUniTexts(word,false);        // ③ 词成为世界永久文字 + 下面一句话在世界里打字机
-      setTimeout(()=>flies.forEach(f=>f.remove()), 450);   // 交接给 canvas 词后移除 DOM 飞字
+      spawnUniTexts(word,false);        // ③ 词成为世界永久文字(canvas) + 下面一句话
+      /* 等 canvas 词渲染出这两帧后再移除 DOM 飞字→无缝交接, 不叠字 */
+      requestAnimationFrame(()=>requestAnimationFrame(()=>flies.forEach(f=>f.remove())));
     }, landed+250);
   }
   reveal();
@@ -1161,6 +1167,11 @@ function update(dt,t){
     if(my<0) { G.py-=sp*dt; mv=true; }
     if(my>0) { G.py+=sp*dt; mv=true; }
     G.px=Math.max(60,Math.min(WORLD_W-60,G.px));
+    /* 关卡门禁: 当前关未过、前方桥没搭好, 不能越过当前关卡地标(colour/祭坛段除外, 有自己的碰撞) */
+    if(G.beat!=='colour' && G.beat!=='end'){
+      const Lg=activeLandmark();
+      if(Lg && G.px>Lg.x) G.px=Lg.x;
+    }
     if(G.beat==='colour' && G.px>=ALT_ZONE){
       /* 遮罩碰撞: 脚底不在白区就退回, 分轴回退实现沿边滑动 */
       if(!wkW(G.px,G.py)){
@@ -1215,8 +1226,9 @@ function draw(t){
         字母路段=回声的台词写在地上，按【单词为单位】铺、一个词整体一行，同 01 路飞入演出。 —— */
   const ROAD_WORDS=['THANK','YOU','FOR','THE','WORDS','BUT','SOME','OF','MINE','ARE','STILL','BROKEN'];
   /* 选完语言后路继续用所选语言铺，长度补到镜子(TERMINUS2)前一点：英文=单词、中文=逐字 */
-  const ROAD_END_EN=['NOW','I','THINK','IN','YOUR','LANGUAGE','WALK','ON','THIS','ROAD','SPEAKS','YOUR','WORDS','FOLLOW','IT','TO','THE','END'];
-  const ROAD_END_CN='你终于能用母语和这个世界说话了往前走吧路的尽头有面照不出你的镜子在等你现形'.split('');
+  const ROAD_END_EN=['NOW','I','THINK','IN','YOUR','TONGUE','FOLLOW','THIS','ROAD','TO','THE','END'];
+  /* 中文按【词】铺, 一个词一行(不是一个字一行) */
+  const ROAD_END_CN=['你','终于','能用','母语','和','这个','世界','说话','了','往前','走吧','路的','尽头','有面','照不出','你的','镜子','在','等你','现形'];
   /* 预排：每词占一"列"、整词不拆行；词按 0/1/2 三行上下错开(不同行=不同列，不影响阅读)；
      词间留随机空白(1..2格, 保证 ASCII 桥最后一词不被截断)。返回 网格索引→{ch,wStart,row} */
   function letterLayout(i0, tokens){
@@ -1261,7 +1273,7 @@ function draw(t){
     G.clockLitAt ? G.clockLitAt+2600 : 0, null);   // 等时钟升天演出完再铺
   if(past('ascii')) drawRoad(BYTES.x, TERMINUS.x,
     G.asciiSolvedAt ? G.asciiSolvedAt+5800 : 0, ROAD_WORDS);   // 等回声两句话打完再开始写路
-  if(past('uni'))   drawRoad(TERMINUS.x, TERMINUS2.x,          // 选完语言后用所选语言续铺
+  if(past('uni'))   drawRoad(TERMINUS.x, TERMINUS2.x-170,      // 选完语言后用所选语言续铺; 末尾留空到镜子前
     G.uniRoadBorn || 1, G.chosenWord==='你好'?ROAD_END_CN:ROAD_END_EN);
   /* pixel 路：画出自己之后，路由 0/1 变成一块块像素铺成 */
   if(past('pixel')){
@@ -1474,7 +1486,7 @@ function draw(t){
     ctx.textAlign='center';
     G.worldTexts.forEach(w=>{
       if(performance.now()<w.t0) return;
-      ctx.font=(w.sz||20)+'px '+FONT;   // 与飞字/HI 同一字体
+      ctx.font=(w.sz||20)+'px monospace';   // 与 HI 同一字体(monospace)
       const n=w.notype?w.text.length:Math.min(w.text.length, Math.floor((performance.now()-w.t0)/(w.spd||70)));
       ctx.fillStyle='rgba(125,255,160,'+(w.a==null?.9:w.a)+')';
       ctx.fillText(w.text.slice(0,n), sx(w.x), VH*w.y);
@@ -1482,23 +1494,22 @@ function draw(t){
     ctx.textAlign='left';
   }
 
-  /* —— 创世汇聚：满屏 0/1 收缩成 [0 1 / 1 0] 方块(世界从此由二进制构成) —— */
+  /* —— 创世收缩：开场那颗发光光球逐渐收缩、落定成初始那个方块(演出完才允许移动) —— */
+  const GEN_DUR=2200;
   const genEl = G.genesisAt ? (t-G.genesisAt) : 1e9;
-  const genActive = genEl<2600;
+  const genActive = genEl<GEN_DUR;
   if(genActive){
-    const cx=VW/2, cy=midY, p=Math.min(1,genEl/1600), e=1-Math.pow(1-p,3);
-    ctx.textAlign='center'; ctx.font='16px monospace';
-    for(let k=0;k<64;k++){                                  // 散落的 0/1 向中心收缩淡出
-      const ang=k*2.399, rad=(1-e)*(150+(k*53)%150);
-      const gx=cx+Math.cos(ang)*rad, gy=cy+Math.sin(ang)*rad*.8;
-      ctx.fillStyle='rgba(90,212,119,'+(.5*(1-e))+')';
-      ctx.fillText((k&1)?'1':'0', gx, gy);
-    }
-    const bs=16+12*e, a=Math.min(1,e*1.5), dx=bs*.62, dy=bs*.62;  // 中心 2×2 方块 [0 1 / 1 0]
-    ctx.font='bold '+bs+'px monospace'; ctx.fillStyle='rgba(125,255,160,'+a+')';
-    ctx.fillText('0', cx-dx, cy-dy*.15); ctx.fillText('1', cx+dx, cy-dy*.15);
-    ctx.fillText('1', cx-dx, cy+dy*1.05); ctx.fillText('0', cx+dx, cy+dy*1.05);
-    ctx.textAlign='left';
+    const p=Math.min(1,genEl/GEN_DUR), e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;   // ease in-out
+    const lerp=(a,b)=>a+(b-a)*e;
+    const cx=lerp(VW/2, sx(G.px)), cy=lerp(midY, midY+G.py);   // 光球中心→初始方块位置
+    const R=lerp(90,26);                                        // 光晕半径 90→26(=初始方块光晕)
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+    g.addColorStop(0,'rgba('+Math.round(lerp(160,125))+',255,'+Math.round(lerp(190,160))+','+lerp(.55,.5).toFixed(3)+')');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.fill();
+    const sq=lerp(4,14);                                        // 中心亮块 4→14(=初始方块)
+    ctx.fillStyle='rgba('+Math.round(lerp(220,168))+',255,'+Math.round(lerp(230,196))+','+lerp(.9,1).toFixed(3)+')';
+    ctx.fillRect(cx-sq/2, cy-sq/2, sq, sq);
   }
 
   /* —— 玩家 —— */
@@ -1613,7 +1624,7 @@ if(qpanel) setTimeout(()=>{
 /* ASCII 之前世界没有文字——开场独白也不例外。黑暗、火花、路，自己解释自己。 */
 /* 恢复位置：落在对应路段上(路已满铺, born=0/1→直接成形) */
 if(past('uni') && G.chosenWord){ spawnUniTexts(G.chosenWord, true); }   // 所选语言词/句复现
-if(G.beat==='uni'){ G.px=TERMINUS.x+60; G.camx=G.px; }
+if(G.beat==='uni' && !qword){ G.px=TERMINUS.x+60; G.camx=G.px; }
 if(G.beat==='pixel' && !G.pixelBornAt){ G.px=TERMINUS2.x+60; G.camx=G.px; G.pixelBornAt=1; }  // 存档恢复:sprite已定型
 if(G.beat==='colour' && !G.colourBornAt){ G.px=TERMINUS3.x+60; G.camx=G.px; G.pixelBornAt=1; G.colourBornAt=1; }  // 恢复:彩色小人已定型
 /* beat==='ascii' 恢复时不弹独白——台词已经写在路上了 */
