@@ -326,10 +326,13 @@ const ASCII_BYTES=['01001000','01001001'], ASCII_H='16zcro4';
 function openASCII(){
   /* ASCII 之前无句子。教学全靠"罗塞塔残页"：三行对照自示规律，···展开全表。
      无言兜底：输错2次 → 字节下方浮现十进制值(数字合法)。 */
-  const tbl=Array.from({length:26},(_,i)=>
-    '<span style="display:inline-block;width:64px">'+String.fromCharCode(65+i)+' = '+(65+i)+'</span>').join('');
-  let html='<div class="ref" style="line-height:2.1;font-size:14px">01000001 = 65 = A</div>'+
-    '<div class="ref" style="line-height:2">'+tbl+'</div>'+
+  /* 完整对照表：二进制 = 十进制 = 字母，A~M / N~Z 两栏 */
+  const tbl=Array.from({length:26},(_,i)=>{
+    const c=65+i;
+    return '<div>'+c.toString(2).padStart(8,'0')+' = '+c+' = '+String.fromCharCode(c)+'</div>';
+  }).join('');
+  let html='<div class="ref" style="column-count:2;column-gap:44px;width:400px;'+
+      'margin:0 auto 16px;text-align:left;line-height:1.75;font-size:12.5px;letter-spacing:1px">'+tbl+'</div>'+
     '<div class="bytes">'+ASCII_BYTES.join('　')+'</div>'+
     '<div class="ref" id="decs" style="visibility:hidden;font-size:16px;color:#ffd97d">'+
       ASCII_BYTES.map(b=>parseInt(b,2)).join('　　　　')+'</div>'+
