@@ -112,7 +112,7 @@ function resize(){ VW=cv.width=innerWidth; VH=cv.height=innerHeight; }
 addEventListener('resize', resize); resize();
 
 const SAVE_KEY='genesis_mvp_v1';
-const WORLD_W=5000;
+const WORLD_W=5600;
 const BEATS=['void','binary','roam','clock','ascii','uni','end'];
 const beatIdx=b=>BEATS.indexOf(b);
 
@@ -133,6 +133,8 @@ load();
 /* 调试：?beat=roam 直接跳到某一幕（不写存档） */
 const qbeat=new URLSearchParams(location.search).get('beat');
 if(qbeat && BEATS.includes(qbeat)){ G.beat=qbeat; G.introDone=true; }
+const qx=parseInt(new URLSearchParams(location.search).get('x'));   // 调试：?x=4600 指定出生位置
+if(!isNaN(qx)){ G.px=Math.max(60,Math.min(WORLD_W-60,qx)); G.camx=G.px; }
 const past=b=>beatIdx(G.beat)>=beatIdx(b);   // 已到达/越过某节拍
 if(past('ascii')){ spawnEchoTexts(true); }
 
@@ -353,15 +355,8 @@ function spawnEchoTexts(instant){
   ];
 }
 function asciiSolved(){
-  /* 文字诞生——从这一刻起独白合法，但只能是英文。中文要等 Unicode。 */
+  /* 文字诞生。不弹独白——旁白以"路"的形式从左到右拼在地上(见 drawRoad 字母段)。 */
   G.beat='ascii'; G.asciiSolvedAt=performance.now(); save(); spawnEchoTexts(false);
-  setTimeout(()=>{
-    narrate(['WORDS.','THE WORLD HAS WORDS NOW.',
-      'AND THE FIRST VOICE... WAS NOT MINE.',
-      'THE ROAD CHANGED TOO. FOLLOW IT EAST —',
-      'SOMETHING THERE IS STILL <b style="color:#ffd97d">BROKEN</b>.'],
-      null);
-  },5000);
 }
 
 /* ================= 谜题四：活的编码字典（ASCII→Unicode 滚动演出 + 拖拽配对） ================= */
@@ -501,8 +496,8 @@ function showEndCard(){
 }
 
 /* ================= 世界 · 地标 ================= */
-/* 动线纯向东。有路引导后恢复原版距离(每段约千px)：出生2500 → 巨钟3600 → 字母云4500 → 尽头4900。 */
-const CLOCK={x:3600}, BYTES={x:4500}, TERMINUS={x:4900};
+/* 动线纯向东。每段约千px：出生2800 → 巨钟3600(注:出生=WORLD_W/2=2800) → 字母云4500 → 尽头5400。 */
+const CLOCK={x:3600}, BYTES={x:4500}, TERMINUS={x:5400};
 /* 字母云：未成形的文字。H 和 I 就藏在里面，解谜后飘到中间拼成 HI，其余消散。 */
 const CLOUD=[];
 {
@@ -596,8 +591,8 @@ function draw(t){
   const midY=VH*.46;
 
   /* —— 路：01 密铺成路；每段诞生时字符从虚空飘落归位、由西向东铺开。
-        只有 ASCII 之后延伸的新路段是英文句子，旧路段永远是 01。 —— */
-  const ROAD_MSG='IF YOU CAN READ THIS THE WORLD HAS WORDS ... FOLLOW ME ... ';
+        字母路段=回声的台词写在地上，回声两句话打完后才逐字显现，只写一遍不循环。 —— */
+  const ROAD_MSG='FOLLOW ME      ';   // 短口令沿路循环，间隔留白
   function drawRoad(x0,x1,born,letters){
     const el=born ? (t-born) : 1e9;          // 恢复存档：路已铺好
     ctx.font='12px monospace';
@@ -605,25 +600,32 @@ function draw(t){
       const x=sx(wx); if(x<-30||x>VW+30) continue;
       const i=Math.floor(wx/13);
       const start=((wx-x0)/(x1-x0))*1400;    // 由西向东铺开
+      if(letters){
+        /* 台词路：FOLLOW ME 沿路循环，以步行速度(50ms/格≈260px/s)逐字亮起，引人向东 */
+        const li=i-Math.floor(x0/13);
+        if(li<0) continue;
+        const lp=Math.min(1, Math.max(0,(el-li*50)/250));
+        if(lp<=0) continue;
+        const L2=ROAD_MSG.length;
+        const la=(.55+.12*Math.sin(t/700+i*.7))*lp;
+        ctx.fillStyle='rgba(125,255,160,'+la+')';
+        ctx.fillText(ROAD_MSG[li%L2], x, midY+34+(i%2?7:-2));
+        continue;
+      }
       const p=Math.min(1, Math.max(0,(el-start)/700));
       if(p<=0) continue;
       const e=1-Math.pow(1-p,3);
-      let ch;
-      if(letters){
-        const RB=Math.floor(x0/13), L2=ROAD_MSG.length;
-        ch=ROAD_MSG[(((i-RB)%L2)+L2)%L2];
-      }else{
-        ch=((((i*2654435761)>>3)&1)?'1':'0');
-      }
+      const ch=((((i*2654435761)>>3)&1)?'1':'0');
       const ox=(1-e)*(((i*89)%60)-30), oy=(1-e)*(((i*61)%80)-40);   // 从虚空飘来
       const a=(.3+.12*Math.sin(t/700+i*.7))*e;
-      ctx.fillStyle=letters?'rgba(125,255,160,'+a+')':'rgba(90,212,119,'+a+')';
+      ctx.fillStyle='rgba(90,212,119,'+a+')';
       ctx.fillText(ch, x+ox, midY+34+(i%2?7:-2)+oy);
     }
   }
   if(past('roam'))  drawRoad(WORLD_W/2-40, CLOCK.x, G.roadBornA, false);
   if(past('clock')) drawRoad(CLOCK.x, BYTES.x, G.clockLitAt, false);
-  if(past('ascii')) drawRoad(BYTES.x, TERMINUS.x, G.asciiSolvedAt, true);
+  if(past('ascii')) drawRoad(BYTES.x, TERMINUS.x,
+    G.asciiSolvedAt ? G.asciiSolvedAt+5800 : 0, true);   // 等回声两句话打完再开始写路
 
   /* —— 时间的升天：从钟面漂到屏幕顶部正中，落定成第一件常驻 UI —— */
   if(past('clock')){
@@ -809,7 +811,7 @@ if(qpanel) setTimeout(()=>{
 /* ================= 开场：无字 ================= */
 /* ASCII 之前世界没有文字——开场独白也不例外。黑暗、火花、路，自己解释自己。 */
 if(G.beat==='uni'){ setTimeout(showEndCard,900); }                       // 断线恢复
-else if(G.beat==='ascii'){ narrate(['THE ROAD OF LETTERS LEADS EAST.'],null); }
+/* beat==='ascii' 恢复时不弹独白——台词已经写在路上了 */
 </script>
 </body>
 </html>

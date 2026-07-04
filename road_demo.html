@@ -29,11 +29,13 @@
 const ROAD_SPACING   = 13;    // 路面字符间距 px（和游戏 tile 13px 网格一致）
 const ROAD_FONT      = '12px monospace';
 const ROAD_STAGGER   = 5;     // 两条微错行：偶数字符 -5px，奇数 +5px
-const WAVE_SPEED     = 300;   // 建造波前推进速度 px/s（900px 可见路 ≈ 3s 波前扫完）
+const WAVE_SPEED     = 260;   // 建造波前推进速度 px/s = 游戏玩家移速，玩家向右跑时路恰好在脚下/前方一点持续生成
 const FLY_R_MIN      = 80;    // 飞入起点距最终位置的最小半径 px
 const FLY_R_MAX      = 160;   // 飞入最大半径 px（越大越"从四面八方汇聚"）
-const FLY_DUR_MIN    = 600;   // 单字符入场时长下限 ms
-const FLY_DUR_MAX    = 900;   // 入场时长上限 ms（hash 决定，错落感）
+const FLY_X_GAIN     = 1.4;   // 水平位移增益：路是横线，纯垂直来向最扎眼，放大水平分量让"从左右斜向来"看得见
+const GOLDEN_ANG     = 2.399963229; // 黄金角 137.5°(弧度)：叠加 i*黄金角，相邻字符来向强制错开，不会局部同向
+const FLY_DUR_MIN    = 800;   // 单字符入场时长下限 ms（放长 →"飘"进来的感觉）
+const FLY_DUR_MAX    = 1200;  // 入场时长上限 ms（hash 决定，错落感）
 const OVERSHOOT      = 1.35;  // easeOutBack 过冲量（1.7=标准，1.35=轻微回弹）
 const FLASH_TAU      = 220;   // 落定闪光衰减时间常数 ms（越大闪得越久）
 const FLASH_ALPHA    = 0.9;   // 落定瞬间峰值亮度 rgba(125,255,160,·)
@@ -105,10 +107,11 @@ function drawRoadBuild(ctx, t, bornTime, x0, x1, midY){
       allSettled = false;
       const p   = local / dur;
       const e   = easeOutBack(p, OVERSHOOT);
-      const ang = hash01(i, 5) * Math.PI * 2;             // 随机方向（全角度均匀）
+      // 来向 = hash 均匀角 + i*黄金角：既随机又保证相邻字符来向各异（不会一片全从上/下插）
+      const ang = hash01(i, 5) * Math.PI * 2 + i * GOLDEN_ANG;
       const rad = FLY_R_MIN + hash01(i, 9) * (FLY_R_MAX - FLY_R_MIN);
       const off = (1 - e) * rad;                          // e 可 >1 → 轻微过冲回弹
-      const x = fx + Math.cos(ang) * off;
+      const x = fx + Math.cos(ang) * off * FLY_X_GAIN;    // 水平分量放大，左右来向更明显
       const y = fy + Math.sin(ang) * off;
       // 飞行中亮度快速拉起（p^0.6 前段起得快），明显亮于背景雨
       const a = Math.min(1, Math.pow(p, 0.6)) * 0.8;
