@@ -110,7 +110,7 @@ function resize(){ VW=cv.width=innerWidth; VH=cv.height=innerHeight; }
 addEventListener('resize', resize); resize();
 
 const SAVE_KEY='genesis_mvp_v1';
-const WORLD_W=3200;
+const WORLD_W=5000;
 const BEATS=['void','binary','roam','clock','ascii','uni','end'];
 const beatIdx=b=>BEATS.indexOf(b);
 
@@ -119,7 +119,7 @@ const G={
   px:WORLD_W/2, py:0, camx:WORLD_W/2,
   introDone:true, moved:false, panelOpen:null, narrActive:false,
   worldTexts:[],           // {x,y,text,shown}
-  clockLitAt:0,
+  clockLitAt:0, asciiSolvedAt:0, roadBornA:0,
 };
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(
   {beat:G.beat, binLevel:G.binLevel})); }catch(e){} }
@@ -246,8 +246,8 @@ function openSeq(){
 function seqSolved(){
   if(G.panelOpen!=='seq') return;
   overlay.querySelector('.panel').classList.add('flash');
-  /* 无言演出：01 雨落下 + 路铺开 + WASD 键帽浮现。世界还没有字。 */
-  setTimeout(()=>{ closePanel(); G.beat='roam'; save(); },700);
+  /* 无言演出：01 雨落下 + 路从虚空铺开 + WASD 键帽浮现。世界还没有字。 */
+  setTimeout(()=>{ closePanel(); G.beat='roam'; G.roadBornA=performance.now(); save(); },700);
 }
 
 /* ================= 谜题二：BCD 巨钟 ================= */
@@ -321,20 +321,27 @@ function openASCII(){
     '<div class="bytes">'+ASCII_BYTES.join('　')+'</div>'+
     '<div class="ref" id="decs" style="visibility:hidden;font-size:16px;color:#ffd97d">'+
       ASCII_BYTES.map(b=>parseInt(b,2)).join('　　　　')+'</div>'+
-    '<div class="ansrow"><input id="asciiin" maxlength="2" autocomplete="off" spellcheck="false"></div>';
+    '<div class="ansrow">'+
+      '<span style="display:inline-block;width:52px;padding:8px 0;margin-right:10px;'+
+        'border:1px solid #3fae5c;border-radius:4px;background:#0d2d14;color:#7dffa0;'+
+        'font-size:22px;text-align:center">H</span>'+
+      '<input id="asciiin" maxlength="1" autocomplete="off" spellcheck="false" style="width:52px">'+
+    '</div>';
   openPanel(html,'ascii');
   document.getElementById('tblbtn').onclick=()=>{
     const el=document.getElementById('asctbl');
     el.style.display=el.style.display==='none'?'block':'none';
   };
+  /* 第一个字节已解出 H(=72)。两个字节只差最后一位——用刚学的+1推出下一个字母。 */
   let wrong=0;
-  const inp=document.getElementById('asciiin'); inp.focus();
+  const inp=document.getElementById('asciiin');
+  setTimeout(()=>inp.focus(),80);
   inp.addEventListener('input',()=>{
-    const v=inp.value.toUpperCase();
+    const v='H'+inp.value.toUpperCase();
     if(ansHash(v)===ASCII_H){
       overlay.querySelector('.panel').classList.add('flash');
       setTimeout(()=>{ closePanel(); asciiSolved(); },450);
-    }else if(v.length>=2){
+    }else if(inp.value.length>=1){
       wrong++;
       inp.style.borderColor='#8a3a32';
       setTimeout(()=>{ inp.style.borderColor=''; },500);
@@ -343,21 +350,22 @@ function openASCII(){
   });
 }
 function spawnEchoTexts(instant){
+  /* 时序对齐字母云动画：H/I 约 2.2s 落位，'HI.' 文本无缝接手 */
   G.worldTexts=[
-    {x:2750, y:0.34, text:String.fromCharCode(72,73)+'.', t0:instant?0:performance.now()+400},
-    {x:2750, y:0.42, text:'I HAVE BEEN WAITING FOR YOU.', t0:instant?0:performance.now()+1600},
+    {x:4500, y:0.34, text:String.fromCharCode(72,73)+'.', t0:instant?0:performance.now()+2150},
+    {x:4500, y:0.42, text:'I HAVE BEEN WAITING FOR YOU.', t0:instant?0:performance.now()+3400},
   ];
 }
 function asciiSolved(){
   /* 文字诞生——从这一刻起独白合法，但只能是英文。中文要等 Unicode。 */
-  G.beat='ascii'; save(); spawnEchoTexts(false);
+  G.beat='ascii'; G.asciiSolvedAt=performance.now(); save(); spawnEchoTexts(false);
   setTimeout(()=>{
     narrate(['WORDS.','THE WORLD HAS WORDS NOW.',
       'AND THE FIRST VOICE... WAS NOT MINE.',
       'THE ROAD CHANGED TOO. FOLLOW IT EAST —',
       'SOMETHING THERE IS STILL <b style="color:#ffd97d">BROKEN</b>.'],
       null);
-  },3400);
+  },5000);
 }
 
 /* ================= 谜题四：Unicode 豆腐块 ================= */
@@ -421,8 +429,19 @@ function showEndCard(){
 }
 
 /* ================= 世界 · 地标 ================= */
-/* 动线改为纯向东：出生1600 → 巨钟2150 → 字节群2750 → 路的尽头3080。路面即引导。 */
-const CLOCK={x:2150}, BYTES={x:2750}, TERMINUS={x:3080};
+/* 动线纯向东。有路引导后恢复原版距离(每段约千px)：出生2500 → 巨钟3600 → 字母云4500 → 尽头4900。 */
+const CLOCK={x:3600}, BYTES={x:4500}, TERMINUS={x:4900};
+/* 字母云：未成形的文字。H 和 I 就藏在里面，解谜后飘到中间拼成 HI，其余消散。 */
+const CLOUD=[];
+{
+  const chars='ABCDEFGKLMNPRSTU';
+  for(let i=0;i<14;i++){
+    CLOUD.push({ch:chars[i], dx:((i*173)%220)-110, dy:((i*97)%110)-55,
+      s:11+((i*37)%13), main:false});
+  }
+  CLOUD.push({ch:'H', dx:-34, dy:-10, s:15, main:true, tx:-11});
+  CLOUD.push({ch:'I', dx:40,  dy:16,  s:13, main:true, tx:9});
+}
 function activeLandmark(){
   if(G.beat==='roam') return {x:CLOCK.x, act:openBCD, r:110};
   if(G.beat==='clock') return {x:BYTES.x, act:openASCII, r:110};
@@ -439,6 +458,7 @@ addEventListener('keydown',e=>{
   if(G.panelOpen) return;
   keys[e.key.toLowerCase()]=true;
   if(e.key==='e'||e.key==='E'||e.key==='Enter'){
+    e.preventDefault();   // 别让开面板的这一下按键漏进面板里的输入框
     if(G.beat==='void'||G.beat==='binary'){
       if(G.introDone){ G.beat='binary'; openSeq(); }
     }else{
@@ -458,7 +478,7 @@ cv.addEventListener('click',()=>{
 const rain=[];
 function ensureRain(){
   if(!past('roam')) return;
-  while(rain.length<80){
+  while(rain.length<130){
     rain.push({x:Math.random()*WORLD_W, y:Math.random()*VH,
       v:8+Math.random()*18, c:Math.random()<.5?'0':'1', a:.06+Math.random()*.12});
   }
@@ -503,22 +523,35 @@ function draw(t){
 
   const midY=VH*.46;
 
-  /* —— 路：材质=学习进度（01 → 字母句子） —— */
+  /* —— 路：01 密铺成路；每段诞生时字符从虚空飘落归位、由西向东铺开。
+        只有 ASCII 之后延伸的新路段是英文句子，旧路段永远是 01。 —— */
   const ROAD_MSG='IF YOU CAN READ THIS THE WORLD HAS WORDS ... FOLLOW ME ... ';
-  function drawRoad(x0,x1){
-    ctx.font='13px monospace';
-    for(let wx=x0; wx<x1; wx+=22){
-      const x=sx(wx); if(x<-20||x>VW+20) continue;
-      const i=Math.floor(wx/22), RB=Math.floor((WORLD_W/2-40)/22);
-      const ch=past('ascii') ? ROAD_MSG[(((i-RB)%ROAD_MSG.length)+ROAD_MSG.length)%ROAD_MSG.length]
-                             : ((((i*2654435761)>>3)&1)?'1':'0');
-      ctx.fillStyle='rgba(90,212,119,'+(.26+.1*Math.sin(t/700+i*.7))+')';
-      ctx.fillText(ch, x, midY+34+(i%2?7:-2));
+  function drawRoad(x0,x1,born,letters){
+    const el=born ? (t-born) : 1e9;          // 恢复存档：路已铺好
+    ctx.font='12px monospace';
+    for(let wx=x0; wx<x1; wx+=13){
+      const x=sx(wx); if(x<-30||x>VW+30) continue;
+      const i=Math.floor(wx/13);
+      const start=((wx-x0)/(x1-x0))*1400;    // 由西向东铺开
+      const p=Math.min(1, Math.max(0,(el-start)/700));
+      if(p<=0) continue;
+      const e=1-Math.pow(1-p,3);
+      let ch;
+      if(letters){
+        const RB=Math.floor(x0/13), L2=ROAD_MSG.length;
+        ch=ROAD_MSG[(((i-RB)%L2)+L2)%L2];
+      }else{
+        ch=((((i*2654435761)>>3)&1)?'1':'0');
+      }
+      const ox=(1-e)*(((i*89)%60)-30), oy=(1-e)*(((i*61)%80)-40);   // 从虚空飘来
+      const a=(.3+.12*Math.sin(t/700+i*.7))*e;
+      ctx.fillStyle=letters?'rgba(125,255,160,'+a+')':'rgba(90,212,119,'+a+')';
+      ctx.fillText(ch, x+ox, midY+34+(i%2?7:-2)+oy);
     }
   }
-  if(past('roam'))  drawRoad(WORLD_W/2-40, CLOCK.x);
-  if(past('clock')) drawRoad(CLOCK.x, BYTES.x);
-  if(past('ascii')) drawRoad(BYTES.x, TERMINUS.x);
+  if(past('roam'))  drawRoad(WORLD_W/2-40, CLOCK.x, G.roadBornA, false);
+  if(past('clock')) drawRoad(CLOCK.x, BYTES.x, G.clockLitAt, false);
+  if(past('ascii')) drawRoad(BYTES.x, TERMINUS.x, G.asciiSolvedAt, true);
 
   /* —— 时间的升天：从钟面漂到屏幕顶部正中，落定成第一件常驻 UI —— */
   if(past('clock')){
@@ -617,18 +650,36 @@ function draw(t){
     }
   }
 
-  /* —— 字节群 —— */
-  if(past('clock')){
-    const bx=sx(BYTES.x), by=midY-46, done=past('ascii');
-    if(bx>-260&&bx<VW+260){
-      ASCII_BYTES.forEach((byte,r)=>{
-        for(let i=0;i<8;i++){
-          const on=byte[i]==='1';
-          const a3=done?.9:(.35+.45*((Math.sin(t/300+r+i)+1)/2));
-          ctx.fillStyle=on?'rgba(255,217,125,'+a3+')':'rgba(60,60,40,.35)';
-          ctx.fillRect(bx-96+i*24, by+r*30, 14, 14);
+  /* —— 字母云：未成形的文字。解谜后 H/I 汇聚成 HI，其余四散消散 —— */
+  const cloudAnim=past('ascii') && G.asciiSolvedAt && (t-G.asciiSolvedAt)<2400;
+  if(G.beat==='clock' || cloudAnim){
+    const bx=sx(BYTES.x), by=midY-70;
+    if(bx>-360&&bx<VW+360){
+      const p=cloudAnim?Math.min(1,(t-G.asciiSolvedAt)/2200):0;
+      const e=p<.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+      ctx.textAlign='center';
+      CLOUD.forEach((c,i)=>{
+        let x=bx+c.dx+Math.sin(t/600+i*1.7)*5;
+        let y=by+c.dy+Math.cos(t/700+i*1.1)*4;
+        let a, fs=c.s;
+        if(cloudAnim){
+          if(c.main){                        // H 和 I 飘到中间拼成 HI
+            const txx=bx+c.tx, tyy=VH*.34-6;
+            x+= (txx-x)*e; y+=(tyy-y)*e;
+            a=.45+.45*e; fs=c.s+(20-c.s)*e;
+          }else{                             // 其余字母飘出去消散
+            const ang=Math.atan2(c.dy, c.dx||1);
+            x+=Math.cos(ang)*e*280; y+=Math.sin(ang)*e*220;
+            a=.45*(1-e);
+          }
+        }else{
+          a=.28+.22*((Math.sin(t/500+i*2.3)+1)/2);
         }
+        ctx.fillStyle='rgba(255,217,125,'+a+')';
+        ctx.font=fs+'px monospace';
+        ctx.fillText(c.ch, x, y);
       });
+      ctx.textAlign='left';
     }
   }
 
@@ -657,8 +708,8 @@ function draw(t){
       const ph2=(Math.sin(t/350)+1)/2;
       drawKey(x,y-30,'E',.6+.4*ph2);
     }
-    /* 移动教学：WASD 键帽（键盘上印的字），动过一次就永远消失 */
-    if(!G.moved && !G.panelOpen && !G.narrActive){
+    /* 移动教学：WASD 键帽（键盘上印的字），陪你走到巨钟为止 */
+    if(G.beat==='roam' && Math.abs(G.px-CLOCK.x)>=130 && !G.panelOpen && !G.narrActive){
       const ka=.45+.35*((Math.sin(t/500)+1)/2);
       drawKey(x, y+44,  'W', ka);
       drawKey(x-28, y+70, 'A', ka);
