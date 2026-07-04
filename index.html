@@ -36,7 +36,9 @@
   .bit.sm{width:34px;height:40px;font-size:18px;}
   @keyframes askpulse{50%{border-color:#5ad477;}}
   .askrow .bit{animation:askpulse 1.1s infinite;}
-  #seqtbl{scrollbar-width:none;}              /* 滚动条太丑，藏掉 */
+  #seqtbl{scrollbar-width:none;               /* 滚动条太丑，藏掉 */
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 44px,#000 calc(100% - 14px),transparent 100%);
+    mask-image:linear-gradient(to bottom,transparent 0,#000 44px,#000 calc(100% - 14px),transparent 100%);}
   #seqtbl::-webkit-scrollbar{display:none;}
   .bit.on{background:#0d2d14;color:#7dffa0;border-color:#3fae5c;
     box-shadow:0 0 14px rgba(80,255,130,.35);}
