@@ -120,58 +120,51 @@ addEventListener('resize', resize); resize();
 const SAVE_KEY='genesis_mvp_v1';
 const WORLD_W=8200, SPAWN=2800;          // 出生点固定 2800(不跟 WORLD_W 走)
 const BEATS=['void','binary','roam','clock','ascii','uni','pixel','end'];
-/* 小人 sprite：8×12 位图。玩家在 PIXEL 章亲手画出→成为主角形象(每行=1 byte) */
+/* 小人 sprite：8×12 位图。上半身固定，下面三行腿由行走循环替换 */
 const SPR_W=8, SPR_H=12;
-const SPR=[0b00111100,0b01111110,0b01111110,0b00111100,0b00011000,0b01111110,
-          0b10111101,0b00111100,0b00111100,0b00100100,0b00100100,0b01100110];
-const SPR_LEGS=[[0b00100100,0b00100100,0b01100110],   // 站立/迈步两组腿脚
-                [0b00110010,0b00100100,0b00110100]];
-/* 32×32 主角肖像(囚徒：乱发+单片眼镜+条纹囚服)。分辨率细化演出用它逐级清晰 */
-const CHAR32_ART=[
-"................................",
-"..........######................",
-".........########...............",
-"........###....###..............",
-".......###.####.###.............",
-"......###.######.###............",
-"......##.###..###.##............",
-"......##.##....##.##............",
-"......###........###............",
-".......#.@@@...OO.#..............",
-".......#.@@@...OO.#..............",
-".......#..@....OO.#.............",
-".......##........##.............",
-"........###....###..............",
-".........########...............",
-"........##########..............",
-".......############.............",
-"......##############............",
-"......#....####....#............",
-"......################.........",
-"......#....####....#............",
-"......################.........",
-"......#....####....#............",
-"......################.........",
-"......#....####....#............",
-".......##########..............",
-".......###....###..............",
-".......###....###..............",
-".......###....###..............",
-".......###....###..............",
-"......####....####.............",
-"......####....####.............",
+const SPR=[0b00111100,0b01111110,0b01011110,0b00111100,0b00011000,0b01111110,
+          0b10111101,0b01111110,0b00111100,0,0,0];   // 第2行留单片镜缺口
+/* 行走循环：交替抬脚的"踏步"(不是整条腿甩出去)，配合身体轻微起伏 bob */
+const WALK=[
+  {legs:[0b00100100,0b00100100,0b01100110], bob:0},   // 触地
+  {legs:[0b00100100,0b00100100,0b00100110], bob:-1},  // 抬左脚+身体抬
+  {legs:[0b00100100,0b00100100,0b01100110], bob:0},   // 触地
+  {legs:[0b00100100,0b00100100,0b01100100], bob:-1},  // 抬右脚+身体抬
 ];
-const CHAR32=CHAR32_ART.map(s=>{ s=(s+'.'.repeat(32)).slice(0,32);
-  let bits=[]; for(let c=0;c<32;c++) bits.push(s[c]!=='.'&&s[c]!==' '); return bits; });
-/* 把 32×32 降采样到 N×N(块内过半即亮)，画到以(cx,cy)为中心、边长 box 的方框，块状放大 */
+/* 64×64 主角肖像(囚徒：乱发+单片镜+条纹囚服)，程序化生成→细化演出逐级清晰 */
+const CHARG=(function(){
+  const S=64, g=Array.from({length:S},()=>new Array(S).fill(false));
+  const on=(x,y)=>{ x|=0;y|=0; if(x>=0&&y>=0&&x<S&&y<S) g[y][x]=true; };
+  const off=(x,y)=>{ x|=0;y|=0; if(x>=0&&y>=0&&x<S&&y<S) g[y][x]=false; };
+  const disc=(cx,cy,r,set)=>{ for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++) if(x*x+y*y<=r*r) (set?on:off)(cx+x,cy+y); };
+  const ring=(cx,cy,r)=>{ for(let a=0;a<360;a+=4) on(cx+Math.cos(a*Math.PI/180)*r, cy+Math.sin(a*Math.PI/180)*r); };
+  // ① 乱发先铺(头顶不规则尖发) → ② 头实心画在其上(把脸区盖回, 发只剩四周) → ③ 最后掏五官
+  for(let x=17;x<=47;x++){ const h=9+((x*7)%8);
+    for(let y=4;y<4+h;y++) if(((x*13+y*7)%9)<5) on(x,y); }
+  disc(32,22,12,1);                                 // 头(实心, 盖住脸区的乱发)
+  disc(26,21,3,0); disc(38,21,3,0);                 // 掏两个眼窝
+  ring(26,21,4);                                    // 左眼=单片镜圈
+  disc(26,21,1,1); disc(38,21,1,1);                 // 两个瞳孔
+  on(30,28);on(31,28);on(32,28);on(33,28);          // 嘴一横
+  // ④ 躯干+横条纹囚服
+  for(let y=35;y<=56;y++)for(let x=19;x<=45;x++){
+    if((y-35)%6<3) on(x,y); else if(x<=20||x>=44) on(x,y);
+  }
+  for(let y=36;y<=50;y++){ on(17,y);on(18,y);on(46,y);on(47,y); }      // 手臂
+  disc(17,51,2,1); disc(47,51,2,1);                 // 手
+  for(let y=56;y<=63;y++){ on(27,y);on(28,y);on(35,y);on(36,y); }      // 双腿
+  for(let x=24;x<=30;x++) on(x,63); for(let x=34;x<=40;x++) on(x,63);  // 双脚
+  return g;
+})();
+/* 把 64×64 主图降采样到 N×N(块内过半即亮)，画到以(cx,cy)为中心、边长 box 的方框 */
 function drawCharRes(cx,cy,box,N){
-  const cell=box/N, x0=cx-box/2, y0=cy-box/2, s=32/N;
+  const cell=box/N, x0=cx-box/2, y0=cy-box/2, s=64/N;
   for(let r=0;r<N;r++)for(let c=0;c<N;c++){
-    let on=0,tot=0;
+    let hit=0,tot=0;
     for(let yy=0;yy<s;yy++)for(let xx=0;xx<s;xx++){
-      const sr=(r*s+yy)|0, sc=(c*s+xx)|0; tot++; if(CHAR32[sr]&&CHAR32[sr][sc]) on++;
+      const sr=(r*s+yy)|0, sc=(c*s+xx)|0; tot++; if(CHARG[sr]&&CHARG[sr][sc]) hit++;
     }
-    if(on*2>=tot){ ctx.fillStyle='#a8ffc4'; ctx.fillRect(x0+c*cell,y0+r*cell,cell-0.5,cell-0.5); }
+    if(hit*2>=tot){ ctx.fillStyle='#a8ffc4'; ctx.fillRect(x0+c*cell,y0+r*cell,cell-0.5,cell-0.5); }
   }
 }
 const beatIdx=b=>BEATS.indexOf(b);
@@ -197,7 +190,7 @@ load();
 const qbeat=new URLSearchParams(location.search).get('beat');
 if(qbeat && BEATS.includes(qbeat)){ G.beat=qbeat; G.introDone=true;
   if(qbeat==='pixel'){ G.px=6600; G.camx=6600;   // 调试：播放细化演出(TERMINUS2=6600)
-    G.pixelBornAt=performance.now(); G.pixelRoadBorn=performance.now()+2800; G.lockUntil=performance.now()+6000; }
+    G.pixelBornAt=performance.now(); G.pixelRoadBorn=performance.now()+6200; G.lockUntil=performance.now()+8800; }
 }
 const qx=parseInt(new URLSearchParams(location.search).get('x'));   // 调试：?x=4600 指定出生位置
 if(!isNaN(qx)){ G.px=Math.max(60,Math.min(WORLD_W-60,qx)); G.camx=G.px; }
@@ -427,6 +420,14 @@ function spawnEchoTexts(instant){
     {x:4500, y:0.42, text:'I HAVE BEEN WAITING FOR YOU.', t0:instant?0:performance.now()+2600},
   ];
 }
+/* 所选语言的词落在路尽头(略偏上)成为世界永久文字 + 下面一句话(世界里打字机, 同 HI) */
+function spawnUniTexts(word, instant){
+  const cn=word==='你好';
+  const line=cn?'现在，你能读懂我说的话了。':'NOW YOU CAN READ WHAT I SAY.';
+  G.worldTexts.push(
+    {x:5400, y:0.40, text:word, sz:26, notype:true, t0:0},                       // TERMINUS=5400
+    {x:5400, y:0.475, text:line, sz:17, t0:instant?0:performance.now()+500});
+}
 function asciiSolved(){
   /* 文字诞生。不弹独白——旁白以"路"的形式从左到右拼在地上(见 drawRoad 字母段)。 */
   G.beat='ascii'; G.asciiSolvedAt=performance.now();
@@ -526,52 +527,39 @@ function openUni(){
       pair[0].addEventListener('click',ev=>{ ev.stopPropagation(); choose(pair[1],pair[2]); });
     });
   }
-  /* 选定：①框体+其他语言淡出，只留选中那一(几)列 ②词飞向中央、该语言其余字也淡出
-     ③词下方打一句话(同 HI) ④关面板，路用所选语言续铺 */
+  /* 选定：和 HI 一样——①整个框体消失 ②所选词飞到世界里路尽头(略偏上)成为永久文字
+     ③下面那句话在世界里(canvas)打字机, 不在框体里 */
   function choose(keepCols,word){
     if(chosen || G.panelOpen!=='uni') return;
     chosen=true;
     overlay.querySelectorAll('.choosable').forEach(x=>x.classList.remove('choosable'));
     document.getElementById('ucap').style.visibility='hidden';
-    const cn = word==='你好';
+    const cn=word==='你好', chars=[...word];
     const srcCells=keepCols.flatMap(c=>[...c.querySelectorAll('.ucell')]).filter(c=>c.textContent!=='···');
-    /* ① 框体边框+标题淡出，非选中列淡出 */
-    ['uboxA','uboxU'].forEach(id=>{ const b=document.getElementById(id);
-      b.style.transition='border-color .6s'; b.style.borderColor='transparent';
-      b.firstElementChild.style.transition='opacity .6s'; b.firstElementChild.style.opacity='0'; });
-    overlay.querySelectorAll('.ucol').forEach(col=>{
-      if(keepCols.includes(col)) return;
-      col.style.transition='opacity .6s'; col.style.opacity='0';
+    const srcRects=chars.map((ch,k)=>srcCells[(k*7+2)%srcCells.length].getBoundingClientRect());
+    /* ① 整个框体消失 */
+    const panel=overlay.querySelector('.panel');
+    panel.style.transition='opacity .6s'; panel.style.opacity='0';
+    overlay.style.transition='background .6s'; overlay.style.background='rgba(0,0,0,0)';
+    /* ② 词飞到世界里 TERMINUS(路尽头)略偏上的位置 */
+    const cw=cn?30:26;
+    const flies=chars.map((ch,k)=>{
+      const f=document.createElement('span'); f.textContent=ch;
+      f.style.cssText='position:fixed;left:'+srcRects[k].left+'px;top:'+srcRects[k].top+'px;'+
+        'font-size:15px;color:#7dffa0;z-index:130;text-shadow:0 0 16px rgba(125,255,160,.6);'+
+        'transition:all 1.1s cubic-bezier(.2,.7,.3,1) '+(k*120)+'ms';
+      document.body.appendChild(f); return f;
     });
-    setTimeout(()=>flyToCenter(),750);
-    function flyToCenter(){
-      const chars=[...word];
-      const cw=cn?56:42, cx0=innerWidth/2-(chars.length*cw)/2+cw/2, cy=innerHeight*.40;
-      const flies=chars.map((ch,k)=>{
-        const src=srcCells[(k*7+2)%srcCells.length].getBoundingClientRect();
-        const f=document.createElement('span');
-        f.textContent=ch;
-        f.style.cssText='position:fixed;left:'+src.left+'px;top:'+src.top+'px;'+
-          'font-size:15px;color:#7dffa0;z-index:130;text-shadow:0 0 16px rgba(125,255,160,.6);'+
-          'transition:all 1s cubic-bezier(.2,.7,.3,1) '+(k*150)+'ms';
-        document.body.appendChild(f); return f;
-      });
-      keepCols.forEach(c=>{ c.style.transition='opacity .9s'; c.style.opacity='0'; });  // ② 该语言其余字淡出
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        chars.forEach((ch,k)=>{ flies[k].style.left=(cx0+k*cw)+'px'; flies[k].style.top=cy+'px'; flies[k].style.fontSize='44px'; });
-      }));
-      const landed=1000+chars.length*150;
-      setTimeout(()=>{                                   // ③ 词下方打一句话(同 HI)
-        const line=cn?'现在，你能读懂我说的话了。':'NOW YOU CAN READ WHAT I SAY.';
-        const d=document.createElement('div'); d.id='uline';
-        d.style.cssText='position:fixed;left:0;right:0;top:'+(cy+64)+'px;text-align:center;'+
-          'color:#9db8a0;font-size:18px;font-style:italic;z-index:130;text-shadow:0 0 12px rgba(80,255,120,.15)';
-        document.body.appendChild(d);
-        let i=0;(function tt(){ d.textContent=line.slice(0,i++); if(i<=line.length) setTimeout(tt,75);
-          else setTimeout(()=>{ finishUni(word);                     // ④ 关面板、路续铺
-            setTimeout(()=>{ flies.forEach(f=>f.remove()); d.remove(); },700); },1500); })();
-      },landed+200);
-    }
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const bx=sx(5400)-(chars.length-1)*cw/2, ty=VH*0.40-9;   // 世界文字锚点(5400=TERMINUS)
+      chars.forEach((ch,k)=>{ flies[k].style.left=(bx+k*cw)+'px'; flies[k].style.top=ty+'px'; flies[k].style.fontSize='26px'; });
+    }));
+    const landed=1100+chars.length*120;
+    setTimeout(()=>{
+      finishUni(word);                 // 关面板、beat=uni、路续铺
+      spawnUniTexts(word,false);        // ③ 词成为世界永久文字 + 下面一句话在世界里打字机
+      setTimeout(()=>flies.forEach(f=>f.remove()), 450);   // 交接给 canvas 词后移除 DOM 飞字
+    }, landed+250);
   }
   reveal();
 }
@@ -632,16 +620,15 @@ function openPixel(){
   grid.addEventListener('pointerup',stop); grid.addEventListener('pointercancel',stop);
 }
 /* pixel 章演出时间轴(相对 pixelBornAt):
-   0–2800  分辨率细化: 4×4→8×8→16×16→32×32 逐级清晰(在镜子处)
-   2800–3400 32×32 肖像缩小飞到大地图身位, 定型为小人
-   3400–4600 低头看手   4600–6000 雀跃   >6000 走路换腿 */
+   0–5600  分辨率细化 8→16→32→64 逐级清晰(屏幕正中, 每步 1400ms)
+   5600–6200 缩小成小人   6200–7400 低头看手   7400–8800 雀跃   >8800 行走循环 */
 function pixelSolved(){
   if(G.panelOpen!=='pixel') return;
   overlay.querySelector('.panel').classList.add('flash');
   setTimeout(()=>{
     closePanel(); G.beat='pixel'; G.pixelBornAt=performance.now();
-    G.pixelRoadBorn=performance.now()+2800;   // 细化完再铺 pixel 路
-    G.lockUntil=performance.now()+6000;
+    G.pixelRoadBorn=performance.now()+6200;   // 细化完+缩小后再铺 pixel 路
+    G.lockUntil=performance.now()+8800;
     save();
   },500);
 }
@@ -656,12 +643,12 @@ function drawSprite(cx,cy,px,rows,glow){
       ctx.fillStyle='#a8ffc4'; ctx.fillRect(x0+c*px, y0+r*px, px-0.3, px-0.3);
     } }
 }
-/* 组装当前帧 sprite 行(走路换腿 + 低头看手高亮由外部处理) */
-function sprRows(walking,phase){
+/* 组装当前帧 sprite：行走循环取 WALK 帧, 返回 {rows, bob} */
+function sprFrame(walking,phase){
   const rows=SPR.slice();
-  const legs=SPR_LEGS[walking?(phase&1):0];
-  rows[9]=legs[0]; rows[10]=legs[1]; rows[11]=legs[2];
-  return rows;
+  const f=WALK[walking?(phase&3):0];
+  rows[9]=f.legs[0]; rows[10]=f.legs[1]; rows[11]=f.legs[2];
+  return {rows, bob:walking?f.bob:0};
 }
 
 /* ================= 章末卡 ================= */
@@ -879,19 +866,14 @@ function draw(t){
     ctx.fillText(hh+colon+mm, xg, yg); ctx.textAlign='left';
   }
 
-  /* —— 路的尽头：显示不出来的字(▯▯ 豆腐块) → Unicode 后解析成中文 —— */
-  if(past('ascii')){
+  /* —— 路的尽头：Unicode 之前显示不出来的字(▯▯ 豆腐块)。之后由飞来的所选语言词接管(worldTexts) —— */
+  if(past('ascii') && !past('uni')){
     const x=sx(TERMINUS.x);
     if(x>-60&&x<VW+60){
       const ph3=(Math.sin(t/420)+1)/2;
-      if(past('uni')){
-        ctx.fillStyle='rgba(125,255,160,.85)'; ctx.font='24px monospace';
-        ctx.textAlign='center'; ctx.fillText(G.chosenWord||'你好', x, midY-4); ctx.textAlign='left';
-      }else{
-        ctx.strokeStyle='rgba(255,217,125,'+(.35+.5*ph3)+')'; ctx.lineWidth=2;
-        ctx.strokeRect(x-27, midY-18, 21, 26);
-        ctx.strokeRect(x+6,  midY-18, 21, 26);
-      }
+      ctx.strokeStyle='rgba(255,217,125,'+(.35+.5*ph3)+')'; ctx.lineWidth=2;
+      ctx.strokeRect(x-27, midY-18, 21, 26);
+      ctx.strokeRect(x+6,  midY-18, 21, 26);
     }
   }
 
@@ -996,13 +978,14 @@ function draw(t){
     }
   }
 
-  /* —— 回声的文字（打字机） —— */
+  /* —— 世界里的文字（回声台词/所选语言词，打字机；notype=整体直接显示） —— */
   if(G.worldTexts.length){
-    ctx.font='20px monospace'; ctx.textAlign='center';
+    ctx.textAlign='center';
     G.worldTexts.forEach(w=>{
       if(performance.now()<w.t0) return;
-      const n=Math.min(w.text.length, Math.floor((performance.now()-w.t0)/70));
-      ctx.fillStyle='rgba(125,255,160,.9)';
+      ctx.font=(w.sz||20)+'px monospace';
+      const n=w.notype?w.text.length:Math.min(w.text.length, Math.floor((performance.now()-w.t0)/70));
+      ctx.fillStyle='rgba(125,255,160,'+(w.a==null?.9:w.a)+')';
       ctx.fillText(w.text.slice(0,n), sx(w.x), VH*w.y);
     });
     ctx.textAlign='left';
@@ -1013,23 +996,25 @@ function draw(t){
     const x=sx(G.px), y=midY+G.py;
     if(past('pixel')){
       const el=G.pixelBornAt?(t-G.pixelBornAt):1e9;
-      if(el<2800){
-        /* 分辨率细化演出：在镜子处，从 4×4 逐级清晰到 32×32 */
-        const mx=sx(TERMINUS2.x), my=midY-10, box=176;
-        const steps=[4,8,16,32], si=Math.min(3, Math.floor(el/700));
+      const REFINE=5600;   // 细化演出总时长(比原来放慢2倍)
+      if(el<REFINE){
+        /* 分辨率细化：在画框原地(屏幕正中), 8×8→16→32→64 每步×2, 逐级清晰 */
+        const mx=VW/2, my=VH*.42, box=224;
+        const steps=[8,16,32,64], si=Math.min(3, Math.floor(el/1400));
         drawCharRes(mx, my, box, steps[si]);
         ctx.fillStyle='rgba(125,255,160,.8)'; ctx.font='15px monospace'; ctx.textAlign='center';
-        ctx.fillText(steps[si]+' × '+steps[si], mx, my+box/2+26); ctx.textAlign='left';
+        ctx.fillText(steps[si]+' × '+steps[si], mx, my+box/2+24); ctx.textAlign='left';
       }else{
-        /* 画出自己之后：主角是像素小人(相对大一点)。飞到身位→低头看手→雀跃→走路换腿 */
-        const e2=el-2800;
+        /* 画出自己之后：主角是像素小人。缩小登场→低头看手→雀跃→行走循环 */
+        const e2=el-REFINE;
         const moving=(keys['a']||keys['d']||keys['arrowleft']||keys['arrowright']||
           keys['w']||keys['s']||keys['arrowup']||keys['arrowdown']) && e2>3200;
         let px=3, yoff=0, glow=false;
-        if(e2<600){ px=3+(1-e2/600)*9; glow=true; }             // 32×32 缩小成小人
+        if(e2<600){ px=3+(1-e2/600)*11; glow=true; }            // 64×64 缩小成小人
         else if(e2<1800){ yoff=Math.sin((e2-600)/1200*Math.PI)*5; glow=true; }  // 低头看手
         else if(e2<3200){ const h=(e2-1800)/1400; yoff=-Math.abs(Math.sin(h*Math.PI*2))*18; }  // 雀跃两跳
-        drawSprite(x, y-6+yoff, px, sprRows(moving, Math.floor(G.walkPhase)), glow);
+        const fr=sprFrame(moving, Math.floor(G.walkPhase));
+        drawSprite(x, y-6+yoff+fr.bob*px, px, fr.rows, glow);
       }
     }else{
       const g2=ctx.createRadialGradient(x,y,0,x,y,26);
@@ -1055,8 +1040,8 @@ function draw(t){
 
   /* 调试静态渲染：?dbg=char 看 32×32 角色；?dbg=sprite 看小人 */
   const dbg=new URLSearchParams(location.search).get('dbg');
-  if(dbg==='char'){ drawCharRes(VW/2, VH/2, 320, 32); }
-  else if(dbg==='sprite'){ drawSprite(VW/2, VH/2, 8, sprRows(true,Math.floor(t/150)), true); }
+  if(dbg==='char'){ const dn=+new URLSearchParams(location.search).get('n')||64; drawCharRes(VW/2, VH/2, 384, dn); }
+  else if(dbg==='sprite'){ const fr=sprFrame(true,Math.floor(t/140)); drawSprite(VW/2, VH/2, 8, fr.rows, true); }
 
   /* 暗角 */
   const vg=ctx.createRadialGradient(VW/2,VH/2,VH*.35,VW/2,VH/2,VH*.9);
@@ -1078,6 +1063,7 @@ if(qpanel) setTimeout(()=>{
 /* ================= 开场：无字 ================= */
 /* ASCII 之前世界没有文字——开场独白也不例外。黑暗、火花、路，自己解释自己。 */
 /* 恢复位置：落在对应路段上(路已满铺, born=0/1→直接成形) */
+if(past('uni') && G.chosenWord){ spawnUniTexts(G.chosenWord, true); }   // 所选语言词/句复现
 if(G.beat==='uni'){ G.px=TERMINUS.x+60; G.camx=G.px; }
 if(G.beat==='pixel' && !G.pixelBornAt){ G.px=TERMINUS2.x+60; G.camx=G.px; G.pixelBornAt=1; }  // 存档恢复:sprite已定型
 /* beat==='ascii' 恢复时不弹独白——台词已经写在路上了 */
