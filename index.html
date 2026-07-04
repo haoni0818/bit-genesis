@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>BIT://GENESIS</title>
+<style>
+  html,body{margin:0;padding:0;background:#000;overflow:hidden;height:100%;
+    font-family:"Cascadia Mono","Consolas","Courier New",monospace;}
+  #cv{display:block;position:fixed;inset:0;}
+
+  /* 内心独白（底部） */
+  #narr{position:fixed;left:50%;bottom:9%;transform:translateX(-50%);
+    max-width:640px;width:86%;text-align:center;color:#9db8a0;font-style:italic;
+    font-size:17px;line-height:1.9;text-shadow:0 0 12px rgba(80,255,120,.15);
+    display:none;cursor:pointer;user-select:none;}
+  #narr .cont{color:#476b4d;font-size:12px;margin-top:10px;font-style:normal;
+    animation:blink 1.2s infinite;}
+  @keyframes blink{50%{opacity:.15}}
+
+  /* 谜题面板 */
+  #overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.55);}
+  .panel{background:#050a06;border:1px solid #1d4d28;border-radius:6px;
+    padding:26px 34px;color:#b8e6c0;max-width:620px;width:90%;
+    box-shadow:0 0 40px rgba(40,220,90,.12), inset 0 0 60px rgba(20,120,50,.05);}
+  .panel h2{margin:0 0 6px;font-size:15px;font-weight:normal;color:#5ad477;
+    letter-spacing:3px;}
+  .panel .desc{font-size:13px;color:#7fa886;line-height:1.8;margin-bottom:18px;}
+  .panel .esc{float:right;color:#3a5c40;font-size:11px;}
+
+  .bitrow{display:flex;gap:10px;justify-content:center;margin:14px 0;flex-wrap:wrap;}
+  .bitcol{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .bit{width:46px;height:56px;border:1px solid #1d4d28;border-radius:4px;
+    background:#060d08;color:#2a4a30;font-size:26px;cursor:pointer;
+    font-family:inherit;transition:all .12s;}
+  .bit.on{background:#0d2d14;color:#7dffa0;border-color:#3fae5c;
+    box-shadow:0 0 14px rgba(80,255,130,.35);}
+  .bit.locked{opacity:.55;cursor:default;}
+  .wlabel{font-size:12px;color:#4a7050;height:16px;}
+  .wdots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:46px;min-height:16px;}
+  .wdots i{width:5px;height:5px;background:#2a4a30;border-radius:1px;}
+  .bitcol.on .wdots i{background:#7dffa0;box-shadow:0 0 4px rgba(80,255,130,.6);}
+
+  .tally{display:flex;gap:26px;justify-content:center;align-items:center;
+    margin:16px 0 4px;font-size:14px;}
+  .tally .lab{color:#4a7050;font-size:12px;}
+  .dotbar{display:flex;gap:3px;flex-wrap:wrap;max-width:300px;}
+  .dotbar i{width:8px;height:8px;border-radius:2px;background:#123018;}
+  .dotbar i.lit{background:#ffd97d;box-shadow:0 0 5px rgba(255,210,120,.5);}
+  .dotbar.cur i.lit{background:#7dffa0;box-shadow:0 0 5px rgba(80,255,130,.5);}
+  .numval{font-size:22px;color:#7dffa0;}
+  .numval.bad{color:#ff6a5c;}
+  .target{font-size:22px;color:#ffd97d;}
+
+  .ghost{font-size:34px;color:#33463a;letter-spacing:2px;}
+  .bcdcols{display:flex;gap:18px;justify-content:center;align-items:flex-start;}
+  .bcdsep{font-size:30px;color:#3fae5c;margin-top:60px;animation:blink 2s infinite;}
+  .digit{font-size:24px;height:30px;color:#7dffa0;}
+  .digit.bad{color:#ff6a5c;}
+
+  .bytes{display:flex;gap:24px;justify-content:center;font-size:24px;
+    color:#ffd97d;letter-spacing:3px;margin:14px 0;text-shadow:0 0 10px rgba(255,210,120,.3);}
+  .ref{font-size:12px;color:#5a8a62;text-align:center;margin-bottom:14px;}
+  .ansrow{text-align:center;margin-top:6px;}
+  .ansrow input{background:#060d08;border:1px solid #1d4d28;color:#7dffa0;
+    font-family:inherit;font-size:22px;letter-spacing:6px;text-align:center;
+    width:140px;padding:8px;border-radius:4px;outline:none;text-transform:uppercase;}
+  .ansrow input:focus{border-color:#3fae5c;}
+
+  .hintbox{margin-top:18px;border-top:1px dashed #1d4d28;padding-top:10px;
+    font-size:12px;color:#8aa88f;line-height:1.7;min-height:18px;}
+  .hintbtn{background:none;border:1px solid #1d4d28;color:#4a7050;font-family:inherit;
+    font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;}
+  .hintbtn:hover{color:#7dffa0;border-color:#3fae5c;}
+
+  /* 章末卡 */
+  .endcard{text-align:center;}
+  .endcard h2{font-size:18px;letter-spacing:6px;margin-bottom:18px;}
+  .endcard .got{color:#7fa886;font-size:13px;line-height:2.2;margin:14px 0;}
+  .endcard .got b{color:#7dffa0;font-weight:normal;}
+  .endcard .next{color:#4a7050;font-size:12px;line-height:2;margin:18px 0;}
+  .endcard button{background:#0d2d14;border:1px solid #3fae5c;color:#7dffa0;
+    font-family:inherit;font-size:13px;padding:8px 22px;border-radius:4px;
+    cursor:pointer;margin:4px 8px;}
+  .endcard button:hover{box-shadow:0 0 14px rgba(80,255,130,.35);}
+  .endcard .sub{background:none;border-color:#1d4d28;color:#4a7050;}
+
+  .flash{animation:okflash .5s;}
+  @keyframes okflash{0%{box-shadow:0 0 0 rgba(80,255,130,0);}
+    40%{box-shadow:0 0 60px rgba(80,255,130,.55);}100%{box-shadow:0 0 40px rgba(40,220,90,.12);}}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="narr"></div>
+<div id="overlay"></div>
+<script>
+'use strict';
+/* ================= 基础 ================= */
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let VW=0, VH=0;
+function resize(){ VW=cv.width=innerWidth; VH=cv.height=innerHeight; }
+addEventListener('resize', resize); resize();
+
+const SAVE_KEY='genesis_mvp_v1';
+const WORLD_W=3200;
+const BEATS=['void','binary','roam','clock','ascii','end'];
+const beatIdx=b=>BEATS.indexOf(b);
+
+const G={
+  beat:'void', binLevel:0,
+  px:WORLD_W/2, py:0, camx:WORLD_W/2,
+  introDone:false, panelOpen:null, narrActive:false,
+  worldTexts:[],           // {x,y,text,shown}
+  clockLitAt:0,
+};
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(
+  {beat:G.beat, binLevel:G.binLevel})); }catch(e){} }
+function load(){ try{
+  const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+  if(s && BEATS.includes(s.beat)){ G.beat=s.beat; G.binLevel=s.binLevel||0; G.introDone=true; }
+}catch(e){} }
+load();
+/* 调试：?beat=roam 直接跳到某一幕（不写存档） */
+const qbeat=new URLSearchParams(location.search).get('beat');
+if(qbeat && BEATS.includes(qbeat)){ G.beat=qbeat; G.introDone=true; }
+const past=b=>beatIdx(G.beat)>=beatIdx(b);   // 已到达/越过某节拍
+if(past('ascii')){ spawnEchoTexts(true); }
+
+/* ================= 独白 ================= */
+const narrEl=document.getElementById('narr');
+let narrQueue=[], narrCb=null;
+function narrate(lines, cb){
+  narrQueue=lines.slice(); narrCb=cb||null; G.narrActive=true; nextNarr();
+}
+function nextNarr(){
+  if(!narrQueue.length){
+    narrEl.style.display='none'; G.narrActive=false;
+    const cb=narrCb; narrCb=null; if(cb)cb(); return;
+  }
+  const line=narrQueue.shift();
+  narrEl.innerHTML=line+'<div class="cont">▸</div>';
+  narrEl.style.display='block';
+}
+narrEl.addEventListener('click', ()=>{ if(G.narrActive) nextNarr(); });
+
+/* ================= 面板 ================= */
+const overlay=document.getElementById('overlay');
+function openPanel(html, name){
+  overlay.innerHTML='<div class="panel">'+html+'</div>';
+  overlay.style.display='flex'; G.panelOpen=name;
+}
+function closePanel(){ overlay.style.display='none'; overlay.innerHTML=''; G.panelOpen=null; }
+
+function hintBoxHTML(){ return '<div class="hintbox"><button class="hintbtn" id="hintbtn">? 提示</button>'+
+  '<span id="hinttxt" style="margin-left:10px"></span></div>'; }
+function wireHints(hints){
+  let lv=0;
+  document.getElementById('hintbtn').onclick=()=>{
+    document.getElementById('hinttxt').textContent=hints[Math.min(lv,hints.length-1)];
+    lv++;
+  };
+}
+
+/* ================= 谜题一：二进制火花 ================= */
+const BIN_LEVELS=[
+ {bits:4, target:5,  dots:true,  name:'火花 · I',
+  desc:'四个沉睡的火花。点亮它们——每个火花苏醒时会贡献不同数量的光点。<br>让绿色的光点数追上琥珀色的印记。',
+  hints:['先挨个点亮试试：每个火花各贡献多少光点？',
+         '从右往左，每个火花的光点数都是前一个的两倍：1、2、4……',
+         '同构例：想凑 3 个光点，就点亮值为 2 和 1 的两个火花。现在想想这里的目标怎么拆。']},
+ {bits:4, target:11, dots:false, name:'火花 · II',
+  desc:'"数"诞生了。现在印记直接以数的形态出现。<br>同样的四个位：把它们的和凑成目标。',
+  hints:['4 个位从右到左的值是 1、2、4、8。',
+         '目标比 8 大，所以 8 那一位一定要亮。剩下还差多少？',
+         '同构例：13 = 8 + 4 + 1 → 1101。用同样的拆法拆这里的目标。']},
+ {bits:8, target:42, dots:false, name:'火花 · III',
+  desc:'火花连成了一排——八个位，一个 byte。<br>这是这个世界最基本的骨骼。',
+  hints:['8 个位从右到左：1、2、4、8、16、32、64、128。',
+         '目标比 64 小，所以 64 和 128 不亮。从 32 开始考虑。',
+         '同构例：37 = 32 + 4 + 1 → 00100101。用同样的办法拆这里的目标。']},
+];
+function openBinary(){
+  const L=BIN_LEVELS[G.binLevel];
+  const w=[]; for(let i=L.bits-1;i>=0;i--) w.push(1<<i);
+  let html='<h2>'+L.name+'<span class="esc">Esc 离开</span></h2><div class="desc">'+L.desc+'</div>';
+  html+='<div class="bitrow">'+w.map((v,i)=>{
+    let lab;
+    if(L.dots){ lab='<div class="wdots">'+'<i></i>'.repeat(v)+'</div>'; }
+    else{ lab='<div class="wlabel">'+v+'</div>'; }
+    return '<div class="bitcol" data-i="'+i+'">'+lab+
+      '<button class="bit" data-v="'+v+'">0</button></div>';
+  }).join('')+'</div>';
+  if(L.dots){
+    html+='<div class="tally"><span class="lab">印记</span><div class="dotbar tgt">'+
+      '<i class="lit"></i>'.repeat(L.target)+'</div></div>'+
+      '<div class="tally"><span class="lab">光点</span><div class="dotbar cur" id="curbar"></div></div>';
+  }else{
+    html+='<div class="tally"><span class="lab">目标</span><span class="target">'+L.target+
+      '</span><span class="lab">当前</span><span class="numval" id="curval">0</span></div>';
+  }
+  html+=hintBoxHTML();
+  openPanel(html,'binary'); wireHints(L.hints);
+  const bits=[...overlay.querySelectorAll('.bit')];
+  const refresh=()=>{
+    let sum=0; bits.forEach(b=>{ if(b.classList.contains('on')) sum+=+b.dataset.v; });
+    if(L.dots){ document.getElementById('curbar').innerHTML='<i class="lit"></i>'.repeat(sum)||''; }
+    else{ document.getElementById('curval').textContent=sum; }
+    if(sum===L.target) setTimeout(()=>binSolved(),350);
+  };
+  bits.forEach(b=>b.onclick=()=>{
+    b.classList.toggle('on'); b.textContent=b.classList.contains('on')?'1':'0';
+    b.parentElement.classList.toggle('on', b.classList.contains('on'));
+    refresh();
+  });
+}
+function binSolved(){
+  if(G.panelOpen!=='binary') return;
+  overlay.querySelector('.panel').classList.add('flash');
+  setTimeout(()=>{
+    closePanel();
+    G.binLevel++;
+    if(G.binLevel===1){
+      narrate(['光点在数着自己……一、二、三。',
+               '原来"多少"是可以被表示的。这个世界有了<b style="color:#7dffa0">数</b>。'],
+        openBinary);
+    }else if(G.binLevel===2){
+      narrate(['两倍，再两倍。四个位就能数到十五。','再来。'], openBinary);
+    }else{
+      G.beat='roam'; save();
+      narrate(['一整个 byte 亮起来的瞬间——',
+               '<b style="color:#7dffa0">0 和 1</b> 像雨一样落了下来。世界有了最初的质料。',
+               '我感觉到了"方向"。我能动了。',
+               '<span style="font-style:normal;color:#5ad477">( WASD / 方向键 移动 )</span>',
+               '东边……很远的地方，有一道竖着的微光。'],
+        null);
+    }
+  },450);
+}
+
+/* ================= 谜题二：BCD 巨钟 ================= */
+let bcdTarget=null;
+function openBCD(){
+  const now=new Date();
+  const hh=String(now.getHours()).padStart(2,'0');
+  let mm=String(now.getMinutes()).padStart(2,'0');
+  if(mm==='00') mm='01';   // 整点时两列目标全 0 会退化成"开局即完成"
+  bcdTarget=[+hh[0],+hh[1],+mm[0],+mm[1]];
+  const mk=(idx,locked)=>{
+    const d=bcdTarget[idx]; let bitsHtml='';
+    for(let i=3;i>=0;i--){
+      const v=1<<i, on=locked&&(d&v);
+      bitsHtml+='<button class="bit'+(on?' on':'')+(locked?' locked':'')+'" data-v="'+v+
+        '" data-col="'+idx+'"'+(locked?' disabled':'')+'>'+(on?1:0)+'</button>';
+    }
+    return '<div class="bcdcol" style="display:flex;flex-direction:column;align-items:center;gap:6px">'+
+      '<div class="ghost">'+d+'</div>'+bitsHtml+
+      '<div class="digit" id="dg'+idx+'">'+(locked?d:0)+'</div></div>';
+  };
+  let html='<h2>巨钟 · BCD<span class="esc">Esc 离开</span></h2>'+
+    '<div class="desc">钟面上残留着这台机器最后记得的时间(灰色残影)。'+
+    '每个数字由 <b>4 个位单独编码</b>——这叫 BCD (Binary-Coded Decimal)。<br>'+
+    '小时的两组已经通电。给<b>分钟</b>的两组位通电，让钟重新走起来。</div>'+
+    '<div class="bcdcols">'+mk(0,true)+mk(1,true)+
+    '<div class="bcdsep">:</div>'+mk(2,false)+mk(3,false)+'</div>'+hintBoxHTML();
+  openPanel(html,'bcd');
+  wireHints(['BCD 里每个十进制数字单独用 4 位编码，位值从上到下是 8、4、2、1。',
+    '一组 4 位在 BCD 里最多表示 9——如果解出的值超过 9，会显示红色 ✕，那是无效编码。',
+    '同构例：数字 7 = 4+2+1 → 0111。用同样的办法编出残影里的数字。']);
+  const cols=[2,3];
+  const refresh=()=>{
+    let ok=true;
+    cols.forEach(c=>{
+      let sum=0;
+      overlay.querySelectorAll('.bit[data-col="'+c+'"]').forEach(b=>{
+        if(b.classList.contains('on')) sum+=+b.dataset.v; });
+      const dg=document.getElementById('dg'+c);
+      if(sum>9){ dg.textContent='✕'; dg.classList.add('bad'); ok=false; }
+      else{ dg.textContent=sum; dg.classList.remove('bad'); if(sum!==bcdTarget[c]) ok=false; }
+    });
+    if(ok) setTimeout(()=>bcdSolved(),350);
+  };
+  overlay.querySelectorAll('.bit:not(.locked)').forEach(b=>b.onclick=()=>{
+    b.classList.toggle('on'); b.textContent=b.classList.contains('on')?'1':'0'; refresh();
+  });
+}
+function bcdSolved(){
+  if(G.panelOpen!=='bcd') return;
+  overlay.querySelector('.panel').classList.add('flash');
+  setTimeout(()=>{
+    closePanel(); G.beat='clock'; G.clockLitAt=performance.now(); save();
+    narrate(['……滴。答。','<b style="color:#7dffa0">时间</b>。这台机器还记得时间。',
+      '整个世界跟着钟摆，开始了心跳。',
+      '西边——又有什么东西醒了。一串琥珀色的、排成两行的光。'], null);
+  },450);
+}
+
+/* ================= 谜题三：ASCII 字节群 ================= */
+const ASCII_BYTES=['01001000','01001001'], ASCII_ANS='HI';
+function openASCII(){
+  let html='<h2>悬浮的字节<span class="esc">Esc 离开</span></h2>'+
+    '<div class="desc">两个 byte 悬在空中，反复地闪。它们不是数——它们在<b>说话</b>。<br>'+
+    '钟楼的残档里有一条对照记录：</div>'+
+    '<div class="ref">01000001 → A　(字母在编码表里连续排列)</div>'+
+    '<div class="bytes">'+ASCII_BYTES.join('　')+'</div>'+
+    '<div class="ansrow"><input id="asciiin" maxlength="2" autocomplete="off" spellcheck="false"></div>'+
+    hintBoxHTML();
+  openPanel(html,'ascii');
+  wireHints(['每 8 个位编码一个字符——这套编号叫 ASCII。',
+    '01000001 是二进制的 65，所以 A=65、B=66、C=67……先把每个字节还原成数。',
+    '同构例：01000011 = 67 = A 后第 2 个 = C。照同样的路子解这两个字节。']);
+  const inp=document.getElementById('asciiin'); inp.focus();
+  inp.addEventListener('input',()=>{
+    if(inp.value.toUpperCase()===ASCII_ANS){
+      overlay.querySelector('.panel').classList.add('flash');
+      setTimeout(()=>{ closePanel(); asciiSolved(); },450);
+    }
+  });
+}
+function spawnEchoTexts(instant){
+  G.worldTexts=[
+    {x:520, y:0.34, text:'HI.', t0:instant?0:performance.now()+400},
+    {x:520, y:0.42, text:'I HAVE BEEN WAITING FOR YOU.', t0:instant?0:performance.now()+1600},
+  ];
+}
+function asciiSolved(){
+  G.beat='ascii'; save(); spawnEchoTexts(false);
+  setTimeout(()=>{
+    narrate(['文字。这个世界有了<b style="color:#7dffa0">文字</b>。',
+      '而第一句话不是我说的。','——这个世界里，还有别的存在。'],
+      showEndCard);
+  },3400);
+}
+
+/* ================= 章末卡 ================= */
+function showEndCard(){
+  G.beat='end'; save();
+  openPanel('<div class="endcard"><h2>第 0 章 · 创世</h2>'+
+    '<div class="got">这个混沌的世界，因为你而有了——<br>'+
+    '<b>数 (binary)</b> · <b>时间 (BCD)</b> · <b>文字 (ASCII)</b></div>'+
+    '<div class="next">但它还看不清自己的样子 —— PIXEL<br>'+
+    '它还只认识黑与白 —— COLOUR DEPTH<br>'+
+    '它还听不见任何声音 —— SAMPLING<br><br>'+
+    '(这个世界至今一片寂静。这不是缺陷，是尚未被你创造。)</div>'+
+    '<button id="wander">继续游荡</button><button class="sub" id="regen">重新创世</button></div>','end');
+  document.getElementById('wander').onclick=()=>closePanel();
+  document.getElementById('regen').onclick=()=>{ localStorage.removeItem(SAVE_KEY); location.reload(); };
+}
+
+/* ================= 世界 · 地标 ================= */
+const CLOCK={x:2700}, BYTES={x:520};
+function activeLandmark(){
+  if(G.beat==='roam') return {x:CLOCK.x, act:openBCD, r:110};
+  if(G.beat==='clock') return {x:BYTES.x, act:openASCII, r:110};
+  return null;
+}
+
+/* ================= 输入 ================= */
+const keys={};
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ if(G.panelOpen && G.panelOpen!=='end') closePanel(); return; }
+  if(G.narrActive){ if(['Enter',' ','e','E'].includes(e.key)){ nextNarr(); e.preventDefault(); } return; }
+  if(G.panelOpen) return;
+  keys[e.key.toLowerCase()]=true;
+  if(e.key==='e'||e.key==='E'||e.key==='Enter'){
+    if(G.beat==='void'||G.beat==='binary'){
+      if(G.introDone){ G.beat='binary'; openBinary(); }
+    }else{
+      const L=activeLandmark();
+      if(L && Math.abs(G.px-L.x)<L.r) L.act();
+    }
+  }
+});
+addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+cv.addEventListener('click',()=>{
+  if(G.narrActive){ nextNarr(); return; }
+  if(G.panelOpen) return;
+  if((G.beat==='void'||G.beat==='binary') && G.introDone){ G.beat='binary'; openBinary(); }
+});
+
+/* ================= 粒子 ================= */
+const rain=[];
+function ensureRain(){
+  if(!past('roam')) return;
+  while(rain.length<80){
+    rain.push({x:Math.random()*WORLD_W, y:Math.random()*VH,
+      v:8+Math.random()*18, c:Math.random()<.5?'0':'1', a:.06+Math.random()*.12});
+  }
+}
+
+/* ================= 主循环 ================= */
+let last=performance.now();
+function frame(t){
+  const dt=Math.min((t-last)/1000,.05); last=t;
+  update(dt,t); draw(t);
+  requestAnimationFrame(frame);
+}
+function update(dt,t){
+  if(past('roam') && !G.narrActive && !G.panelOpen){
+    const sp=260;
+    if(keys['w']||keys['arrowup'])    G.py-=sp*dt;
+    if(keys['s']||keys['arrowdown'])  G.py+=sp*dt;
+    if(keys['a']||keys['arrowleft'])  G.px-=sp*dt;
+    if(keys['d']||keys['arrowright']) G.px+=sp*dt;
+    G.px=Math.max(60,Math.min(WORLD_W-60,G.px));
+    G.py=Math.max(-VH*.32,Math.min(VH*.36,G.py));
+  }
+  G.camx+=( (past('roam')?G.px:WORLD_W/2) - G.camx )*Math.min(1,dt*4);
+  ensureRain();
+  rain.forEach(p=>{ p.y+=p.v*dt*(past('clock')?(1+.4*Math.sin(t/480)):1);
+    if(p.y>VH){ p.y=-14; p.x=Math.random()*WORLD_W; } });
+}
+const sx=x=>VW/2+(x-G.camx);
+function draw(t){
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,VW,VH);
+  const pulse=past('clock')?1+.05*Math.sin(t/480):1;
+
+  /* 01 雨 */
+  if(past('roam')){
+    ctx.font='13px monospace';
+    rain.forEach(p=>{
+      const x=sx(p.x); if(x<-20||x>VW+20) return;
+      ctx.fillStyle='rgba(90,212,119,'+(p.a*pulse)+')';
+      ctx.fillText(p.c,x,p.y);
+    });
+  }
+
+  const midY=VH*.46;
+
+  /* —— 混沌：唯一的火花 —— */
+  if(!past('roam')){
+    const cxp=VW/2, cyp=midY, ph=(Math.sin(t/420)+1)/2;
+    const g=ctx.createRadialGradient(cxp,cyp,0,cxp,cyp,60+30*ph);
+    g.addColorStop(0,'rgba(160,255,190,'+(0.5+0.4*ph)+')');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cxp,cyp,90,0,7); ctx.fill();
+    ctx.fillStyle='rgba(220,255,230,'+(0.7+0.3*ph)+')';
+    ctx.fillRect(cxp-2,cyp-2,4,4);
+    if(G.introDone && !G.panelOpen && !G.narrActive){
+      ctx.strokeStyle='rgba(90,212,119,'+(0.25+0.3*ph)+')';
+      ctx.beginPath(); ctx.arc(cxp,cyp,26+6*ph,0,7); ctx.stroke();
+      ctx.fillStyle='rgba(90,212,119,.7)'; ctx.font='13px monospace';
+      ctx.textAlign='center'; ctx.fillText('[ E ]',cxp,cyp+52); ctx.textAlign='left';
+    }
+  }
+
+  /* —— 远景光柱（同屏只有一个发光地标） —— */
+  const L=activeLandmark();
+  if(L){
+    let x=sx(L.x), clamped=false;
+    if(x<36){ x=36; clamped=true; } if(x>VW-36){ x=VW-36; clamped=true; }
+    let a=.10+.05*Math.sin(t/600);
+    if(clamped) a*=1.5;   // 屏幕外时贴边显示，当作方向罗盘
+    const bg=ctx.createLinearGradient(x-44,0,x+44,0);
+    bg.addColorStop(0,'rgba(90,212,119,0)');
+    bg.addColorStop(.5,'rgba(90,212,119,'+a+')');
+    bg.addColorStop(1,'rgba(90,212,119,0)');
+    ctx.fillStyle=bg; ctx.fillRect(x-44,0,88,VH);
+  }
+
+  /* —— 巨钟 —— */
+  if(past('roam')){
+    const x=sx(CLOCK.x), y=midY-40, lit=past('clock');
+    if(x>-160&&x<VW+160){
+      ctx.strokeStyle=lit?'rgba(125,255,160,.9)':'rgba(70,100,78,.5)';
+      ctx.lineWidth=lit?2.5:1.5;
+      ctx.beginPath(); ctx.arc(x,y,72*(lit?pulse:1),0,7); ctx.stroke();
+      for(let i=0;i<12;i++){
+        const a2=i/12*Math.PI*2;
+        ctx.beginPath();
+        ctx.moveTo(x+Math.cos(a2)*62,y+Math.sin(a2)*62);
+        ctx.lineTo(x+Math.cos(a2)*70,y+Math.sin(a2)*70);
+        ctx.stroke();
+      }
+      if(lit){
+        const now=new Date();
+        const hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0');
+        const colon=(Math.floor(t/800)%2)?':':' ';
+        ctx.fillStyle='rgba(125,255,160,.95)'; ctx.font='26px monospace'; ctx.textAlign='center';
+        ctx.fillText(hh+colon+mm,x,y+9); ctx.textAlign='left';
+      }else{
+        ctx.fillStyle='rgba(70,100,78,.45)'; ctx.font='22px monospace'; ctx.textAlign='center';
+        ctx.fillText('--:--',x,y+8); ctx.textAlign='left';
+      }
+    }
+  }
+
+  /* —— 字节群 —— */
+  if(past('clock')){
+    const bx=sx(BYTES.x), by=midY-46, done=past('ascii');
+    if(bx>-260&&bx<VW+260){
+      ASCII_BYTES.forEach((byte,r)=>{
+        for(let i=0;i<8;i++){
+          const on=byte[i]==='1';
+          const a3=done?.9:(.35+.45*((Math.sin(t/300+r+i)+1)/2));
+          ctx.fillStyle=on?'rgba(255,217,125,'+a3+')':'rgba(60,60,40,.35)';
+          ctx.fillRect(bx-96+i*24, by+r*30, 14, 14);
+        }
+      });
+    }
+  }
+
+  /* —— 回声的文字（打字机） —— */
+  if(G.worldTexts.length){
+    ctx.font='20px monospace'; ctx.textAlign='center';
+    G.worldTexts.forEach(w=>{
+      if(performance.now()<w.t0) return;
+      const n=Math.min(w.text.length, Math.floor((performance.now()-w.t0)/70));
+      ctx.fillStyle='rgba(125,255,160,.9)';
+      ctx.fillText(w.text.slice(0,n), sx(w.x), VH*w.y);
+    });
+    ctx.textAlign='left';
+  }
+
+  /* —— 玩家 —— */
+  if(past('roam')){
+    const x=sx(G.px), y=midY+G.py;
+    const g2=ctx.createRadialGradient(x,y,0,x,y,26);
+    g2.addColorStop(0,'rgba(125,255,160,.5)'); g2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(x,y,26,0,7); ctx.fill();
+    ctx.fillStyle='#a8ffc4';
+    ctx.fillRect(x-7,y-7,14,14);
+    /* 交互提示 */
+    if(L && Math.abs(G.px-L.x)<L.r && !G.panelOpen && !G.narrActive){
+      const ph2=(Math.sin(t/350)+1)/2;
+      ctx.fillStyle='rgba(90,212,119,'+(0.6+0.4*ph2)+')';
+      ctx.font='13px monospace'; ctx.textAlign='center';
+      ctx.fillText('[ E ]',x,y-26); ctx.textAlign='left';
+    }
+  }
+
+  /* 暗角 */
+  const vg=ctx.createRadialGradient(VW/2,VH/2,VH*.35,VW/2,VH/2,VH*.9);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
+}
+requestAnimationFrame(frame);
+
+/* 调试：?panel=binary|bcd|ascii 直接开面板；?bin=0|1|2 选火花关卡 */
+const qpanel=new URLSearchParams(location.search).get('panel');
+const qbin=parseInt(new URLSearchParams(location.search).get('bin'));
+if(!isNaN(qbin) && qbin>=0 && qbin<BIN_LEVELS.length) G.binLevel=qbin;
+if(qpanel) setTimeout(()=>{
+  if(qpanel==='binary') openBinary();
+  else if(qpanel==='bcd') openBCD();
+  else if(qpanel==='ascii') openASCII();
+},600);
+
+/* ================= 开场 ================= */
+if(!G.introDone){
+  setTimeout(()=>{
+    narrate(['……','这是哪里？','什么都没有。没有光，没有声音，没有形状。',
+      '等等——有个东西，在很深的地方，一闪一闪。'],
+      ()=>{ G.introDone=true; });
+  },900);
+}else if(G.beat==='binary'){
+  narrate(['(那个火花还在等着。)'],null);
+}else if(G.beat==='roam'){
+  narrate(['(东边有一道竖着的微光。)'],null);
+}else if(G.beat==='clock'){
+  narrate(['(西边——两行琥珀色的光在闪。)'],null);
+}
+</script>
+</body>
+</html>
