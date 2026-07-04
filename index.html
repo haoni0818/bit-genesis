@@ -36,10 +36,12 @@
   .bit.sm{width:34px;height:40px;font-size:18px;}
   @keyframes askpulse{50%{border-color:#5ad477;}}
   .askrow .bit{animation:askpulse 1.1s infinite;}
-  #seqtbl{scrollbar-width:none;               /* 滚动条太丑，藏掉 */
-    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 44px,#000 calc(100% - 14px),transparent 100%);
-    mask-image:linear-gradient(to bottom,transparent 0,#000 44px,#000 calc(100% - 14px),transparent 100%);}
+  #seqtbl{scrollbar-width:none;}              /* 滚动条太丑，藏掉 */
   #seqtbl::-webkit-scrollbar{display:none;}
+  /* 只在内容真溢出时开启，且只淡顶部——滚出区域的旧行渐隐；底部正要填的行永远完整 */
+  #seqtbl.fadetop{
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 48px);
+    mask-image:linear-gradient(to bottom,transparent 0,#000 48px);}
   .bit.on{background:#0d2d14;color:#7dffa0;border-color:#3fae5c;
     box-shadow:0 0 14px rgba(80,255,130,.35);}
   .bit.locked{opacity:.55;cursor:default;}
@@ -204,6 +206,7 @@ function openSeq(){
       row.appendChild(b);
     }
     tbl.appendChild(row); tbl.scrollTop=tbl.scrollHeight;
+    tbl.classList.toggle('fadetop', tbl.scrollHeight>tbl.clientHeight+4);
     return row;
   }
   function hintDiff(){   // 无言提示：上面最后两行之间哪些位翻动了
