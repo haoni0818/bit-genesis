@@ -296,7 +296,9 @@ function bcdSolved(){
 }
 
 /* ================= 谜题三：ASCII 字节群 ================= */
-const ASCII_BYTES=['01001000','01001001'], ASCII_ANS='HI';
+/* 答案不进源码：只存加盐哈希，F12 也翻不到原文 */
+function ansHash(s){let x=5381;for(const c of 'GEN|'+s){x=((x*33)^c.charCodeAt(0))>>>0;}return x.toString(36);}
+const ASCII_BYTES=['01001000','01001001'], ASCII_H='16zcro4';
 function openASCII(){
   let html='<h2>悬浮的字节<span class="esc">Esc 离开</span></h2>'+
     '<div class="desc">两个 byte 悬在空中，反复地闪。它们不是数——它们在<b>说话</b>。<br>'+
@@ -311,7 +313,7 @@ function openASCII(){
     '同构例：01000011 = 67 = A 后第 2 个 = C。照同样的路子解这两个字节。']);
   const inp=document.getElementById('asciiin'); inp.focus();
   inp.addEventListener('input',()=>{
-    if(inp.value.toUpperCase()===ASCII_ANS){
+    if(ansHash(inp.value.toUpperCase())===ASCII_H){
       overlay.querySelector('.panel').classList.add('flash');
       setTimeout(()=>{ closePanel(); asciiSolved(); },450);
     }
@@ -319,7 +321,7 @@ function openASCII(){
 }
 function spawnEchoTexts(instant){
   G.worldTexts=[
-    {x:520, y:0.34, text:'HI.', t0:instant?0:performance.now()+400},
+    {x:520, y:0.34, text:String.fromCharCode(72,73)+'.', t0:instant?0:performance.now()+400},
     {x:520, y:0.42, text:'I HAVE BEEN WAITING FOR YOU.', t0:instant?0:performance.now()+1600},
   ];
 }
