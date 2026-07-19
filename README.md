@@ -30,6 +30,19 @@
 第 1 章继续保持静音。章末只出现无声波形，下一章再解锁 SOUND / SAMPLING。
 进度、断点续玩和本机纪录榜均保存在浏览器 `localStorage`，无需账号或服务器。
 
+## 第 2 章 · 第一声
+
+▶ **[直接进入第 2 章](https://haoni0818.github.io/bit-genesis/chapter2.html)**
+
+| 你学会的 | 世界发生的 |
+|---|---|
+| Sampling rate | 调整每秒样本数，观察采样过疏造成的波形丢失 |
+| Sample resolution | 调整每个样本的位数，观察量化台阶和幅度精度 |
+| Sound file size | `sample rate × resolution × duration × channels ÷ 8` 实时占用存储预算 |
+| Digital reconstruction | 连续 analogue waveform 被离散样本重建；通关后世界第一次真正发声 |
+
+使用原创采样室背景资产，章末衔接 VECTOR GRAPHICS。
+
 > 语言法则：解锁 ASCII 前，这个世界没有任何文字（连旁白都没有）；解锁后只有英文；
 > Unicode 之后才有中文。声音也一样——要等你学会 SAMPLING。
 
@@ -41,7 +54,7 @@
 
 ## 路线图
 
-第0章：PIXEL(分辨率) → COLOUR DEPTH；第1章：BITMAP SIZE → RLE 压缩；后续：VECTOR → SOUND(采样) →
+第0章：PIXEL(分辨率) → COLOUR DEPTH；第1章：BITMAP SIZE → RLE；第2章：SOUND SAMPLING；后续：VECTOR →
 网络 → 逻辑门 → CPU → 汇编 → OS → 安全 → SQL … 直到造出一台电脑，把自己送回现实。
 
 ## 开发笔记
