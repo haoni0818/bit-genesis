@@ -141,14 +141,13 @@ WALK_MASK.onerror=()=>{ maskFailed=true; };
 WALK_MASK.src='walk_mask.png';
 function maskFallback(fx,fy){
   if(fx<208||fy<0||fx>=1080||fy>=603) return false;
-  if(fx>=208&&fx<=410&&fy>=324&&fy<=397) return true;
-  if(fx>=548&&fx<=1012){
-    const nx=(fx-780)/232, ny=(fy-230)/94;
+  if(fx>=208&&fx<=432&&fy>=305&&fy<=398) return true;
+  if(fx>=600&&fx<=948&&fy>=172&&fy<=300){
+    const nx=(fx-774)/174, ny=(fy-236)/64;
     if(nx*nx+ny*ny<=1) return true;
   }
   const top=[
-    [410,324],[438,299],[468,274],[500,247],[536,218],[574,193],[612,180],[652,188],
-    [708,250],[700,292],[640,306],[600,288],[560,270],[520,298],[480,330],[440,365],[410,397]
+    [420,398],[558,288],[720,266],[720,300],[468,410]
   ];
   let inside=false;
   for(let i=0,j=top.length-1;i<top.length;j=i++){
@@ -163,7 +162,7 @@ function maskWalk(fx,fy){ const x=fx|0,y=fy|0;
   return maskData[(y*1080+x)*4+3]>40; }
 const AIMG_W=1080, AIMG_H=603, AIMG_CIRCLE_X=775, AIMG_CIRCLE_Y=222, AIMG_EDGE=208;
 const AIMG_SCALE=0.8, AIMG_YOFF=252;                          // 插画缩放+竖直落位(IMG_Y0=midY-AIMG_YOFF)
-const IMG_LTOP=324, IMG_LBOT=448;                             // 图左缘石板路横截面上下沿: 顶面上沿→侧面下沿
+const IMG_LTOP=305, IMG_LBOT=490;                             // 图左缘完整像素列上下沿（路面顶→墙底）
 /* 三段可走区(图内坐标, fx=图内x, fy=脚的图内y):
    平路 fx[208,425]=上下带[318,400]自由; 台阶 fx[425,640]=踩亮色台阶顶(锁线); 圆盘 fx≥640=椭圆内自由(按脚碰撞) */
 const FLAT_X1=425, STAIR_X1=640, FLAT_TOP=318, FLAT_BOT=400;
@@ -416,7 +415,7 @@ const G={
   clockLitAt:0, asciiSolvedAt:0, roadBornA:0, uniRoadBorn:0, chosenWord:'', genesisAt:0,
   pixelBornAt:0, pixelRoadBorn:0, walkPhase:0, pixelBox:null,
   greyBornAt:0, colourBornAt:0, colourRoadBorn:0,
-  teleAt:0, teleStartX:0, teleEnded:false,
+  teleAt:0, teleStartX:0, teleStartPy:0, teleEnded:false,
   lastGoodPx:null, lastGoodPy:null,
 };
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(
@@ -446,7 +445,8 @@ if(!isNaN(qscene)){ G.beat='colour'; G.introDone=true; G.pixelBornAt=1; G.colour
   G._snapSceneToMask=true; }
 const qtele=parseInt(new URLSearchParams(location.search).get('tele'));  // 调试：?tele=1500 从传送开始1500ms定格(TERMINUS4=9400)
 if(!isNaN(qtele)){ G.beat='colour'; G.introDone=true; G.pixelBornAt=1; G.colourBornAt=-1e6; G.colourRoadBorn=-1e6;
-  G.px=TERMINUS4_X; G.camx=TERMINUS4_X; G.teleStartX=TERMINUS4_X-70; G.py=fyToPy(236);
+  G.px=TERMINUS4_X; G.camx=TERMINUS4_X; G.teleStartX=TERMINUS4_X-70;
+  G.py=fyToPy(AIMG_CIRCLE_Y); G.teleStartPy=G.py;
   G.teleAt=performance.now()-qtele; G.lockUntil=performance.now()+1e7; }
 const qx=parseInt(new URLSearchParams(location.search).get('x'));   // 调试：?x=4600 指定出生位置
 if(!isNaN(qx)){ G.px=Math.max(60,Math.min(WORLD_W-60,qx)); G.camx=G.px; }
@@ -1010,7 +1010,7 @@ function openTeleport(){
 }
 function startTeleport(){
   if(G.panelOpen!=='tele') return;
-  closePanel(); G.teleAt=performance.now(); G.teleStartX=G.px;
+  closePanel(); G.teleAt=performance.now(); G.teleStartX=G.px; G.teleStartPy=G.py;
   G.lockUntil=performance.now()+1e7;   // 传送全程锁操作
 }
 
@@ -1051,9 +1051,14 @@ function activeLandmark(){
   if(G.beat==='ascii') return {x:TERMINUS.x, act:openUni, r:90};
   if(G.beat==='uni') return {x:TERMINUS2.x, act:openPixel, r:80};    // 语言路尽头=照不出你的镜子
   if(G.beat==='pixel') return {x:TERMINUS3.x, act:openColour, r:80}; // pixel 路尽头=颜色棱镜
-  if(G.beat==='colour') return {x:TERMINUS4.x, act:openTeleport, r:80}; // 颜色路尽头=传送阵
-  if(G.beat==='end') return {x:TERMINUS4.x, act:showEndCard, r:80};  // 通关后重看章末卡/重开入口
+  if(G.beat==='colour') return {x:TERMINUS4.x, py:fyToPy(AIMG_CIRCLE_Y), act:openTeleport, r:80}; // 颜色路尽头=传送阵
+  if(G.beat==='end') return {x:TERMINUS4.x, py:fyToPy(AIMG_CIRCLE_Y), act:showEndCard, r:80};  // 通关后重看章末卡/重开入口
   return null;
+}
+function nearLandmark(L){
+  if(!L) return false;
+  const dx=G.px-L.x;
+  return L.py==null ? Math.abs(dx)<L.r : Math.hypot(dx,G.py-L.py)<L.r;
 }
 
 /* ================= 输入 ================= */
@@ -1122,7 +1127,7 @@ addEventListener('keydown',e=>{
       if(G.introDone){ G.beat='binary'; openSeq(); }
     }else{
       const L=activeLandmark();
-      if(L && Math.abs(G.px-L.x)<L.r) L.act();
+      if(nearLandmark(L)) L.act();
     }
   }
 });
@@ -1196,7 +1201,7 @@ function update(dt,t){
     const el=t-G.teleAt, p=Math.min(1, el/900);
     const e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
     G.px=G.teleStartX+(TERMINUS4.x-G.teleStartX)*e;
-    G.py+=(fyToPy(236)-G.py)*Math.min(1,dt*5);   // 滑到法阵中心(脚在盘面中心偏前, 身体压住法阵)
+    G.py=G.teleStartPy+(fyToPy(AIMG_CIRCLE_Y)-G.teleStartPy)*e; // 与 x 同步、确定性地落到法阵圆心
     if(el>200&&el<900) G.walkPhase+=dt*9;
     if(el>=7000 && !G.teleEnded){ G.teleEnded=true; showEndCard(); }   // 阵仪式(2900)+溶解飞升(~3700)后落章末
   }
@@ -1316,9 +1321,7 @@ function draw(t){
         if(!inCore && fillP<.96 && ((h%100)/100)>density) continue;
         ctx.globalAlpha=Math.min(1, p*(inCore ? .72 : (.18+.72*fillP)));
         const hue=HUES[(((i*7+r)*2654435761>>>6))%HUES.length];
-        const fy=(yy-(midY-AIMG_YOFF))/AIMG_SCALE;
-        const stone=altarEdgeRgb(fy), stoneMix=stone?Math.max(0,Math.min(1,(near-.66)/.34)):0;
-        ctx.fillStyle=stoneMix>0 ? mixRgb(rgbOfHex(hue), stone, stoneMix) : hue;   // 末端逐块过渡到石板边缘像素色
+        ctx.fillStyle=hue;   // 保持彩色直到插画切面；祭坛贴图从 x=208 处直接盖住接缝
         ctx.fillRect(x, Math.round(yy), fillP>.92?7:6, fillP>.92?7:6);
       }
     }
@@ -1577,7 +1580,7 @@ function draw(t){
       ctx.fillRect(x-7,y-7,14,14);
     }
     /* 交互提示（引导交给脚下的路，不再画箭头） */
-    if(L && Math.abs(G.px-L.x)<L.r && !G.panelOpen && !G.narrActive && !G.teleAt){
+    if(nearLandmark(L) && !G.panelOpen && !G.narrActive && !G.teleAt){
       const ph2=(Math.sin(t/350)+1)/2;
       const eYoff=past('pixel')?-66:-30;   // 有实体小人后(pixel/colour)E 抬到头顶上方，别被身体挡住
       drawKey(x,y+eYoff,'E',.6+.4*ph2);
