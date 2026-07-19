@@ -7,7 +7,7 @@
 
 ▶ **[直接开玩](https://haoni0818.github.io/bit-genesis/)** （桌面浏览器，键盘操作）
 
-## 第 0 章 · 创世（当前内容）
+## 第 0 章 · 创世
 
 | 你学会的 | 世界发生的 |
 |---|---|
@@ -15,6 +15,20 @@
 | BCD | 巨钟复苏显示真实时间，并挂上天空成为第一件常驻 UI |
 | ASCII | 文字诞生（第一句话不是你说的）；路面的 01 长成英文句子 |
 | Unicode | 路尽头显示不出来的"▯▯"被拼成 16 位——中文诞生 |
+
+## 第 1 章 · 颜色的重量
+
+▶ **[直接进入第 1 章](https://haoni0818.github.io/bit-genesis/chapter1.html)**（第 0 章通关卡也可进入）。
+
+| 你学会的 | 世界发生的 |
+|---|---|
+| Bitmap file size | `width × height × colour depth ÷ 8` 直接决定彩色世界有多重 |
+| RLE | 角色沿像素带扫描，在颜色边界把连续同色像素封成 `count + value` |
+| Lossless | runs 自动解码重建原图，一个像素也不丢 |
+| RLE suitability | 大色块有效；交错噪点会产生更多 runs，甚至比原图更大 |
+
+第 1 章继续保持静音。章末只出现无声波形，下一章再解锁 SOUND / SAMPLING。
+进度、断点续玩和本机纪录榜均保存在浏览器 `localStorage`，无需账号或服务器。
 
 > 语言法则：解锁 ASCII 前，这个世界没有任何文字（连旁白都没有）；解锁后只有英文；
 > Unicode 之后才有中文。声音也一样——要等你学会 SAMPLING。
@@ -27,7 +41,7 @@
 
 ## 路线图
 
-PIXEL(分辨率) → COLOUR DEPTH(上色+存储警告) → RLE 压缩 → VECTOR → SOUND(采样) →
+第0章：PIXEL(分辨率) → COLOUR DEPTH；第1章：BITMAP SIZE → RLE 压缩；后续：VECTOR → SOUND(采样) →
 网络 → 逻辑门 → CPU → 汇编 → OS → 安全 → SQL … 直到造出一台电脑，把自己送回现实。
 
 ## 开发笔记

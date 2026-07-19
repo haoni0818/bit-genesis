@@ -1025,10 +1025,12 @@ function showEndCard(){
     '它还没法和外面说话 —— NETWORK<br><br>'+
     '(这个世界至今一片寂静。这不是缺陷，是尚未被你创造。)<br><br>'+
     '<b style="color:#5ad477">—— 本版本的内容到这里为止 ——</b><br>后面的黑暗，等下一次更新来点亮。</div>'+
-    '<button id="wander">继续游荡</button><button class="sub" id="regen">重新创世</button></div>','end');
+    '<button id="chapter1">进入第 1 章</button><button class="sub" id="wander">继续游荡</button><button class="sub" id="regen">重新创世</button></div>','end');
+  document.getElementById('chapter1').onclick=()=>{ location.href='chapter1.html'; };
+  try{ localStorage.setItem('genesis_ch0_complete_v1','1'); }catch(e){}
   document.getElementById('wander').onclick=()=>{ closePanel(); G.teleAt=0; G.teleEnded=false;
     narrate(['(第 0 章的尽头。已点亮的都在这了——剩下的黑暗，还在等它们的知识。)'],null); };
-  document.getElementById('regen').onclick=()=>{ localStorage.removeItem(SAVE_KEY); location.reload(); };
+  document.getElementById('regen').onclick=()=>{ try{ localStorage.removeItem(SAVE_KEY); localStorage.removeItem('genesis_ch0_complete_v1'); localStorage.removeItem('genesis_ch1_v1'); }catch(e){} location.reload(); };
 }
 
 /* ================= 世界 · 地标 ================= */
