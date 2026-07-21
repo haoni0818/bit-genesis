@@ -177,10 +177,10 @@ main{display:grid;gap:26px;margin-top:26px}
   <header class="terminal-head">
     <p class="eyebrow">IT://COURSE MAP · LOCAL READ-ONLY TERMINAL</p>
     <h1>INFORMATION REPRESENTATION</h1>
-    <p class="subtitle">CAIE 9618 (2026) · Chapter 0–4 syllabus route</p>
+    <p class="subtitle">CAIE 9618 (2026) · Chapter 0–4 + Repair 1–2 syllabus route</p>
     <p class="truth-note"><b>证据边界：</b>旧存档的 <code>end</code> 或 completion marker 只显示 <b>LEGACY PLAYTHROUGH</b>。它表示“走完旧版”，不等于新版 checkpoint evidence。</p>
     <div class="head-actions">
-      <a class="btn" href="#chapters">查看章节映射</a>
+      <a class="btn" href="#learningRoute">查看学习顺序</a>
       <a class="btn sub" href="index.html">返回第 0 章</a>
     </div>
     <div class="legend" aria-label="状态说明">
@@ -196,25 +196,33 @@ main{display:grid;gap:26px;margin-top:26px}
     <section class="block" aria-labelledby="orderTitle">
       <div class="section-title">
         <div><p class="section-kicker">OFFICIAL ORDER</p><h2 id="orderTitle">§1 → §2.1</h2></div>
-        <p class="section-note">章节可以按故事继续，但课程地图不会隐藏未完成的小节。</p>
+        <p class="section-note">先完成 §1.1，再进入 §1.2；Course Map 不把已上线顺序误写成学习顺序。</p>
       </div>
       <div id="officialOrder" class="order-grid"></div>
     </section>
 
-    <section class="block" id="chapters" aria-labelledby="chaptersTitle">
+    <section class="block" id="learningRoute" aria-labelledby="chapterZeroTitle">
       <div class="section-title">
-        <div><p class="section-kicker">CHAPTER ROUTE</p><h2 id="chaptersTitle">Chapter 0–4</h2></div>
-        <p class="section-note">每张卡同时显示 syllabus 范围与本机 evidence；两者不会互相替代。</p>
+        <div><p class="section-kicker">LEARNING ROUTE · STEP 01</p><h2 id="chapterZeroTitle">Chapter 0 · §1.1 subset</h2></div>
+        <p class="section-note">先建立 binary、BCD、ASCII 与 Unicode 的初步经验，再立即补齐 §1.1 repairs。</p>
       </div>
-      <div id="chapterList" class="chapter-list"></div>
+      <div id="chapterZeroList" class="chapter-list"></div>
     </section>
 
-    <section class="block" aria-labelledby="repairTitle">
+    <section class="block" id="repairSequence" aria-labelledby="repairTitle">
       <div class="section-title">
-        <div><p class="section-kicker">BEFORE §2.1 NETWORKS</p><h2 id="repairTitle">§1.1 minimum repair sequence</h2></div>
-        <p class="section-note">按依赖顺序补齐；四项全部有证据后，§1.1 才能从 PARTIAL 升为 EVIDENCED。</p>
+        <div><p class="section-kicker">LEARNING ROUTE · STEPS 02–05</p><h2 id="repairTitle">§1.1 prerequisite gate</h2></div>
+        <p class="section-note">CH.00 → Repair 1 → Repair 2 → Repair 3 → Repair 4 → CH.01。四项 repair 全部留下证据后才进入 §1.2 学习顺序。</p>
       </div>
       <div id="repairList" class="repair-list"></div>
+    </section>
+
+    <section class="block" id="laterChapters" aria-labelledby="laterChaptersTitle">
+      <div class="section-title">
+        <div><p class="section-kicker">LEARNING ROUTE · STEPS 06–09</p><h2 id="laterChaptersTitle">Chapter 1–4 · §1.2 then §1.3</h2></div>
+        <p class="section-note">推荐顺序：CH.01 BITMAP / RLE → CH.02 SOUND → CH.03 VECTOR → CH.04 COMPRESSION。每张卡分别显示 syllabus 范围与本机 evidence。</p>
+      </div>
+      <div id="chapterLaterList" class="chapter-list"></div>
       <article class="graphics-gap">
         <div class="repair-top">
           <div><p class="repair-no">§1.2 GRAPHICS TERMINOLOGY GAP</p><h3>Bitmap terminology repair</h3></div>
@@ -260,14 +268,14 @@ const CHAPTERS=[
     mapping:['CAIE 9618 (2026) §1.1 Data Representation · SUBSET'],scope:'PARTIAL',
     covers:['small non-negative binary patterns','BCD clock application','ASCII character mapping','Unicode character representation'],
     gaps:['binary and decimal prefixes; magnitudes','systematic binary/denary/hexadecimal conversion','one’s/two’s complement; binary addition/subtraction; overflow','extended ASCII'],
-    prerequisite:'NONE',successor:'CH.1 · BITMAP / RLE'
+    prerequisite:'NONE',successor:'REPAIR 1 · PREFIX MAGNITUDES'
   },
   {
     id:'ch1',number:'CH.01',title:'COLOUR / RLE · 颜色的重量',href:'chapter1.html',
     mapping:['§1.2 Multimedia · Graphics · BITMAP SUBSET','§1.3 Compression · RLE SUBSET'],scope:'PARTIAL',
     covers:['pixel grid and colour depth','bitmap size estimate at fixed image resolution','RLE count/value runs and exact reconstruction','RLE suitability and expansion counterexample'],
     gaps:['file header and screen resolution','systematic image-resolution comparison','lossy/lossless across all required file types'],
-    prerequisite:'CH.0 · BINARY / PIXEL PREVIEW',successor:'CH.2 · SOUND'
+    prerequisite:'REPAIR 1–4 · §1.1 EVIDENCE',successor:'CH.2 · SOUND'
   },
   {
     id:'ch2',number:'CH.02',title:'THE FIRST SOUND · 第一声',href:'chapter2.html',
@@ -288,15 +296,16 @@ const CHAPTERS=[
     mapping:['§1.3 Compression · COMPLETE CAPSTONE'],scope:'CHECKPOINT REQUIRED',
     covers:['need for compression and examples of use','lossy and lossless methods','method justification from the situation','text, bitmap, vector and sound compression, including RLE'],
     gaps:['specific codec internals are not claimed','capacity, unit and quality values are TEACHING MODEL values','§2.1 Networks has not started'],
-    prerequisite:'CH.1 RLE + CH.2 SOUND + CH.3 VECTOR',successor:'§1.1 REPAIR → §2.1 NETWORKS'
+    prerequisite:'CH.1 RLE + CH.2 SOUND + CH.3 VECTOR',successor:'§2.1 NETWORKS'
   }
 ];
 const REPAIRS=[
   {id:'prefixes',title:'Magnitudes and prefixes',body:'Compare binary and decimal magnitudes; distinguish kibi/mebi/gibi/tebi from kilo/mega/giga/tera.',href:'repair1.html'},
-  {id:'hexAndApplications',title:'Hexadecimal and applications',body:'Convert between binary, denary and hexadecimal; choose suitable BCD and hexadecimal applications.'},
+  {id:'hexAndApplications',title:'Hexadecimal and applications',body:'Convert positive integers between binary, denary and hexadecimal; distinguish BCD from ordinary binary; justify selected BCD and hexadecimal applications.',href:'repair2.html'},
   {id:'signedArithmeticAndOverflow',title:'Signed integers and overflow',body:'Use one’s complement and two’s complement; perform binary addition/subtraction and identify overflow.'},
   {id:'extendedAscii',title:'Extended ASCII',body:'Distinguish ASCII, extended ASCII and Unicode for different character requirements.'}
 ];
+const REQUIRED_LEARNING_ROUTE=Object.freeze(['ch0','prefixes','hexAndApplications','signedArithmeticAndOverflow','extendedAscii','ch1','ch2','ch3','ch4','networks']);
 
 function safeGet(storage,key){try{return storage.getItem(key)}catch(error){return null}}
 function safeJson(storage,key){const raw=safeGet(storage,key);if(typeof raw!=='string'||raw==='')return null;try{const value=JSON.parse(raw);return value&&typeof value==='object'?value:null}catch(error){return null}}
@@ -326,8 +335,28 @@ function prefixEvidenceNote(map){
   if(flag||evidence)return'PARTIAL · FLAG / EVIDENCE PAYLOAD NOT BOTH VERIFIED';
   return'PARTIAL · CHECKPOINT AVAILABLE';
 }
+const HEX_EVIDENCE_ID='positive_bases_bcd_hex_apps_v1';
+function hexApplicationEvidencePassed(map){
+  const evidence=repairEvidence(map,'hexAndApplications'),facts=evidence&&evidence.facts;
+  return repairPassed(map,'hexAndApplications')&&Boolean(
+    evidence&&evidence.passed===true&&
+    evidence.checkpointId===HEX_EVIDENCE_ID&&
+    evidence.answerSetVersion===1&&
+    facts&&facts.positiveBaseConversion===true&&
+    facts.bcdRepresentation===true&&
+    facts.bcdApplication===true&&
+    facts.hexadecimalApplication===true
+  );
+}
+function hexApplicationRepairStatus(map){return hexApplicationEvidencePassed(map)?'EVIDENCED':'PARTIAL'}
+function hexApplicationEvidenceNote(map){
+  const flag=repairPassed(map,'hexAndApplications'),evidence=repairEvidence(map,'hexAndApplications');
+  if(hexApplicationEvidencePassed(map))return evidence.scaffolded===true?'CHECKPOINT VERIFIED · 4/4 WITH SCAFFOLDING':'CHECKPOINT VERIFIED · 4/4 LOCAL EVIDENCE';
+  if(flag||evidence)return'PARTIAL · FLAG / DETAIL EVIDENCE NOT FULLY VERIFIED';
+  return'PARTIAL · CHECKPOINT AVAILABLE';
+}
 function deriveSectionStatuses(storage,map){
-  const allRepresentation=prefixEvidencePassed(map)&&REPAIRS.filter(item=>item.id!=='prefixes').every(item=>repairPassed(map,item.id));
+  const allRepresentation=prefixEvidencePassed(map)&&hexApplicationEvidencePassed(map)&&['signedArithmeticAndOverflow','extendedAscii'].every(id=>repairPassed(map,id));
   const graphics=repairPassed(map,'graphicsTerminology');
   const allMultimedia=['ch1','ch2','ch3'].every(id=>checkpointPassed(map,id));
   let compression='GAP';
@@ -356,9 +385,9 @@ function renderOrder(storage,map){
   const root=document.getElementById('officialOrder');root.replaceChildren();
   for(const item of items){const card=node('article','order-item');card.append(node('span','num',item[0]),node('b','',item[1]),node('p','',item[2]),statusNode(item[3]));root.append(card)}
 }
-function renderChapters(storage,map){
-  const root=document.getElementById('chapterList');root.replaceChildren();
-  for(const chapter of CHAPTERS){
+function renderChapterGroup(rootId,chapters,storage,map){
+  const root=document.getElementById(rootId);root.replaceChildren();
+  for(const chapter of chapters){
     const progress=chapterStatus(storage,map,chapter.id),article=node('article','chapter');article.dataset.chapter=chapter.id;
     const head=node('div','chapter-head'),titleWrap=node('div'),badge=node('div','badge-stack');
     titleWrap.append(node('div','chapter-id',chapter.number),node('h3','',chapter.title));
@@ -376,12 +405,16 @@ function renderChapters(storage,map){
     article.append(head,body,details,actions);root.append(article);
   }
 }
+function renderChapters(storage,map){
+  renderChapterGroup('chapterZeroList',CHAPTERS.filter(chapter=>chapter.id==='ch0'),storage,map);
+  renderChapterGroup('chapterLaterList',CHAPTERS.filter(chapter=>chapter.id!=='ch0'),storage,map);
+}
 function renderRepairs(map){
   const root=document.getElementById('repairList');root.replaceChildren();
   REPAIRS.forEach((repair,index)=>{
-    const value=repair.id==='prefixes'?prefixRepairStatus(map):(repairPassed(map,repair.id)?'EVIDENCED':'GAP'),card=node('article','repair'),top=node('div','repair-top'),copy=node('div');
+    const value=repair.id==='prefixes'?prefixRepairStatus(map):repair.id==='hexAndApplications'?hexApplicationRepairStatus(map):(repairPassed(map,repair.id)?'EVIDENCED':'GAP'),card=node('article','repair'),top=node('div','repair-top'),copy=node('div');
     copy.append(node('p','repair-no','REPAIR '+String(index+1).padStart(2,'0')),node('h3','',repair.title));top.append(copy,statusNode(value));card.append(top,node('p','',repair.body));
-    if(repair.href){const actions=node('div','repair-actions'),link=node('a','btn',value==='EVIDENCED'?'重做 Repair 1':'进入 Repair 1'),note=node('span','repair-evidence-note',prefixEvidenceNote(map));link.href=repair.href;actions.append(link,note);card.append(actions)}
+    if(repair.href){const repairNumber=index+1,actions=node('div','repair-actions'),link=node('a','btn',(value==='EVIDENCED'?'重做 Repair ':'进入 Repair ')+repairNumber),note=node('span','repair-evidence-note',repair.id==='prefixes'?prefixEvidenceNote(map):hexApplicationEvidenceNote(map));link.href=repair.href;actions.append(link,note);card.append(actions)}
     root.append(card);
   });
   const graphics=document.getElementById('graphicsStatus'),value=repairPassed(map,'graphicsTerminology')?'EVIDENCED':'GAP';graphics.className='status '+statusClass(value);graphics.textContent=value;
@@ -403,7 +436,7 @@ function runAssertions(){
   assert(chapterStatus(storage,map,'ch4')==='EVIDENCED','T5 explicit checkpoint can create evidence');
   storage=memoryStorage({[COURSE_KEY]:'{broken'});map=readCourseMap(storage);
   assert(map===null&&chapterStatus(storage,map,'ch1')==='GAP','T6 malformed map fails closed');
-  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch0:{checkpoint:{passed:true}}},repairs:{prefixes:true,hexAndApplications:true,signedArithmeticAndOverflow:true,extendedAscii:true},repairEvidence:{prefixes:{passed:true}}})});map=readCourseMap(storage);
+  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch0:{checkpoint:{passed:true}}},repairs:{prefixes:true,hexAndApplications:true,signedArithmeticAndOverflow:true,extendedAscii:true},repairEvidence:{prefixes:{passed:true},hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}}}})});map=readCourseMap(storage);
   assert(deriveSectionStatuses(storage,map).representation==='EVIDENCED','T7 four repairs plus ch0 checkpoint close §1.1');
   storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch1:{checkpoint:{passed:true}},ch2:{checkpoint:{passed:true}},ch3:{checkpoint:{passed:true}}},repairs:{graphicsTerminology:false}})});map=readCourseMap(storage);
   assert(deriveSectionStatuses(storage,map).multimedia==='PARTIAL','T8 graphics gap keeps §1.2 partial');
@@ -418,6 +451,23 @@ function runAssertions(){
   storage=memoryStorage({[COURSE_KEY]:JSON.stringify(map)});
   assert(deriveSectionStatuses(storage,map).representation==='PARTIAL','T14 Repair 1 alone keeps all of §1.1 partial');
   assert(REPAIRS[0].href==='repair1.html','T15 Repair 1 route is playable');
+  map={version:1,repairs:{hexAndApplications:true},repairEvidence:{}};
+  assert(hexApplicationRepairStatus(map)==='PARTIAL','T16 Repair 2 boolean only is partial');
+  map={version:1,repairs:{hexAndApplications:false},repairEvidence:{hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}}}};
+  assert(hexApplicationRepairStatus(map)==='PARTIAL','T17 Repair 2 detail only is partial');
+  map={version:1,repairs:{hexAndApplications:true},repairEvidence:{hexAndApplications:{passed:true,checkpointId:'wrong_id',answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}}}};
+  assert(hexApplicationRepairStatus(map)==='PARTIAL','T18 Repair 2 wrong checkpoint ID is partial');
+  const invalidHexDetails=[
+    {passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:2,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}},
+    {passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:false}}
+  ];
+  assert(invalidHexDetails.every(evidence=>hexApplicationRepairStatus({version:1,repairs:{hexAndApplications:true},repairEvidence:{hexAndApplications:evidence}})==='PARTIAL'),'T19 Repair 2 wrong version or incomplete facts are partial');
+  map={version:1,repairs:{hexAndApplications:true},repairEvidence:{hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}}}};
+  assert(hexApplicationRepairStatus(map)==='EVIDENCED','T20 Repair 2 complete detail evidence is evidenced');
+  storage=memoryStorage({[COURSE_KEY]:JSON.stringify(map)});
+  assert(deriveSectionStatuses(storage,map).representation==='PARTIAL','T21 Repair 2 alone keeps all of §1.1 partial');
+  assert(REPAIRS.map(x=>x.id).join(',')==='prefixes,hexAndApplications,signedArithmeticAndOverflow,extendedAscii'&&REPAIRS[1].href==='repair2.html','T22 Repair order and Repair 2 route are fixed');
+  assert(REQUIRED_LEARNING_ROUTE.join('>')==='ch0>prefixes>hexAndApplications>signedArithmeticAndOverflow>extendedAscii>ch1>ch2>ch3>ch4>networks','T23 syllabus learning route puts all §1.1 repairs before Chapter 1');
   const failed=tests.filter(test=>!test.ok),report=document.getElementById('testReport');report.classList.add('show');
   if(failed.length){report.classList.add('fail');report.textContent='TEST FAIL · '+failed.map(test=>test.name).join(' · ')}else report.textContent='TEST PASS · '+tests.length+' pure JavaScript assertions';
   console.info('[COURSE MAP TEST]',tests.length-failed.length+'/'+tests.length,'assertions passed');

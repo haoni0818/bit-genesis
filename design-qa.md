@@ -37,3 +37,33 @@ The 390×844 course map is single-column, has no horizontal overflow, keeps stat
 3. Final desktop and mobile captures show no visible regressions, overlap, cropped primary controls, or horizontal overflow.
 
 Final result: passed
+
+---
+
+# Design QA · Repair 2 Radix & Applications
+
+## Visual source truth
+
+- Existing product reference: `qa/repair1-checkpoint-1915x895.png`
+- Reference state: Repair 1 · fixed checkpoint, 1915×895
+- Implementation capture: `qa/repair2-checkpoint-1915x895.png`
+- Implementation state: Repair 2 · fixed checkpoint P4, 1915×895
+- Combined side-by-side comparison: `qa/design-compare-repair1-repair2.png`
+- Mobile implementation capture: `qa/repair2-mobile-checkpoint-390x844.png`
+- Formal evidence capture: `qa/repair2-evidence.png`
+
+## Five fidelity surfaces
+
+1. **Environment and palette** — The ImageGen observatory preserves the same near-black, deep-teal industrial pixel-art world, restrained cyan/green practical light, tiny amber service lights and hard mechanical silhouettes. It is a new room, not a recolour of Repair 1.
+2. **HUD and typography** — Left HUD, right key legend, monospace type, square 1px borders, white focus treatment and compact progress readout match the established system. The added six-phase rail uses the same terminal grammar and marks the current phase with both border and `NOW` text.
+3. **Knowledge layer** — Repair 1's two magnitude racks are replaced by equally weighted BINARY / DENARY / HEXADECIMAL readouts, visible four-bit brackets and `SAME VALUE` lines. The density, scale and cyan/green/violet hierarchy remain consistent while the new learning relationship is immediately legible.
+4. **Console and controls** — The bottom two-column console keeps the same telemetry/mission split and three-button control pattern. Sticky controls remain visible at P4 on desktop and mobile; `GUIDE`, `HINT` and touch targets remain reachable.
+5. **Responsive composition** — At 390×844 the central observatory crop, complete six-phase rail, grouped bits, denary/hex readouts, current task and sticky controls remain visible with `scrollWidth === innerWidth`. The background is a real 2048×1152 raster asset and contains no baked answers or pseudo-UI.
+
+## Comparison history
+
+1. Initial 1915×895 comparison established visual continuity but exposed that P4 controls could fall below the desktop console viewport.
+2. Contract audit added the complete six-phase route and caught a Level-4 two-choice collapse plus a weak pre-existing evidence predicate.
+3. Final capture shows sticky desktop controls, a readable active-phase rail, full-detail evidence gating and unchanged core composition. The 390×844 capture has no horizontal overflow or clipped primary action.
+
+Final result: passed

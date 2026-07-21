@@ -81,6 +81,25 @@ Repair 1 通过后，本机 Course Map 会同时验证 `genesis_course_map_v1.re
 
 Repair 1 只补 prefixes；整个 §1.1 仍保持 `PARTIAL`，直到其余 repair checkpoint 分别留下证据。
 
+## Course Map Repair 2 · Radix & applications
+
+▶ **[直接进入 Repair 2](https://haoni0818.github.io/bit-genesis/repair2.html)**
+
+Repair 2 继续严格限定在 **CAIE 9618 (2026) §1.1 Data Representation**：转换正整数的 binary、denary 与 hexadecimal 表示；区分逐 denary digit 编码的 BCD 与 ordinary binary；为 BCD 和 hexadecimal 的 practical application 给出基于 representation property 的理由。
+
+本关只选用两项课程教学示例：明确按 digit 存储的 BCD clock/display，以及以 `#RRGGBB` 表示三个 8-bit channels 的 hexadecimal RGB notation。它们会标为 `COURSE EXAMPLE · NOT ENUMERATED BY THE SYLLABUS`，不是 Cambridge 官方列出的唯一实例，也不会提前引入 signed arithmetic、overflow 或 Networks。
+
+完整教学关结构为：
+
+1. `COURSE CARD`：显示 official scope、前置知识、Teaching Model 和未覆盖边界；
+2. `TEACH`：演示同一正整数的 binary / denary / hexadecimal 等值表示，并对照 BCD；
+3. `GUIDED PRACTICE`：在 4-bit grouping 与 base-16 place value 脚手架下转换；
+4. `APPLY`：区分 BCD 与 ordinary binary，并为 clock / RGB 两个 selected examples 配对理由；
+5. `CHECKPOINT`：固定四题，必须 `4/4`，从玩家选择字段重新判定；
+6. `EVIDENCE`：只陈述已证明的 Repair 2 outcomes，并明确整个 §1.1 仍为 `PARTIAL`。
+
+Repair 2 的断点与本机 Top 5 分别保存在 `genesis_repair2_hex_v1` 和 `genesis_repair2_hex_records_v1`。课程证据仍只在浏览器本机 `genesis_course_map_v1` 中合并；只有 `repairs.hexAndApplications === true`，且 detail evidence 的 checkpoint ID、version 与四项 facts 全部验证通过，Course Map 才显示 `EVIDENCED`。不存在账号、服务器同步或伪造的全局排行榜。
+
 > 语言法则：解锁 ASCII 前，这个世界没有任何文字（连旁白都没有）；解锁后只有英文；
 > Unicode 之后才有中文。声音也一样——要等你学会 SAMPLING。
 
@@ -88,18 +107,20 @@ Repair 1 只补 prefixes；整个 §1.1 仍保持 `PARTIAL`，直到其余 repai
 
 - **WASD / 方向键** 移动 · **E** 交互 · **Esc** 关闭面板
 - **G** 打开 COURSE GUIDE；**H** 获得当前谜题的分层提示
-- 每章按 `TEACH → GUIDED PRACTICE → APPLY → CHECKPOINT` 标记教学阶段；GUIDE 会同时显示 official scope、教学模型和未覆盖边界
+- 新教学关按 `COURSE CARD → TEACH → GUIDED PRACTICE → APPLY → CHECKPOINT → EVIDENCE` 标记六段结构；GUIDE 会同时显示 official scope、教学模型、当前知识归属和未覆盖边界
 - 进度自动保存在浏览器本地
 
 ## 路线图
 
-当前顺序：第 0 章 §1.1 subset → 第 1–3 章 §1.2 Multimedia 与 RLE subset → 第 4 章 §1.3 Compression capstone → Course Map Repair 1 prefixes。
+**推荐学习顺序**：第 0 章 §1.1 subset → Repair 1 prefixes → Repair 2 positive base conversion、BCD 与 hexadecimal applications → Repair 3 signed representations / arithmetic / overflow → Repair 4 extended ASCII → 第 1 章 Bitmap / RLE → 第 2 章 Sound → 第 3 章 Vector → 第 4 章 Compression → §2.1 Networks。
 
-第 0 章并未覆盖整个 §1.1；进入 §2.1 Networks 前，课程地图会先推荐补齐 prefixes、hexadecimal、one’s/two’s complement、binary arithmetic、overflow、extended ASCII，以及 §1.2 Graphics 的 file header / image resolution / screen resolution 小缺口。不会再从第 3 章直接跳到第 14 章内容。
+**当前已上线可玩内容**：第 0–4 章、Repair 1 与 Repair 2。已上线不等于推荐先学；Repair 3–4 完成前，课程地图会把 §1.1 保持为 `PARTIAL`，并把它们列在第 1 章之前。
+
+Repair 2 完成后整个 §1.1 仍是 `PARTIAL`。下一项是 Repair 3 one’s/two’s complement、binary arithmetic 与 overflow，之后才是 Repair 4 extended ASCII；§1.2 Graphics 的 file header / image resolution / screen resolution 小缺口也仍会保留。课程地图不会把 Repair 2 误当成整个 §1.1 完成，也不会从当前 AS 顺序跳到第 14 章内容。
 
 ## 开发笔记
 
-静态 HTML / Canvas 项目，无后端依赖，可直接部署到 GitHub Pages。第 0 章调试参数：`?beat=roam|clock|ascii` 跳幕、`?panel=binary|bcd|ascii` 直开谜题、`?bin=0|1|2` 选火花关卡；第 1–4 章支持 `?stage=` / `?scene=`，课程地图和第 4 章支持 `?test`。Repair 1 的课程证据只写浏览器本机 `genesis_course_map_v1`。设计原则见 [DESIGN.md](DESIGN.md)。
+静态 HTML / Canvas 项目，无后端依赖，可直接部署到 GitHub Pages。第 0 章调试参数：`?beat=roam|clock|ascii` 跳幕、`?panel=binary|bcd|ascii` 直开谜题、`?bin=0|1|2` 选火花关卡；第 1–4 章与 Repair 页面支持受保护的 `?stage=` / `?scene=`，课程地图和相关关卡支持 `?test`。Repair 1–2 的正式课程证据只写浏览器本机 `genesis_course_map_v1`；debug / test route 不写正式存档、Top 5 或 evidence。设计原则见 [DESIGN.md](DESIGN.md)。
 
 ---
 
