@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
+<link rel="icon" href="data:,">
 <meta charset="utf-8">
 <title>BIT://GENESIS</title>
 <style>
@@ -700,7 +701,7 @@ function asciiSolved(){
    全部忠实码位升序：0-9<A-Z<a-z；希腊<西里尔<希伯来<泰文<假名<中文，跳跃处···。
    最后 CHOOSE YOUR LANGUAGE：英文框 / 中文列高亮可选，选中的字符飘到下方拼 HELLO / 你好。 */
 function openUni(){
-  /* 列头带字节数：随码位增大，一个字符占的字节从 1→2→3→4 —— UTF-8 变长编码。
+  /* 列头带字节数：随码位增大，一个字符的 UTF-8 编码从 1→2→3→4 bytes。
      每列首尾都留 ···(说明这只是整张码表的一个窗口，上下都还有)，各列填到相近高度 */
   const wrap=arr=>[{g:1},...arr,{g:1}];
   const COLS=[
@@ -711,21 +712,15 @@ function openUni(){
     {h:'3 BYTES · THAI KANA',  c:wrap([{v:0xE01},{v:0xE02},{v:0xE03},{g:1},{v:0x3042},{v:0x3044},{g:1},{v:0x30A2},{v:0x30AB},{g:1},{v:0x30F3}])},
     /* 汉字也是连续编号(3 bytes)——你/好 各带真实相邻码位的字 */
     {h:'3 BYTES · CHINESE',    c:wrap([{v:0x4E2D},{v:0x4E3E},{g:1},{v:0x4F5F},{v:0x4F60},{v:0x4F61},{g:1},{v:0x597C},{v:0x597D},{v:0x597E},{g:1},{v:0x5B57}])},
-    /* 增补平面：真的要 4 bytes。😀😁😂🚀 连续码位(每格 32 位分两行, 行更高) */
+    /* 增补平面：UTF-8 需要 4 bytes。😀😁😂🚀 为连续 Unicode code points */
     {h:'4 BYTES · EMOJI',      c:wrap([{v:0x1F600},{v:0x1F601},{v:0x1F602},{g:1},{v:0x1F680},{v:0x1F681},{g:1},{v:0x1F4A1}])},
   ];
   const cellHTML=(cell,ascii)=>{
     if(cell.g) return '<span class="ucell" style="visibility:hidden;color:#3a5c40;font-size:11px;line-height:1.6">···</span>';
-    let codeHtml;
-    if(cell.v<128){
-      codeHtml='<span style="font-size:9px;color:#4a7050">'+cell.v.toString(2).padStart(8,'0')+'</span>';
-    }else if(cell.v<=0xFFFF){
-      codeHtml='<span style="font-size:9px;color:#4a7050">'+cell.v.toString(2).padStart(16,'0')+'</span>';
-    }else{
-      const b=cell.v.toString(2).padStart(32,'0');
-      codeHtml='<span style="display:flex;flex-direction:column;font-size:8px;line-height:1.25;color:#4a7050">'+
-        '<span>'+b.slice(0,16)+'</span><span>'+b.slice(16)+'</span></span>';
-    }
+    const bytes=[...new TextEncoder().encode(String.fromCodePoint(cell.v))];
+    const byteRows=bytes.map(b=>b.toString(2).padStart(8,'0'));
+    const codeHtml='<span title="UTF-8 bytes" style="display:flex;flex-direction:column;font-size:8px;line-height:1.25;color:#4a7050">'+
+      byteRows.map(bits=>'<span>'+bits+'</span>').join('')+'</span>';
     return '<span class="ucell" style="visibility:hidden;display:flex;gap:6px;align-items:center;line-height:1.5">'+
       codeHtml+
       '<span style="font-size:14px;color:'+(ascii?'#8fd9a0':'#ffd97d')+'">'+String.fromCodePoint(cell.v)+'</span></span>';
@@ -742,7 +737,7 @@ function openUni(){
       '<div style="text-align:center;color:#5ad477;font-size:12px;letter-spacing:3px;margin-bottom:6px">ASCII · 1 BYTE</div>'+
       '<div style="display:flex;gap:12px">'+colHTML(0)+colHTML(1)+'</div></div>'+
     '<div id="uboxU" style="border:1px solid #4d3d1d;border-radius:6px;padding:8px 10px">'+
-      '<div style="text-align:center;color:#ffd97d;font-size:12px;letter-spacing:3px;margin-bottom:6px">UNICODE · 2–4 BYTES</div>'+
+      '<div style="text-align:center;color:#ffd97d;font-size:12px;letter-spacing:3px;margin-bottom:6px">UNICODE · UTF-8 2–4 BYTES</div>'+
       '<div style="display:flex;gap:12px">'+colHTML(2)+colHTML(3)+colHTML(4)+colHTML(5)+colHTML(6)+'</div></div>'+
     '</div>'+
     '<div id="ucap" class="seqcap" style="visibility:hidden;margin-top:16px">CHOOSE YOUR LANGUAGE</div>';
@@ -1635,5 +1630,6 @@ if(G.beat==='colour' && !G.colourBornAt){ G.px=TERMINUS3.x+60; G.camx=G.px; G.pi
 /* beat==='ascii' 恢复时不弹独白——台词已经写在路上了 */
 if(new URLSearchParams(location.search).get('test')) setTimeout(toggleTest,60);   // 调试:自动开选关菜单
 </script>
+<script src="course-guide.js"></script>
 </body>
 </html>

@@ -56,23 +56,40 @@
 
 使用原创矢量铸造室场景资产；进度、断点续玩和本机 Top 5 均保存在浏览器 `localStorage`。
 
+## 第 4 章 · 可以忘记多少
+
+▶ **[直接进入第 4 章](https://haoni0818.github.io/bit-genesis/chapter4.html)**
+
+| 你学会的 | 世界发生的 |
+|---|---|
+| Need for compression | 四类原文件共 144 fixture units，无法装入 64-unit 教学舱 |
+| Lossless / lossy | 通过 source 与 restored 的 `=` / `≈` 证据判断信息能否完整回来 |
+| File-type methods | 分别操作 text、bitmap、vector、sound；RLE 从第 1 章召回 |
+| Situation justification | 根据诊断、master、stream、合同等用途选择 lossless 或 lossy |
+
+第 4 章严格对应 **CAIE 9618 (2026) §1.3 Compression**。`144/64`、`quality 88` 和各 method size 都是明确标注的教学模型，不是现实格式的固定压缩率。进度、断点续玩和本机 Top 5 继续使用 `localStorage`，没有伪造的全局排行榜。
+
+▶ **[打开课程地图](https://haoni0818.github.io/bit-genesis/course-map.html)**：逐章显示 official scope、已覆盖知识、旧存档、checkpoint 证据与仍需补齐的 syllabus gap。
+
 > 语言法则：解锁 ASCII 前，这个世界没有任何文字（连旁白都没有）；解锁后只有英文；
 > Unicode 之后才有中文。声音也一样——要等你学会 SAMPLING。
 
 ## 操作
 
 - **WASD / 方向键** 移动 · **E** 交互 · **Esc** 关闭面板
-- 没有文字教程：规律都由世界演示给你看；卡住时它会重播、放慢、把变化的位高亮给你
+- **G** 打开 COURSE GUIDE；**H** 获得当前谜题的分层提示
+- 每章按 `TEACH → GUIDED PRACTICE → APPLY → CHECKPOINT` 标记教学阶段；GUIDE 会同时显示 official scope、教学模型和未覆盖边界
 - 进度自动保存在浏览器本地
 
 ## 路线图
 
-第0章：PIXEL(分辨率) → COLOUR DEPTH；第1章：BITMAP SIZE → RLE；第2章：SOUND SAMPLING；后续：VECTOR →
-网络 → 逻辑门 → CPU → 汇编 → OS → 安全 → SQL … 直到造出一台电脑，把自己送回现实。
+当前顺序：第 0 章 §1.1 subset → 第 1–3 章 §1.2 Multimedia 与 RLE subset → 第 4 章 §1.3 Compression capstone。
+
+第 0 章并未覆盖整个 §1.1；进入 §2.1 Networks 前，课程地图会先推荐补齐 prefixes、hexadecimal、one’s/two’s complement、binary arithmetic、overflow、extended ASCII，以及 §1.2 Graphics 的 file header / image resolution / screen resolution 小缺口。不会再从第 3 章直接跳到第 14 章内容。
 
 ## 开发笔记
 
-单文件零依赖 (`index.html`)。调试参数：`?beat=roam|clock|ascii` 跳幕、`?panel=binary|bcd|ascii` 直开谜题、`?bin=0|1|2` 选火花关卡。设计原则见 [DESIGN.md](DESIGN.md)。
+静态 HTML / Canvas 项目，无后端依赖，可直接部署到 GitHub Pages。第 0 章调试参数：`?beat=roam|clock|ascii` 跳幕、`?panel=binary|bcd|ascii` 直开谜题、`?bin=0|1|2` 选火花关卡；第 1–4 章支持 `?stage=` / `?scene=`，课程地图和第 4 章支持 `?test`。设计原则见 [DESIGN.md](DESIGN.md)。
 
 ---
 

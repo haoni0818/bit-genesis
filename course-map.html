@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<link rel="icon" href="data:,">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>IT://COURSE MAP · CAIE 9618</title>
+<style>
+:root{
+  --bg:#010302;
+  --panel:#031008;
+  --panel-2:#06140b;
+  --line:#285f38;
+  --line-strong:#3d9154;
+  --text:#d9ffe4;
+  --muted:#8fb49a;
+  --green:#8dffab;
+  --cyan:#75dce7;
+  --amber:#e7bd62;
+  --red:#ff8178;
+  --shadow:#0b2b16;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-behavior:smooth}
+body{
+  margin:0;
+  min-width:0;
+  min-height:100vh;
+  background:
+    linear-gradient(180deg,rgba(30,92,49,.08),transparent 30rem),
+    repeating-linear-gradient(0deg,rgba(125,255,160,.018) 0,rgba(125,255,160,.018) 1px,transparent 1px,transparent 4px),
+    var(--bg);
+  color:var(--text);
+  font-family:Consolas,"Cascadia Mono","Microsoft YaHei",monospace;
+  line-height:1.55;
+  overflow-wrap:anywhere;
+}
+a{color:inherit}
+button,a{font:inherit}
+a:focus-visible,summary:focus-visible{outline:2px solid #fff;outline-offset:4px}
+.shell{width:min(1160px,100%);margin:0 auto;padding:28px 20px 48px}
+.terminal-head{
+  border:1px solid var(--line-strong);
+  background:rgba(3,16,8,.94);
+  box-shadow:0 0 34px var(--shadow);
+  padding:24px;
+}
+.eyebrow,.section-kicker{margin:0;color:var(--green);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+h1{margin:7px 0 4px;color:var(--green);font-size:clamp(25px,5vw,46px);font-weight:500;letter-spacing:.04em;line-height:1.12}
+.subtitle{margin:0;color:#b9dfc3;font-size:clamp(13px,2vw,17px)}
+.truth-note{margin:18px 0 0;padding:12px 14px;border-left:3px solid var(--amber);background:#171205;color:#e7d9aa;font-size:13px}
+.head-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.btn{
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:9px 15px;
+  border:1px solid #58cf79;
+  background:#0b2c15;
+  color:#e7ffed;
+  text-decoration:none;
+  cursor:pointer;
+}
+.btn:hover{background:#1d6832}
+.btn.sub{border-color:#49644f;background:#071109;color:#b2cbb8}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:16px;color:var(--muted);font-size:11px}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:10px;height:10px;border:1px solid currentColor;background:currentColor;display:inline-block}
+.legend .evidenced{color:var(--green)}
+.legend .partial{color:var(--amber)}
+.legend .legacy{color:var(--cyan)}
+.legend .gap{color:var(--red)}
+main{display:grid;gap:26px;margin-top:26px}
+.block{border:1px solid var(--line);background:rgba(3,12,7,.9);padding:20px;box-shadow:0 0 22px rgba(10,43,22,.45)}
+.section-title{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:15px}
+.section-title h2{margin:3px 0 0;color:var(--green);font-size:19px;font-weight:500}
+.section-note{margin:0;color:var(--muted);font-size:12px;text-align:right;max-width:52ch}
+.order-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.order-item{min-width:0;border:1px solid var(--line);background:var(--panel);padding:12px;position:relative}
+.order-item:not(:last-child)::after{content:"";position:absolute;right:-11px;top:22px;width:10px;border-top:1px solid var(--line-strong)}
+.order-item .num{color:#568464;font-size:10px;letter-spacing:.12em}
+.order-item b{display:block;margin-top:4px;color:#dfffe7;font-size:13px;font-weight:500}
+.order-item p{margin:5px 0 0;color:var(--muted);font-size:11px}
+.status{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  width:max-content;
+  max-width:100%;
+  margin-top:9px;
+  padding:3px 8px;
+  border:1px solid currentColor;
+  font-size:10px;
+  letter-spacing:.07em;
+  line-height:1.35;
+}
+.status.evidenced{color:var(--green);background:rgba(43,128,64,.12)}
+.status.partial{color:var(--amber);background:rgba(156,112,24,.11)}
+.status.legacy{color:var(--cyan);background:rgba(37,122,131,.11)}
+.status.gap{color:var(--red);background:rgba(126,42,37,.11)}
+.chapter-list{display:grid;gap:12px}
+.chapter{
+  border:1px solid var(--line);
+  background:linear-gradient(90deg,rgba(7,28,14,.78),rgba(3,10,6,.94));
+  padding:16px;
+}
+.chapter-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
+.chapter-id{color:#5e966b;font-size:11px;letter-spacing:.13em}
+.chapter h3{margin:3px 0 0;color:#dffff0;font-size:17px;font-weight:500}
+.mapping{margin:7px 0 0;color:var(--green);font-size:12px}
+.badge-stack{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.badge-stack .status{margin-top:0}
+.scope-label{color:var(--amber);font-size:10px;text-align:right}
+.chapter-body{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;margin-top:14px}
+.info{border-top:1px solid #173d22;padding-top:11px}
+.info h4{margin:0 0 7px;color:#75b887;font-size:10px;font-weight:500;letter-spacing:.12em}
+.info ul{margin:0;padding-left:18px;color:#bed8c4;font-size:12px}
+.info li+li{margin-top:5px}
+.chapter details{margin-top:13px;border-top:1px solid #173d22}
+.chapter summary{min-height:44px;display:flex;align-items:center;color:#86b993;font-size:12px;cursor:pointer;list-style:none}
+.chapter summary::-webkit-details-marker{display:none}
+.chapter summary::before{content:"+";width:20px;color:var(--green)}
+.chapter details[open] summary::before{content:"−"}
+.sequence{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 0 10px 20px;color:#abc8b2;font-size:11px}
+.sequence b{display:block;color:#6d9c78;font-weight:500}
+.chapter-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px}
+.read-note{color:#668e70;font-size:10px}
+.repair-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.repair{border:1px solid var(--line);background:var(--panel);padding:14px}
+.repair-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.repair-no{color:#5d8d68;font-size:10px;letter-spacing:.13em}
+.repair h3{margin:4px 0 0;color:#d9ffe4;font-size:14px;font-weight:500}
+.repair p{margin:9px 0 0;color:#abc8b2;font-size:12px}
+.graphics-gap{margin-top:12px;border:1px solid #6e5430;background:#171205;padding:15px}
+.graphics-gap h3{margin:0;color:var(--amber);font-size:14px;font-weight:500}
+.graphics-gap ul{margin:9px 0 0;padding-left:18px;color:#d9ca99;font-size:12px}
+.next-card{border:1px solid #304f37;background:#040a06;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:15px;align-items:center}
+.next-card h3{margin:0;color:#b6d4bd;font-size:16px;font-weight:500}
+.next-card p{margin:7px 0 0;color:#7f9c86;font-size:12px;max-width:76ch}
+.test-report{display:none;margin-top:18px;border:1px solid var(--cyan);background:#041216;padding:12px;color:#b9f7ff;font-size:12px}
+.test-report.show{display:block}
+.test-report.fail{border-color:var(--red);color:#ffd0cc;background:#160605}
+.foot{margin-top:26px;color:#5f8668;font-size:10px;text-align:center}
+@media(max-width:760px){
+  .shell{padding:16px 12px 36px}
+  .terminal-head,.block{padding:16px}
+  .section-title{display:block}
+  .section-note{text-align:left;margin-top:7px}
+  .order-grid{grid-template-columns:1fr 1fr}
+  .order-item:nth-child(2)::after{display:none}
+  .chapter-head{grid-template-columns:1fr}
+  .badge-stack{align-items:flex-start}
+  .scope-label{text-align:left}
+  .chapter-body,.repair-list{grid-template-columns:1fr}
+  .next-card{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+  .shell{padding-left:10px;padding-right:10px}
+  .terminal-head,.block{padding:14px}
+  .truth-note{padding:10px 11px}
+  .head-actions,.chapter-actions{align-items:stretch;flex-direction:column}
+  .head-actions .btn,.chapter-actions .btn{width:100%}
+  .order-grid{grid-template-columns:1fr}
+  .order-item::after{display:none}
+  .sequence{grid-template-columns:1fr;padding-left:20px}
+  .chapter{padding:13px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="terminal-head">
+    <p class="eyebrow">IT://COURSE MAP · LOCAL READ-ONLY TERMINAL</p>
+    <h1>INFORMATION REPRESENTATION</h1>
+    <p class="subtitle">CAIE 9618 (2026) · Chapter 0–4 syllabus route</p>
+    <p class="truth-note"><b>证据边界：</b>旧存档的 <code>end</code> 或 completion marker 只显示 <b>LEGACY PLAYTHROUGH</b>。它表示“走完旧版”，不等于新版 checkpoint evidence。</p>
+    <div class="head-actions">
+      <a class="btn" href="#chapters">查看章节映射</a>
+      <a class="btn sub" href="index.html">返回第 0 章</a>
+    </div>
+    <div class="legend" aria-label="状态说明">
+      <span class="evidenced"><i></i>EVIDENCED · checkpoint 已通过</span>
+      <span class="partial"><i></i>PARTIAL · 仍是子集或有 syllabus 缺口</span>
+      <span class="legacy"><i></i>LEGACY · 旧版走完，无 checkpoint</span>
+      <span class="gap"><i></i>GAP · 本机无证据或尚未覆盖</span>
+    </div>
+    <div id="testReport" class="test-report" role="status" aria-live="polite"></div>
+  </header>
+
+  <main>
+    <section class="block" aria-labelledby="orderTitle">
+      <div class="section-title">
+        <div><p class="section-kicker">OFFICIAL ORDER</p><h2 id="orderTitle">§1 → §2.1</h2></div>
+        <p class="section-note">章节可以按故事继续，但课程地图不会隐藏未完成的小节。</p>
+      </div>
+      <div id="officialOrder" class="order-grid"></div>
+    </section>
+
+    <section class="block" id="chapters" aria-labelledby="chaptersTitle">
+      <div class="section-title">
+        <div><p class="section-kicker">CHAPTER ROUTE</p><h2 id="chaptersTitle">Chapter 0–4</h2></div>
+        <p class="section-note">每张卡同时显示 syllabus 范围与本机 evidence；两者不会互相替代。</p>
+      </div>
+      <div id="chapterList" class="chapter-list"></div>
+    </section>
+
+    <section class="block" aria-labelledby="repairTitle">
+      <div class="section-title">
+        <div><p class="section-kicker">BEFORE §2.1 NETWORKS</p><h2 id="repairTitle">§1.1 minimum repair sequence</h2></div>
+        <p class="section-note">按依赖顺序补齐；四项全部有证据后，§1.1 才能从 PARTIAL 升为 EVIDENCED。</p>
+      </div>
+      <div id="repairList" class="repair-list"></div>
+      <article class="graphics-gap">
+        <div class="repair-top">
+          <div><p class="repair-no">§1.2 GRAPHICS TERMINOLOGY GAP</p><h3>Bitmap terminology repair</h3></div>
+          <span id="graphicsStatus" class="status gap">GAP</span>
+        </div>
+        <ul>
+          <li>file header</li>
+          <li>image resolution and its effect on image quality and file size</li>
+          <li>screen resolution</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="block" aria-labelledby="nextTitle">
+      <div class="section-title">
+        <div><p class="section-kicker">NEXT OFFICIAL SECTION</p><h2 id="nextTitle">§2.1 Networks including the internet</h2></div>
+      </div>
+      <article class="next-card">
+        <div>
+          <h3>NETWORKS · NOT YET EVIDENCED</h3>
+          <p>§2.1 是 §1 Information Representation 之后的下一正式小节。本页不提前宣称任何 Networks 知识已覆盖；建议先完成 §1.1 四项 repair，并补齐 §1.2 graphics terminology gap。</p>
+        </div>
+        <span class="status gap">GAP</span>
+      </article>
+    </section>
+  </main>
+  <p class="foot">LOCAL STORAGE IS READ ONLY · DEBUG AND RECORD TABLES NEVER CREATE EVIDENCE</p>
+</div>
+<noscript>此课程地图需要 JavaScript 才能读取本机章节进度。</noscript>
+<script>
+'use strict';
+const COURSE_KEY='genesis_course_map_v1';
+const LEGACY_KEYS={
+  ch0:{save:'genesis_mvp_v1',field:'beat',marker:'genesis_ch0_complete_v1'},
+  ch1:{save:'genesis_ch1_v1',field:'stage'},
+  ch2:{save:'genesis_ch2_v1',field:'stage'},
+  ch3:{save:'genesis_ch3_v1',field:'stage'},
+  ch4:{save:'genesis_ch4_compression_v1',field:'stage'}
+};
+const CHAPTERS=[
+  {
+    id:'ch0',number:'CH.00',title:'GENESIS · 世界从黑暗开始',href:'index.html',
+    mapping:['CAIE 9618 (2026) §1.1 Data Representation · SUBSET'],scope:'PARTIAL',
+    covers:['small non-negative binary patterns','BCD clock application','ASCII character mapping','Unicode character representation'],
+    gaps:['binary and decimal prefixes; magnitudes','systematic binary/denary/hexadecimal conversion','one’s/two’s complement; binary addition/subtraction; overflow','extended ASCII'],
+    prerequisite:'NONE',successor:'CH.1 · BITMAP / RLE'
+  },
+  {
+    id:'ch1',number:'CH.01',title:'COLOUR / RLE · 颜色的重量',href:'chapter1.html',
+    mapping:['§1.2 Multimedia · Graphics · BITMAP SUBSET','§1.3 Compression · RLE SUBSET'],scope:'PARTIAL',
+    covers:['pixel grid and colour depth','bitmap size estimate at fixed image resolution','RLE count/value runs and exact reconstruction','RLE suitability and expansion counterexample'],
+    gaps:['file header and screen resolution','systematic image-resolution comparison','lossy/lossless across all required file types'],
+    prerequisite:'CH.0 · BINARY / PIXEL PREVIEW',successor:'CH.2 · SOUND'
+  },
+  {
+    id:'ch2',number:'CH.02',title:'THE FIRST SOUND · 第一声',href:'chapter2.html',
+    mapping:['§1.2 Multimedia · Sound'],scope:'CHECKPOINT REQUIRED',
+    covers:['analogue-to-digital sampling','sampling rate and sampling resolution','file size and accuracy relationship','fixed-duration, fixed-buffer application'],
+    gaps:['sound-file compression belongs to §1.3','Hz, buffer and threshold values are TEACHING MODEL values'],
+    prerequisite:'CH.1 · FILE-SIZE TRADE-OFF',successor:'CH.3 · VECTOR GRAPHICS'
+  },
+  {
+    id:'ch3',number:'CH.03',title:'VECTOR · 没有碎掉的门',href:'chapter3.html',
+    mapping:['§1.2 Multimedia · Graphics · VECTOR + SUITABILITY'],scope:'CHECKPOINT REQUIRED',
+    covers:['drawing object, property and drawing list','scale comparison','bitmap/vector suitability for two situations','justification from image characteristics'],
+    gaps:['vector compression belongs to §1.3','“vector is always smaller” is not a valid claim','bitmap terminology repair remains'],
+    prerequisite:'CH.1 · BITMAP CONCEPTS',successor:'CH.4 · COMPRESSION'
+  },
+  {
+    id:'ch4',number:'CH.04',title:'COMPRESSION · 可以忘记多少',href:'chapter4.html',
+    mapping:['§1.3 Compression · COMPLETE CAPSTONE'],scope:'CHECKPOINT REQUIRED',
+    covers:['need for compression and examples of use','lossy and lossless methods','method justification from the situation','text, bitmap, vector and sound compression, including RLE'],
+    gaps:['specific codec internals are not claimed','capacity, unit and quality values are TEACHING MODEL values','§2.1 Networks has not started'],
+    prerequisite:'CH.1 RLE + CH.2 SOUND + CH.3 VECTOR',successor:'§1.1 REPAIR → §2.1 NETWORKS'
+  }
+];
+const REPAIRS=[
+  {id:'prefixes',title:'Magnitudes and prefixes',body:'Compare binary and decimal magnitudes; distinguish kibi/mebi/gibi/tebi from kilo/mega/giga/tera.'},
+  {id:'hexAndApplications',title:'Hexadecimal and applications',body:'Convert between binary, denary and hexadecimal; choose suitable BCD and hexadecimal applications.'},
+  {id:'signedArithmeticAndOverflow',title:'Signed integers and overflow',body:'Use one’s complement and two’s complement; perform binary addition/subtraction and identify overflow.'},
+  {id:'extendedAscii',title:'Extended ASCII',body:'Distinguish ASCII, extended ASCII and Unicode for different character requirements.'}
+];
+
+function safeGet(storage,key){try{return storage.getItem(key)}catch(error){return null}}
+function safeJson(storage,key){const raw=safeGet(storage,key);if(typeof raw!=='string'||raw==='')return null;try{const value=JSON.parse(raw);return value&&typeof value==='object'?value:null}catch(error){return null}}
+function readCourseMap(storage){const map=safeJson(storage,COURSE_KEY);return map&&map.version===1?map:null}
+function mapChapter(map,id){const value=map&&map.chapters&&map.chapters[id];return value&&typeof value==='object'?value:null}
+function checkpointPassed(map,id){const chapter=mapChapter(map,id);return Boolean(chapter&&chapter.checkpoint&&chapter.checkpoint.passed===true)}
+function oldPlaythroughSeen(storage,id){
+  const def=LEGACY_KEYS[id];
+  if(!def)return false;
+  if(id==='ch0'&&safeGet(storage,def.marker)==='1')return true;
+  const save=safeJson(storage,def.save);
+  return Boolean(save&&save[def.field]==='end');
+}
+function playthroughSeen(storage,map,id){const chapter=mapChapter(map,id);return Boolean(chapter&&chapter.playthroughSeen===true)||oldPlaythroughSeen(storage,id)}
+function chapterStatus(storage,map,id){
+  if(checkpointPassed(map,id))return'EVIDENCED';
+  if(playthroughSeen(storage,map,id))return'LEGACY PLAYTHROUGH';
+  return'GAP';
+}
+function repairPassed(map,id){return Boolean(map&&map.repairs&&map.repairs[id]===true)}
+function deriveSectionStatuses(storage,map){
+  const allRepresentation=REPAIRS.every(item=>repairPassed(map,item.id));
+  const graphics=repairPassed(map,'graphicsTerminology');
+  const allMultimedia=['ch1','ch2','ch3'].every(id=>checkpointPassed(map,id));
+  let compression='GAP';
+  if(checkpointPassed(map,'ch4'))compression='EVIDENCED';
+  else if(playthroughSeen(storage,map,'ch4'))compression='LEGACY PLAYTHROUGH';
+  else if(checkpointPassed(map,'ch1'))compression='PARTIAL';
+  return{
+    representation:checkpointPassed(map,'ch0')&&allRepresentation?'EVIDENCED':'PARTIAL',
+    multimedia:allMultimedia&&graphics?'EVIDENCED':'PARTIAL',
+    compression,
+    networks:'GAP'
+  };
+}
+function statusClass(value){if(value==='EVIDENCED')return'evidenced';if(value==='PARTIAL')return'partial';if(value==='LEGACY PLAYTHROUGH')return'legacy';return'gap'}
+function node(tag,className,text){const element=document.createElement(tag);if(className)element.className=className;if(text!==undefined)element.textContent=text;return element}
+function statusNode(value){const element=node('span','status '+statusClass(value),value);element.setAttribute('aria-label','Status: '+value);return element}
+
+function renderOrder(storage,map){
+  const statuses=deriveSectionStatuses(storage,map);
+  const items=[
+    ['01','§1.1 Data Representation','Ch.0 subset + four repairs',statuses.representation],
+    ['02','§1.2 Multimedia','Ch.1 bitmap · Ch.2 sound · Ch.3 vector',statuses.multimedia],
+    ['03','§1.3 Compression','Ch.1 RLE subset · Ch.4 capstone',statuses.compression],
+    ['04','§2.1 Networks including the internet','Next official section',statuses.networks]
+  ];
+  const root=document.getElementById('officialOrder');root.replaceChildren();
+  for(const item of items){const card=node('article','order-item');card.append(node('span','num',item[0]),node('b','',item[1]),node('p','',item[2]),statusNode(item[3]));root.append(card)}
+}
+function renderChapters(storage,map){
+  const root=document.getElementById('chapterList');root.replaceChildren();
+  for(const chapter of CHAPTERS){
+    const progress=chapterStatus(storage,map,chapter.id),article=node('article','chapter');article.dataset.chapter=chapter.id;
+    const head=node('div','chapter-head'),titleWrap=node('div'),badge=node('div','badge-stack');
+    titleWrap.append(node('div','chapter-id',chapter.number),node('h3','',chapter.title));
+    for(const mapping of chapter.mapping)titleWrap.append(node('p','mapping',mapping));
+    badge.append(statusNode(progress),node('span','scope-label','SYLLABUS SCOPE · '+chapter.scope));
+    head.append(titleWrap,badge);
+    const body=node('div','chapter-body'),covered=node('div','info'),gaps=node('div','info');
+    covered.append(node('h4','','COVERED IN THIS CHAPTER'));
+    const coveredList=node('ul');for(const item of chapter.covers)coveredList.append(node('li','',item));covered.append(coveredList);
+    gaps.append(node('h4','','NOT COVERED / NOT CLAIMED'));
+    const gapList=node('ul');for(const item of chapter.gaps)gapList.append(node('li','',item));gaps.append(gapList);body.append(covered,gaps);
+    const details=node('details'),summary=node('summary','','PREREQUISITE / SUCCESSOR'),sequence=node('div','sequence');
+    const before=node('div'),after=node('div');before.append(node('b','','PREREQUISITE'),document.createTextNode(chapter.prerequisite));after.append(node('b','','SUCCESSOR'),document.createTextNode(chapter.successor));sequence.append(before,after);details.append(summary,sequence);
+    const actions=node('div','chapter-actions'),link=node('a','btn','返回对应章节'),note=node('span','read-note',progress==='LEGACY PLAYTHROUGH'?'旧版完成不会自动生成 checkpoint':'本页不会修改章节存档');link.href=chapter.href;actions.append(link,note);
+    article.append(head,body,details,actions);root.append(article);
+  }
+}
+function renderRepairs(map){
+  const root=document.getElementById('repairList');root.replaceChildren();
+  REPAIRS.forEach((repair,index)=>{
+    const passed=repairPassed(map,repair.id),card=node('article','repair'),top=node('div','repair-top'),copy=node('div');
+    copy.append(node('p','repair-no','REPAIR '+String(index+1).padStart(2,'0')),node('h3','',repair.title));top.append(copy,statusNode(passed?'EVIDENCED':'GAP'));card.append(top,node('p','',repair.body));root.append(card);
+  });
+  const graphics=document.getElementById('graphicsStatus'),value=repairPassed(map,'graphicsTerminology')?'EVIDENCED':'GAP';graphics.className='status '+statusClass(value);graphics.textContent=value;
+}
+function render(storage=localStorage){const map=readCourseMap(storage);renderOrder(storage,map);renderChapters(storage,map);renderRepairs(map)}
+
+function memoryStorage(values={}){return{getItem:key=>Object.prototype.hasOwnProperty.call(values,key)?values[key]:null}}
+function runAssertions(){
+  const tests=[];
+  const assert=(condition,name)=>{console.assert(condition,name);tests.push({name,ok:Boolean(condition)})};
+  let storage=memoryStorage({genesis_ch0_complete_v1:'1'}),map=readCourseMap(storage);
+  assert(chapterStatus(storage,map,'ch0')==='LEGACY PLAYTHROUGH','T1 ch0 marker is legacy only');
+  assert(!checkpointPassed(map,'ch0'),'T2 ch0 marker does not create checkpoint evidence');
+  const allLegacyEnds=Object.keys(LEGACY_KEYS).filter(id=>id!=='ch0').every(id=>{const def=LEGACY_KEYS[id],sample=memoryStorage({[def.save]:JSON.stringify({stage:'end',recorded:true})});return chapterStatus(sample,readCourseMap(sample),id)==='LEGACY PLAYTHROUGH'});
+  assert(allLegacyEnds,'T3 ch1–ch4 stage=end are legacy only');
+  storage=memoryStorage({genesis_ch3_v1:JSON.stringify({stage:'objects',recorded:true})});map=readCourseMap(storage);
+  assert(chapterStatus(storage,map,'ch3')==='GAP','T4 records and partial stages are not evidence');
+  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch4:{playthroughSeen:true,checkpoint:{passed:true}}},repairs:{}})});map=readCourseMap(storage);
+  assert(chapterStatus(storage,map,'ch4')==='EVIDENCED','T5 explicit checkpoint can create evidence');
+  storage=memoryStorage({[COURSE_KEY]:'{broken'});map=readCourseMap(storage);
+  assert(map===null&&chapterStatus(storage,map,'ch1')==='GAP','T6 malformed map fails closed');
+  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch0:{checkpoint:{passed:true}}},repairs:{prefixes:true,hexAndApplications:true,signedArithmeticAndOverflow:true,extendedAscii:true}})});map=readCourseMap(storage);
+  assert(deriveSectionStatuses(storage,map).representation==='EVIDENCED','T7 four repairs plus ch0 checkpoint close §1.1');
+  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch1:{checkpoint:{passed:true}},ch2:{checkpoint:{passed:true}},ch3:{checkpoint:{passed:true}}},repairs:{graphicsTerminology:false}})});map=readCourseMap(storage);
+  assert(deriveSectionStatuses(storage,map).multimedia==='PARTIAL','T8 graphics gap keeps §1.2 partial');
+  assert(CHAPTERS.map(x=>x.id).join(',')==='ch0,ch1,ch2,ch3,ch4','T9 chapter order is fixed');
+  assert(REPAIRS.map(x=>x.id).join(',')==='prefixes,hexAndApplications,signedArithmeticAndOverflow,extendedAscii','T10 repair order is fixed');
+  const failed=tests.filter(test=>!test.ok),report=document.getElementById('testReport');report.classList.add('show');
+  if(failed.length){report.classList.add('fail');report.textContent='TEST FAIL · '+failed.map(test=>test.name).join(' · ')}else report.textContent='TEST PASS · '+tests.length+' pure JavaScript assertions';
+  console.info('[COURSE MAP TEST]',tests.length-failed.length+'/'+tests.length,'assertions passed');
+  return failed.length===0;
+}
+
+render();
+addEventListener('storage',event=>{if(event.key===null||event.key===COURSE_KEY||Object.values(LEGACY_KEYS).some(item=>event.key===item.save||event.key===item.marker))render()});
+if(new URLSearchParams(location.search).has('test'))runAssertions();
+</script>
+</body>
+</html>
