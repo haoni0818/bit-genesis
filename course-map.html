@@ -177,7 +177,7 @@ main{display:grid;gap:26px;margin-top:26px}
   <header class="terminal-head">
     <p class="eyebrow">IT://COURSE MAP · LOCAL READ-ONLY TERMINAL</p>
     <h1>INFORMATION REPRESENTATION</h1>
-    <p class="subtitle">CAIE 9618 (2026) · Chapter 0–4 + Repair 1–2 syllabus route</p>
+    <p class="subtitle">CAIE 9618 (2026) · Chapter 0–4 + Repair 1–3 syllabus route</p>
     <p class="truth-note"><b>证据边界：</b>旧存档的 <code>end</code> 或 completion marker 只显示 <b>LEGACY PLAYTHROUGH</b>。它表示“走完旧版”，不等于新版 checkpoint evidence。</p>
     <div class="head-actions">
       <a class="btn" href="#learningRoute">查看学习顺序</a>
@@ -302,7 +302,7 @@ const CHAPTERS=[
 const REPAIRS=[
   {id:'prefixes',title:'Magnitudes and prefixes',body:'Compare binary and decimal magnitudes; distinguish kibi/mebi/gibi/tebi from kilo/mega/giga/tera.',href:'repair1.html'},
   {id:'hexAndApplications',title:'Hexadecimal and applications',body:'Convert positive integers between binary, denary and hexadecimal; distinguish BCD from ordinary binary; justify selected BCD and hexadecimal applications.',href:'repair2.html'},
-  {id:'signedArithmeticAndOverflow',title:'Signed integers and overflow',body:'Use one’s complement and two’s complement; perform binary addition/subtraction and identify overflow.'},
+  {id:'signedArithmeticAndOverflow',title:'Signed integers and overflow',body:'Use one’s and two’s complement representations; add and subtract positive and negative binary integers; distinguish signed overflow from carry-out.',href:'repair3.html'},
   {id:'extendedAscii',title:'Extended ASCII',body:'Distinguish ASCII, extended ASCII and Unicode for different character requirements.'}
 ];
 const REQUIRED_LEARNING_ROUTE=Object.freeze(['ch0','prefixes','hexAndApplications','signedArithmeticAndOverflow','extendedAscii','ch1','ch2','ch3','ch4','networks']);
@@ -355,8 +355,29 @@ function hexApplicationEvidenceNote(map){
   if(flag||evidence)return'PARTIAL · FLAG / DETAIL EVIDENCE NOT FULLY VERIFIED';
   return'PARTIAL · CHECKPOINT AVAILABLE';
 }
+const SIGNED_EVIDENCE_ID='signed_binary_arithmetic_overflow_v1';
+function signedArithmeticEvidencePassed(map){
+  const evidence=repairEvidence(map,'signedArithmeticAndOverflow'),facts=evidence&&evidence.facts;
+  return Boolean(map&&map.version===1)&&repairPassed(map,'signedArithmeticAndOverflow')&&Boolean(
+    evidence&&evidence.passed===true&&
+    evidence.checkpointId===SIGNED_EVIDENCE_ID&&
+    evidence.answerSetVersion===1&&
+    facts&&facts.onesComplementRepresentation===true&&
+    facts.twosComplementRepresentation===true&&
+    facts.binaryAddition===true&&
+    facts.binarySubtraction===true&&
+    facts.overflowRecognition===true
+  );
+}
+function signedArithmeticRepairStatus(map){return signedArithmeticEvidencePassed(map)?'EVIDENCED':'PARTIAL'}
+function signedArithmeticEvidenceNote(map){
+  const flag=repairPassed(map,'signedArithmeticAndOverflow'),evidence=repairEvidence(map,'signedArithmeticAndOverflow');
+  if(signedArithmeticEvidencePassed(map))return evidence.scaffolded===true?'CHECKPOINT VERIFIED · 4/4 WITH SCAFFOLDING':'CHECKPOINT VERIFIED · 4/4 LOCAL EVIDENCE';
+  if(flag||evidence)return'PARTIAL · FLAG / DETAIL EVIDENCE NOT FULLY VERIFIED';
+  return'PARTIAL · CHECKPOINT AVAILABLE';
+}
 function deriveSectionStatuses(storage,map){
-  const allRepresentation=prefixEvidencePassed(map)&&hexApplicationEvidencePassed(map)&&['signedArithmeticAndOverflow','extendedAscii'].every(id=>repairPassed(map,id));
+  const allRepresentation=prefixEvidencePassed(map)&&hexApplicationEvidencePassed(map)&&signedArithmeticEvidencePassed(map)&&repairPassed(map,'extendedAscii');
   const graphics=repairPassed(map,'graphicsTerminology');
   const allMultimedia=['ch1','ch2','ch3'].every(id=>checkpointPassed(map,id));
   let compression='GAP';
@@ -412,9 +433,9 @@ function renderChapters(storage,map){
 function renderRepairs(map){
   const root=document.getElementById('repairList');root.replaceChildren();
   REPAIRS.forEach((repair,index)=>{
-    const value=repair.id==='prefixes'?prefixRepairStatus(map):repair.id==='hexAndApplications'?hexApplicationRepairStatus(map):(repairPassed(map,repair.id)?'EVIDENCED':'GAP'),card=node('article','repair'),top=node('div','repair-top'),copy=node('div');
+    const value=repair.id==='prefixes'?prefixRepairStatus(map):repair.id==='hexAndApplications'?hexApplicationRepairStatus(map):repair.id==='signedArithmeticAndOverflow'?signedArithmeticRepairStatus(map):(repairPassed(map,repair.id)?'EVIDENCED':'GAP'),card=node('article','repair'),top=node('div','repair-top'),copy=node('div');
     copy.append(node('p','repair-no','REPAIR '+String(index+1).padStart(2,'0')),node('h3','',repair.title));top.append(copy,statusNode(value));card.append(top,node('p','',repair.body));
-    if(repair.href){const repairNumber=index+1,actions=node('div','repair-actions'),link=node('a','btn',(value==='EVIDENCED'?'重做 Repair ':'进入 Repair ')+repairNumber),note=node('span','repair-evidence-note',repair.id==='prefixes'?prefixEvidenceNote(map):hexApplicationEvidenceNote(map));link.href=repair.href;actions.append(link,note);card.append(actions)}
+    if(repair.href){const repairNumber=index+1,actions=node('div','repair-actions'),link=node('a','btn',(value==='EVIDENCED'?'重做 Repair ':'进入 Repair ')+repairNumber),noteText=repair.id==='prefixes'?prefixEvidenceNote(map):repair.id==='hexAndApplications'?hexApplicationEvidenceNote(map):signedArithmeticEvidenceNote(map),note=node('span','repair-evidence-note',noteText);link.href=repair.href;actions.append(link,note);card.append(actions)}
     root.append(card);
   });
   const graphics=document.getElementById('graphicsStatus'),value=repairPassed(map,'graphicsTerminology')?'EVIDENCED':'GAP';graphics.className='status '+statusClass(value);graphics.textContent=value;
@@ -436,7 +457,7 @@ function runAssertions(){
   assert(chapterStatus(storage,map,'ch4')==='EVIDENCED','T5 explicit checkpoint can create evidence');
   storage=memoryStorage({[COURSE_KEY]:'{broken'});map=readCourseMap(storage);
   assert(map===null&&chapterStatus(storage,map,'ch1')==='GAP','T6 malformed map fails closed');
-  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch0:{checkpoint:{passed:true}}},repairs:{prefixes:true,hexAndApplications:true,signedArithmeticAndOverflow:true,extendedAscii:true},repairEvidence:{prefixes:{passed:true},hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}}}})});map=readCourseMap(storage);
+  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch0:{checkpoint:{passed:true}}},repairs:{prefixes:true,hexAndApplications:true,signedArithmeticAndOverflow:true,extendedAscii:true},repairEvidence:{prefixes:{passed:true},hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}},signedArithmeticAndOverflow:{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}}}})});map=readCourseMap(storage);
   assert(deriveSectionStatuses(storage,map).representation==='EVIDENCED','T7 four repairs plus ch0 checkpoint close §1.1');
   storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch1:{checkpoint:{passed:true}},ch2:{checkpoint:{passed:true}},ch3:{checkpoint:{passed:true}}},repairs:{graphicsTerminology:false}})});map=readCourseMap(storage);
   assert(deriveSectionStatuses(storage,map).multimedia==='PARTIAL','T8 graphics gap keeps §1.2 partial');
@@ -468,6 +489,24 @@ function runAssertions(){
   assert(deriveSectionStatuses(storage,map).representation==='PARTIAL','T21 Repair 2 alone keeps all of §1.1 partial');
   assert(REPAIRS.map(x=>x.id).join(',')==='prefixes,hexAndApplications,signedArithmeticAndOverflow,extendedAscii'&&REPAIRS[1].href==='repair2.html','T22 Repair order and Repair 2 route are fixed');
   assert(REQUIRED_LEARNING_ROUTE.join('>')==='ch0>prefixes>hexAndApplications>signedArithmeticAndOverflow>extendedAscii>ch1>ch2>ch3>ch4>networks','T23 syllabus learning route puts all §1.1 repairs before Chapter 1');
+  map={version:1,repairs:{signedArithmeticAndOverflow:true},repairEvidence:{}};
+  assert(signedArithmeticRepairStatus(map)==='PARTIAL','T24 Repair 3 boolean only is partial');
+  map={version:1,repairs:{signedArithmeticAndOverflow:false},repairEvidence:{signedArithmeticAndOverflow:{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}}}};
+  assert(signedArithmeticRepairStatus(map)==='PARTIAL','T25 Repair 3 detail only is partial');
+  const signedFactKeys=['onesComplementRepresentation','twosComplementRepresentation','binaryAddition','binarySubtraction','overflowRecognition'],validSignedDetail={passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}},invalidSignedDetails=[
+    {passed:true,checkpointId:'wrong_id',answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}},
+    {passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:2,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}},
+    {passed:false,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}},
+    ...signedFactKeys.map(key=>{const facts={onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true};facts[key]=false;return{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts}})
+  ];
+  assert(invalidSignedDetails.every(evidence=>signedArithmeticRepairStatus({version:1,repairs:{signedArithmeticAndOverflow:true},repairEvidence:{signedArithmeticAndOverflow:evidence}})==='PARTIAL')&&signedArithmeticRepairStatus({version:2,repairs:{signedArithmeticAndOverflow:true},repairEvidence:{signedArithmeticAndOverflow:validSignedDetail}})==='PARTIAL','T26 Repair 3 wrong map, ID, version, passed or any fact stays partial');
+  map={version:1,repairs:{signedArithmeticAndOverflow:true},repairEvidence:{signedArithmeticAndOverflow:{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}}}};
+  assert(signedArithmeticRepairStatus(map)==='EVIDENCED','T27 Repair 3 complete detail evidence is evidenced');
+  storage=memoryStorage({[COURSE_KEY]:JSON.stringify(map)});
+  assert(deriveSectionStatuses(storage,map).representation==='PARTIAL','T28 Repair 3 alone keeps all of §1.1 partial');
+  assert(REPAIRS[2].href==='repair3.html'&&SIGNED_EVIDENCE_ID==='signed_binary_arithmetic_overflow_v1','T29 Repair 3 route and evidence ID are fixed');
+  const nearComplete={version:1,chapters:{ch0:{checkpoint:{passed:true}}},repairs:{prefixes:true,hexAndApplications:true,signedArithmeticAndOverflow:true,extendedAscii:false},repairEvidence:{prefixes:{passed:true},hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}},signedArithmeticAndOverflow:{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}}}},nearStorage=memoryStorage({[COURSE_KEY]:JSON.stringify(nearComplete)});
+  assert(deriveSectionStatuses(nearStorage,readCourseMap(nearStorage)).representation==='PARTIAL','T30 Chapter 0 plus Repairs 1–3 still needs Repair 4');
   const failed=tests.filter(test=>!test.ok),report=document.getElementById('testReport');report.classList.add('show');
   if(failed.length){report.classList.add('fail');report.textContent='TEST FAIL · '+failed.map(test=>test.name).join(' · ')}else report.textContent='TEST PASS · '+tests.length+' pure JavaScript assertions';
   console.info('[COURSE MAP TEST]',tests.length-failed.length+'/'+tests.length,'assertions passed');
