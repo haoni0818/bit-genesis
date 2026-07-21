@@ -71,6 +71,16 @@
 
 ▶ **[打开课程地图](https://haoni0818.github.io/bit-genesis/course-map.html)**：逐章显示 official scope、已覆盖知识、旧存档、checkpoint 证据与仍需补齐的 syllabus gap。
 
+## Course Map Repair 1 · Prefix magnitudes
+
+▶ **[直接进入 Repair 1](https://haoni0818.github.io/bit-genesis/repair1.html)**
+
+严格限定 **CAIE 9618 (2026) §1.1 Data Representation** 中的 binary magnitudes，以及 binary prefixes 与 decimal prefixes：`kibi/kilo`、`mebi/mega`、`gibi/giga`、`tebi/tera`。玩家使用双轨量级校准器区分 `×1024` 与 `×1000`，并把同 rank 的 quantity 统一为 bytes 后比较。
+
+Repair 1 通过后，本机 Course Map 会同时验证 `genesis_course_map_v1.repairs.prefixes === true` 与 `repairEvidence.prefixes.passed === true`。两者齐全才显示 `EVIDENCED`；旧 completion、单独 boolean 或不完整 evidence 仍显示 `PARTIAL`。写入采用 version 1 合并，不删除 chapters、其他 repairs 或未知兼容字段，也不会同步到服务器或生成全局排行榜。
+
+Repair 1 只补 prefixes；整个 §1.1 仍保持 `PARTIAL`，直到其余 repair checkpoint 分别留下证据。
+
 > 语言法则：解锁 ASCII 前，这个世界没有任何文字（连旁白都没有）；解锁后只有英文；
 > Unicode 之后才有中文。声音也一样——要等你学会 SAMPLING。
 
@@ -83,13 +93,13 @@
 
 ## 路线图
 
-当前顺序：第 0 章 §1.1 subset → 第 1–3 章 §1.2 Multimedia 与 RLE subset → 第 4 章 §1.3 Compression capstone。
+当前顺序：第 0 章 §1.1 subset → 第 1–3 章 §1.2 Multimedia 与 RLE subset → 第 4 章 §1.3 Compression capstone → Course Map Repair 1 prefixes。
 
 第 0 章并未覆盖整个 §1.1；进入 §2.1 Networks 前，课程地图会先推荐补齐 prefixes、hexadecimal、one’s/two’s complement、binary arithmetic、overflow、extended ASCII，以及 §1.2 Graphics 的 file header / image resolution / screen resolution 小缺口。不会再从第 3 章直接跳到第 14 章内容。
 
 ## 开发笔记
 
-静态 HTML / Canvas 项目，无后端依赖，可直接部署到 GitHub Pages。第 0 章调试参数：`?beat=roam|clock|ascii` 跳幕、`?panel=binary|bcd|ascii` 直开谜题、`?bin=0|1|2` 选火花关卡；第 1–4 章支持 `?stage=` / `?scene=`，课程地图和第 4 章支持 `?test`。设计原则见 [DESIGN.md](DESIGN.md)。
+静态 HTML / Canvas 项目，无后端依赖，可直接部署到 GitHub Pages。第 0 章调试参数：`?beat=roam|clock|ascii` 跳幕、`?panel=binary|bcd|ascii` 直开谜题、`?bin=0|1|2` 选火花关卡；第 1–4 章支持 `?stage=` / `?scene=`，课程地图和第 4 章支持 `?test`。Repair 1 的课程证据只写浏览器本机 `genesis_course_map_v1`。设计原则见 [DESIGN.md](DESIGN.md)。
 
 ---
 
