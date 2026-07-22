@@ -12,21 +12,26 @@ const IDS=Object.freeze({
   bitmap:'bitmap_encoding_size_quality_v1',
   vector:'vector_encoding_suitability_v1',
   sound:'sound_sampling_representation_v1',
-  compression:'compression_methods_situations_v1'
+  compression:'compression_methods_situations_v1',
+  networks:'network_foundations_models_topologies_v1'
 });
 
 const NODE_FACTS=Object.freeze({
   bitmap:Object.freeze(['bitmapEncoding','pixelAndFileHeader','imageAndScreenResolution','colourDepth','bitmapFileSizeCalculation','qualityAndFileSizeEffects']),
   vector:Object.freeze(['vectorEncoding','drawingObjectPropertyList','bitmapVectorSuitability','taskJustification']),
   sound:Object.freeze(['soundEncoding','sampling','samplingRate','samplingResolution','analogueDigital','fileSizeAndAccuracyEffects']),
-  compression:Object.freeze(['needAndUses','losslessVsLossy','situationJustification','textCompression','bitmapCompression','vectorCompression','soundCompression','rleMechanism','rleSuitability'])
+  compression:Object.freeze(['needAndUses','losslessVsLossy','situationJustification','textCompression','bitmapCompression','vectorCompression','soundCompression','rleMechanism','rleSuitability']),
+  networks:Object.freeze(['networkPurposeBenefits','lanWanCharacteristics','clientServerPeerToPeerRoles','clientServerPeerToPeerEvaluationAndJustification','thinThickClientDifferences','busStarMeshHybridTopologies','topologyPacketTransmission','topologySituationJustification'])
 });
 const LEGACY_COMPRESSION_FACTS=Object.freeze(['needAndUses','losslessVsLossy','situationJustification','fourFileTypes','rle']);
 const COMPRESSION_CONTRACT='compression_checkpoint_p1_p5_v2';
+const NETWORK_FOUNDATIONS_CONTENT='network_foundations_v1';
+const NETWORK_FOUNDATIONS_CONTRACT='network_foundations_checkpoint_p1_p5_v1';
 
 function isObject(value){return Boolean(value)&&typeof value==='object'&&!Array.isArray(value)}
 function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value))}
 function hasFacts(evidence,names){const facts=evidence&&evidence.facts;return isObject(facts)&&names.every(name=>facts[name]===true)}
+function hasExactFacts(evidence,names){const facts=evidence&&evidence.facts;return hasFacts(evidence,names)&&Object.keys(facts).length===names.length&&Object.keys(facts).every(name=>names.includes(name))}
 function repairFlag(map,key){return Boolean(map&&map.repairs&&map.repairs[key]===true)}
 function repairDetail(map,key){const value=map&&map.repairEvidence&&map.repairEvidence[key];return isObject(value)?value:null}
 function acceptedAnswerSetVersion(id,version){return version===1||((id===IDS.sound||id===IDS.compression)&&version===2)}
@@ -48,6 +53,7 @@ function nodeEvidencePassed(map,node){
   if(!Object.prototype.hasOwnProperty.call(IDS,node)||!Object.prototype.hasOwnProperty.call(NODE_FACTS,node))return false;
   const evidence=map&&map.nodeEvidence&&map.nodeEvidence[node];
   if(node==='compression'&&(!evidence||evidence.contentId!=='compression_v2'||evidence.answerSetVersion!==2||evidence.validationContract!==COMPRESSION_CONTRACT))return false;
+  if(node==='networks'&&(!evidence||evidence.contentId!==NETWORK_FOUNDATIONS_CONTENT||evidence.answerSetVersion!==1||evidence.validationContract!==NETWORK_FOUNDATIONS_CONTRACT||evidence.sectionProgress!=='PARTIAL'||!hasExactFacts(evidence,NODE_FACTS.networks)))return false;
   return Boolean(map&&map.version===1&&map.nodes&&map.nodes[node]===true&&exactEvidence(evidence,IDS[node],NODE_FACTS[node]));
 }
 function legacyChapterCompressionEvidencePassed(map){
@@ -60,6 +66,12 @@ function legacyNodeCompressionEvidencePassed(map){
 }
 function compressionPriorEvidencePassed(map){return legacyChapterCompressionEvidencePassed(map)||legacyNodeCompressionEvidencePassed(map)}
 function legacyCompressionEvidencePassed(map){return compressionPriorEvidencePassed(map)}
+function networkFoundationsPriorEvidenceSeen(map){
+  if(!map||map.version!==1||nodeEvidencePassed(map,'networks'))return false;
+  const nodes=isObject(map.nodes)?map.nodes:{},evidence=isObject(map.nodeEvidence)?map.nodeEvidence:{},chapters=isObject(map.chapters)?map.chapters:{};
+  const oldNode=evidence.networks,oldNamedNode=evidence.networkFoundations,oldChapter=chapters.ch5||chapters.networks;
+  return Boolean(nodes.networks===true||nodes.networkFoundations===true||(isObject(oldNode)&&oldNode.passed===true)||(isObject(oldNamedNode)&&oldNamedNode.passed===true)||(isObject(oldChapter)&&(oldChapter.playthroughSeen===true||oldChapter.stage==='end'||isObject(oldChapter.checkpoint)||isObject(oldChapter.evidence))));
+}
 
 function migratedRepairEvidence(source,id,facts){
   return {
@@ -105,7 +117,7 @@ function migrateSequenceMap(map,now){
   return{ok:true,changed,map:next,reason:changed?'MIGRATED':'UNCHANGED'};
 }
 
-const api={IDS,NODE_FACTS,chapter0EvidencePassed,prefixEvidencePassed,legacyRepair2EvidencePassed,repair2aEvidencePassed,signedEvidencePassed,repair2bEvidencePassed,characterDataEvidencePassed,section11EvidencePassed,nodeEvidencePassed,compressionPriorEvidencePassed,legacyCompressionEvidencePassed,migrateSequenceMap};
+const api={IDS,NODE_FACTS,chapter0EvidencePassed,prefixEvidencePassed,legacyRepair2EvidencePassed,repair2aEvidencePassed,signedEvidencePassed,repair2bEvidencePassed,characterDataEvidencePassed,section11EvidencePassed,nodeEvidencePassed,compressionPriorEvidencePassed,legacyCompressionEvidencePassed,networkFoundationsPriorEvidenceSeen,migrateSequenceMap};
 root.GenesisSequence=Object.freeze(api);
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

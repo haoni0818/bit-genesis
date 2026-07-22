@@ -15,7 +15,8 @@ const evidence=(id,version=1)=>({
   passedAt:23,
   lastPassedAt:29,
   facts:facts(schema.NODE_FACTS[id]),
-  ...(id==='compression'?{contentId:'compression_v2',validationContract:'compression_checkpoint_p1_p5_v2'}:{})
+  ...(id==='compression'?{contentId:'compression_v2',validationContract:'compression_checkpoint_p1_p5_v2'}:{}),
+  ...(id==='networks'?{contentId:'network_foundations_v1',validationContract:'network_foundations_checkpoint_p1_p5_v1',sectionProgress:'PARTIAL'}:{})
 });
 const mapWith=(ids,versions={})=>({
   version:1,
@@ -28,8 +29,14 @@ check(schema.NODE_FACTS.compression,[
   'needAndUses','losslessVsLossy','situationJustification','textCompression','bitmapCompression',
   'vectorCompression','soundCompression','rleMechanism','rleSuitability'
 ],'Compression v2 requires the exact nine syllabus facts');
+check(schema.IDS.networks,'network_foundations_models_topologies_v1','Network Foundations node identity is frozen');
+check(schema.NODE_FACTS.networks,[
+  'networkPurposeBenefits','lanWanCharacteristics','clientServerPeerToPeerRoles',
+  'clientServerPeerToPeerEvaluationAndJustification','thinThickClientDifferences',
+  'busStarMeshHybridTopologies','topologyPacketTransmission','topologySituationJustification'
+],'Network Foundations v1 requires the exact eight N1 facts');
 
-for(const id of ['bitmap','vector','sound','compression']){
+for(const id of ['bitmap','vector','sound','compression','networks']){
   const valid=mapWith([id]);
   check(schema.nodeEvidencePassed(valid,id),true,id+' exact evidence passes');
   check(schema.nodeEvidencePassed({version:1,nodes:{[id]:true},nodeEvidence:{}},id),false,id+' boolean-only fails');
@@ -55,6 +62,19 @@ for(const value of [undefined,'compression_v1','wrong']){
   if(value===undefined)delete bad.nodeEvidence.compression.contentId;else bad.nodeEvidence.compression.contentId=value;
   check(schema.nodeEvidencePassed(bad,'compression'),false,'Compression content identity fails closed');
 }
+for(const field of ['contentId','validationContract','sectionProgress']){
+  const expected={contentId:'network_foundations_v1',validationContract:'network_foundations_checkpoint_p1_p5_v1',sectionProgress:'PARTIAL'}[field];
+  for(const value of [undefined,'wrong','COMPLETE']){
+    if(value===expected)continue;
+    const bad=mapWith(['networks']);
+    if(value===undefined)delete bad.nodeEvidence.networks[field];else bad.nodeEvidence.networks[field]=value;
+    check(schema.nodeEvidencePassed(bad,'networks'),false,'Network Foundations '+field+' fails closed');
+  }
+}
+const networksV2=mapWith(['networks'],{networks:2});
+check(schema.nodeEvidencePassed(networksV2,'networks'),false,'Network Foundations answer set v2 is not accepted');
+const networksExtraFact=mapWith(['networks']);networksExtraFact.nodeEvidence.networks.facts.unverifiedExtra=true;
+check(schema.nodeEvidencePassed(networksExtraFact,'networks'),false,'Network Foundations rejects any ninth fact');
 check(schema.nodeEvidencePassed({version:1,nodes:{ACK:true},nodeEvidence:{ACK:{passed:true,facts:{}}}},'ACK'),false,'unknown node fails closed');
 check(schema.nodeEvidencePassed({},''),false,'empty node fails closed');
 
@@ -101,6 +121,20 @@ check(migratedOldNode.nodeEvidence.compression,legacyNode.nodeEvidence.compressi
 check(schema.compressionPriorEvidencePassed(migratedOldNode),true,'old node stays prior evidence after migration');
 check(schema.nodeEvidencePassed(migratedOldNode,'compression'),false,'old node stays outside strict predicate after migration');
 
+const oldNetworks={version:1,nodes:{networks:true},nodeEvidence:{networks:{checkpointId:'networks_draft_v0',answerSetVersion:1,passed:true,facts:{networking:true},sentinel:'preserve'}}};
+check(schema.networkFoundationsPriorEvidenceSeen(oldNetworks),true,'old Networks evidence is visible only as prior/unverified');
+check(schema.nodeEvidencePassed(oldNetworks,'networks'),false,'old Networks evidence never satisfies strict Network Foundations v1');
+const migratedOldNetworks=schema.migrateSequenceMap(oldNetworks,100).map;
+check(migratedOldNetworks.nodes.networks,true,'old Networks node flag is preserved');
+check(migratedOldNetworks.nodeEvidence.networks,oldNetworks.nodeEvidence.networks,'old Networks evidence is preserved byte-semantically');
+check(schema.networkFoundationsPriorEvidenceSeen(migratedOldNetworks),true,'old Networks remains prior/unverified after migration');
+check(schema.nodeEvidencePassed(migratedOldNetworks,'networks'),false,'migration never invents strict Network Foundations facts');
+check(Object.prototype.hasOwnProperty.call(migratedOldNetworks.nodeEvidence.networks.facts,'networkPurposeBenefits'),false,'migration does not synthesize new Network Foundations facts');
+
+const oldNamedNetworks={version:1,nodes:{networkFoundations:true},nodeEvidence:{networkFoundations:{checkpointId:'network_foundations_draft_v0',answerSetVersion:1,passed:true,facts:{draft:true}}}};
+check(schema.networkFoundationsPriorEvidenceSeen(oldNamedNetworks),true,'old named Network Foundations draft is prior/unverified');
+check(schema.nodeEvidencePassed(oldNamedNetworks,'networks'),false,'old named draft cannot unlock N2');
+
 for(const bad of [null,{},[],{version:2},'bad']){
   const result=schema.migrateSequenceMap(bad,100);
   check(result.ok,false,'unsupported map fails closed');
@@ -137,9 +171,17 @@ for(let bits=0;bits<8;bits+=1){
   const allPredecessors=['bitmap','vector','sound'].every(id=>schema.nodeEvidencePassed(map,id));
   check(allPredecessors,bits===7,'predecessor combination '+bits.toString(2).padStart(3,'0')+' is exact');
 }
-const networkReady=mapWith(['bitmap','vector','sound','compression']);
-check(['bitmap','vector','sound','compression'].every(id=>schema.nodeEvidencePassed(networkReady,id)),true,'Networks prerequisite requires all three multimedia nodes plus strict Compression');
-const priorOnly=mapWith(['bitmap','vector','sound']);Object.assign(priorOnly,clone(legacyChapter));
-check(['bitmap','vector','sound','compression'].every(id=>schema.nodeEvidencePassed(priorOnly,id)),false,'prior Compression does not unlock Networks');
+const networkReady=mapWith(['compression']);
+check(schema.nodeEvidencePassed(networkReady,'compression'),true,'strict Compression v2 alone is the direct Network Foundations predecessor');
+const priorOnly=clone(legacyChapter);
+check(schema.nodeEvidencePassed(priorOnly,'compression'),false,'prior Compression does not unlock Network Foundations');
+const n2Ready=mapWith(['networks']);
+check(schema.nodeEvidencePassed(n2Ready,'networks'),true,'strict Network Foundations v1 unlocks only the next N2 node');
+check(n2Ready.nodeEvidence.networks.sectionProgress,'PARTIAL','strict Network Foundations keeps section 2.1 partial');
+const n2WrongProgress=clone(n2Ready);n2WrongProgress.nodeEvidence.networks.sectionProgress='COMPLETE';
+check(schema.nodeEvidencePassed(n2WrongProgress,'networks'),false,'COMPLETE section marker cannot unlock N2');
+const n2MissingFact=clone(n2Ready);delete n2MissingFact.nodeEvidence.networks.facts.topologySituationJustification;
+check(schema.nodeEvidencePassed(n2MissingFact,'networks'),false,'missing Network Foundations fact cannot unlock N2');
+check(schema.nodeEvidencePassed(oldNetworks,'networks'),false,'prior/unverified Networks cannot unlock N2');
 
 console.info('[SEQUENCE SCHEMA TEST] '+assertions+' assertions passed');

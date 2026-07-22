@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="zh-CN" data-content-id="network_foundations_v1">
+<head>
+<link rel="icon" href="data:,">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>IT://GENESIS · CH.05 NETWORK FOUNDATIONS</title>
+<style>
+:root{--bg:#010403;--panel:#020d0bf2;--ink:#e2fffa;--dim:#9abdb5;--green:#91ffad;--cyan:#7dfff5;--gist:#f0c874;--red:#ff8178;--violet:#d7b2ff;--line:#287970}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Consolas,"Microsoft YaHei",monospace}button,a{font:inherit}button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid #fff;outline-offset:3px}
+#app{position:relative;z-index:2;width:100%;height:100%;isolation:isolate}#bg{position:fixed;z-index:0;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 50%;image-rendering:pixelated;filter:brightness(.46) saturate(.82);transition:filter .5s}
+#scene{position:fixed;z-index:0;inset:0;pointer-events:none}.shade{position:fixed;z-index:1;inset:0;pointer-events:none;background:linear-gradient(180deg,#000d,transparent 28%,transparent 68%,#000e),repeating-linear-gradient(0deg,#fff0 0,#fff0 3px,#7dfff508 4px)}#viz{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+#hud{position:fixed;z-index:3;left:18px;top:16px;width:min(620px,58vw);padding:11px 14px;border:1px solid var(--line);background:#020a08ed;box-shadow:0 0 24px #041c18}.head,.meta{display:flex;justify-content:space-between;align-items:center;gap:10px}.head{font-size:12px;color:var(--cyan)}.meta{margin-top:6px;font-size:10px;color:var(--dim)}.route{padding:2px 6px;border:1px solid #58756f;color:var(--dim)}.route.formal{border-color:var(--green);color:var(--green)}.route.preview{border-color:var(--gist);color:var(--gist)}
+.phases{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:8px}.phase{min-width:0;padding:5px 3px;border:1px solid #274f49;color:#71958e;text-align:center;font-size:8px}.phase.active{border-color:#fff;color:#fff;background:#0a2721}.phase.done{border-color:#4c8d7d;color:#aee8da}.bar{height:5px;margin-top:7px;border:1px solid #236b62;background:#010806}.bar i{display:block;height:100%;width:0;background:var(--cyan);transition:width .35s}.goals{display:grid;grid-template-columns:1fr 1.2fr;gap:10px;margin-top:8px;font-size:11px;line-height:1.42}.goals b{color:var(--gist);font-size:9px}.goals i{font-style:normal;color:#c9e2dc}
+#quick{position:fixed;z-index:4;right:18px;top:16px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:410px}.quick{min-height:44px;padding:7px 10px;border:1px solid #3d7169;background:#061612e9;color:#cae5df;cursor:pointer}.quick:hover{background:#104a3e}
+#console{position:fixed;z-index:4;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(960px,calc(100vw - 32px));max-height:min(42vh,370px);overflow:auto;padding:12px 14px;border:1px solid #2d877c;background:var(--panel);box-shadow:0 0 28px #062a24}.console-grid{display:grid;grid-template-columns:minmax(240px,.82fr) minmax(0,1.45fr);gap:12px}.telemetry,.mission{min-width:0;border:1px solid #235f58;padding:10px}.kicker{color:var(--cyan);font-size:10px}.telemetry h2,.mission h2{margin:5px 0 8px;font-size:15px;color:var(--ink)}.telemetry p,.mission p{margin:6px 0;color:#bfd8d2;font-size:12px;line-height:1.52}.mirror{margin-top:9px;padding:8px;border:1px solid #3a665f;background:#010a08;color:#afd3ca;font-size:10px;line-height:1.5;white-space:pre-wrap}.fields{display:grid;gap:8px;margin-top:8px}.field{border:1px solid #2b5e57;padding:8px}.field legend{padding:0 5px;color:#bfe8de;font-size:10px}.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}.choice{min-height:44px;padding:7px 8px;border:1px solid #416b64;background:#06130f;color:#c6ddd7;text-align:left;cursor:pointer}.choice[aria-pressed="true"]{border-color:#fff;background:#164e42;color:#fff}.choice[aria-pressed="true"]::after{content:"✓ SELECTED";display:block;margin-top:5px;color:#fff;font-size:9px;font-weight:700;letter-spacing:.06em}.controls{position:sticky;bottom:-12px;display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding:8px 0 2px;background:var(--panel)}.btn{min-height:44px;padding:8px 12px;border:1px solid #52d8c8;background:#0a3029;color:#e5fffb;cursor:pointer}.btn:hover{background:#176c5e}.btn.sub{border-color:#536b61;background:#081411;color:#b7cbc6}.btn.warn{border-color:var(--gist);color:#ffe3a4}.constraint{margin-top:8px;color:var(--gist);font-size:10px}.feedback{min-height:20px;margin-top:7px;color:var(--red);font-size:11px}.fixture{border:1px double var(--gist);padding:8px;color:#ffe3a4;font-size:10px}.evidence-row{border-left:3px solid var(--green);padding:5px 8px;margin:5px 0;background:#06150f}
+#toast{position:fixed;z-index:9;left:50%;top:50%;transform:translate(-50%,-50%);max-width:min(650px,90vw);padding:10px 14px;border:1px solid #3c9d90;background:#03120ff8;color:#e3fffb;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}#toast.show{opacity:1}
+#overlay{position:fixed;z-index:20;inset:0;display:none;place-items:center;padding:18px;background:#000d}#overlay.open{display:grid}.panel{width:min(820px,96vw);max-height:90vh;overflow:auto;border:1px solid #3aa598;background:#020d0bfa;padding:22px;box-shadow:0 0 42px #0b3d35}.panel h1,.panel h2{margin:0 0 12px;color:var(--cyan)}.panel p,.panel li{line-height:1.58;color:#c6ded9}.callout{border:1px solid #385e58;padding:11px;margin:12px 0}.callout.boundary{border-color:var(--gist)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:1100px){#hud{width:calc(100vw - 36px)}#quick{top:164px;right:18px}}
+@media(max-width:760px),(max-height:640px){html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}#app{height:auto;min-height:100vh;display:flex;flex-direction:column;gap:10px;padding:10px}.shade{position:fixed}#hud{position:relative;left:auto;top:auto;width:100%;padding:9px}.head{font-size:10px}.phases{overflow:visible;grid-template-columns:repeat(3,minmax(0,1fr))}.goals{grid-template-columns:1fr}.phase{font-size:8px;min-height:38px}#quick{position:relative;right:auto;top:auto;max-width:none;justify-content:stretch}.quick{flex:1 1 92px}#scene{position:relative;inset:auto;height:280px;min-height:220px;border:1px solid #1f5a52;background:#01080699}#viz{position:absolute}#console{position:relative;left:auto;bottom:auto;transform:none;width:100%;max-height:none;overflow:visible;padding:10px}.console-grid{grid-template-columns:1fr}.telemetry{display:block}.panel{padding:16px}.btn,.choice,.quick{min-height:44px}#toast{position:fixed}.controls{bottom:0}.mirror{font-size:10px}}
+@media(max-width:430px){.choices{grid-template-columns:1fr}}
+@media(max-height:420px) and (min-width:761px){#scene{height:210px}}
+@media(prefers-reduced-motion:reduce){#bg,.bar i,#toast{transition:none}}
+</style>
+</head>
+<body>
+<img id="bg" src="assets/network_foundations_hall.webp" alt="">
+<div class="shade"></div>
+<div id="app">
+<header id="hud">
+  <div class="head"><span>CH.05 · §2.1 NETWORK FOUNDATIONS</span><span id="routeBadge" class="route">CHECKING</span></div>
+  <div class="meta"><span id="stageName">COURSE_CARD</span><span id="percent">0%</span></div>
+  <div id="phaseRail" class="phases" aria-label="Learning phases"></div>
+  <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="progress"></i></div>
+  <div class="goals"><span><b>CURRENT KNOWLEDGE</b><br><i id="knowledge"></i></span><span><b>CURRENT GOAL</b><br><i id="goal"></i></span></div>
+</header>
+<nav id="quick" aria-label="Chapter utilities">
+  <button class="quick" id="guideBtn">GUIDE</button>
+  <button class="quick" id="referenceBtn">REFERENCE</button>
+  <button class="quick" id="contextBtn">CONTEXT</button>
+  <button class="quick" id="hintBtn">HINT · H</button>
+  <button class="quick" id="mapBtn">COURSE MAP</button>
+</nav>
+<div id="scene"><canvas id="viz" aria-hidden="true"></canvas></div>
+<main id="console">
+  <div class="console-grid">
+    <section class="telemetry" aria-labelledby="telemetryTitle">
+      <div class="kicker">NETWORK MODEL</div>
+      <h2 id="telemetryTitle">NODES → LINKS → PATH → REASON</h2>
+      <p id="telemetryText"></p>
+      <div id="factMirror" class="mirror" role="status" aria-live="polite"></div>
+    </section>
+    <section class="mission" aria-labelledby="taskTitle">
+      <div id="taskKicker" class="kicker">COURSE CARD</div>
+      <h2 id="taskTitle">Network model hall offline</h2>
+      <p id="prompt"></p>
+      <div id="fields" class="fields"></div>
+      <div id="feedback" class="feedback" role="alert"></div>
+      <div id="constraint" class="constraint"></div>
+      <div id="controls" class="controls"></div>
+    </section>
+  </div>
+</main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="live" class="sr" aria-live="polite"></div>
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+  <section id="panel" class="panel" tabindex="-1"></section>
+</div>
+<script src="sequence-schema.js"></script>
+<script>
+'use strict';
+const CONTENT_ID='network_foundations_v1';
+const EVIDENCE_ID='network_foundations_models_topologies_v1';
+const ANSWER_SET_VERSION=1;
+const VALIDATION_CONTRACT='network_foundations_checkpoint_p1_p5_v1';
+const COURSE_KEY='genesis_course_map_v1';
+const SAVE_KEY='genesis_network_foundations_v1';
+const RECORDS_KEY='genesis_network_foundations_records_v1';
+const NODE_ID='networks';
+const COMPRESSION_FACTS=Object.freeze(['needAndUses','losslessVsLossy','situationJustification','textCompression','bitmapCompression','vectorCompression','soundCompression','rleMechanism','rleSuitability']);
+const FACT_NAMES=Object.freeze(['networkPurposeBenefits','lanWanCharacteristics','clientServerPeerToPeerRoles','clientServerPeerToPeerEvaluationAndJustification','thinThickClientDifferences','busStarMeshHybridTopologies','topologyPacketTransmission','topologySituationJustification']);
+const PHASES=Object.freeze(['COURSE CARD','TEACH','GUIDED PRACTICE','APPLY','CHECKPOINT','EVIDENCE']);
+const STAGES=Object.freeze(['course_card','teach_purpose','teach_lan_wan','teach_models','teach_clients','teach_topologies','guided_g1_scope','guided_g2_models','guided_g3_clients','guided_g4_topologies','apply_a1_models','apply_a2_topologies','apply_a3_terms','checkpoint_p1','checkpoint_p2','checkpoint_p3','checkpoint_p4','checkpoint_p5','commit_evidence','evidence','evidence_retry']);
+const $=id=>document.getElementById(id);
+const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
+const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const isObject=value=>Boolean(value)&&typeof value==='object'&&!Array.isArray(value);
+const O=(value,label)=>Object.freeze({value,label});
+const F=(key,label,options)=>Object.freeze({key,label,options:Object.freeze(options)});
+const task=(id,ticket,prompt,fields,expected)=>Object.freeze({id,ticket,prompt,fields:Object.freeze(fields),expected:Object.freeze(expected)});
+const TASKS=Object.freeze({
+ guided_g1_scope:task('G1','WHY CONNECT · LAN / WAN','Classify the purpose and the two supplied network descriptions.',[
+  F('purpose','CONNECTED PRINT STUDIO',[O('SHARE_FILES_AND_PRINTERS','Share files and printing resources'),O('REMOVE_ALL_COMPUTERS','Remove the need for computers')]),
+  F('building','ONE BUILDING · ONE ORGANISATION',[O('LAN','LAN'),O('WAN','WAN')]),
+  F('regions','OFFICES ACROSS DISTANT REGIONS',[O('WAN','WAN'),O('LAN','LAN')])
+ ],{purpose:'SHARE_FILES_AND_PRINTERS',building:'LAN',regions:'WAN'}),
+ guided_g2_models:task('G2','COMPUTER ROLES','Assign roles in two supplied network models.',[
+  F('workstations','ACCOUNT SYSTEM · WORKSTATIONS REQUEST A SERVICE',[O('CLIENTS','Clients'),O('PEERS_ONLY','Peers with no distinct role')]),
+  F('central','ACCOUNT SYSTEM · CENTRAL COMPUTER PROVIDES THE SERVICE',[O('SERVER','Server'),O('CLIENT','Client')]),
+  F('directShare','TWO COMPUTERS REQUEST FROM AND PROVIDE TO EACH OTHER',[O('PEERS','Peers'),O('CLIENT_AND_SERVER_FIXED','One fixed client and one fixed server')])
+ ],{workstations:'CLIENTS',central:'SERVER',directShare:'PEERS'}),
+ guided_g3_clients:task('G3','THIN / THICK CLIENTS','Use where processing and resources are held to classify each client.',[
+  F('kiosk','KIOSK · RELIES HEAVILY ON ANOTHER COMPUTER FOR PROCESSING AND RESOURCES',[O('THIN','Thin client'),O('THICK','Thick client')]),
+  F('workstation','DESIGN WORKSTATION · MOST PROCESSING AND SOFTWARE RUN LOCALLY',[O('THICK','Thick client'),O('THIN','Thin client')]),
+  F('difference','STABLE DIFFERENCE',[O('PROCESSING_AND_RESOURCE_DEPENDENCE','Distribution of processing and dependence on external resources'),O('SCREEN_SIZE_ONLY','Screen size alone')])
+ ],{kiosk:'THIN',workstation:'THICK',difference:'PROCESSING_AND_RESOURCE_DEPENDENCE'}),
+ guided_g4_topologies:task('G4','UNLABELLED CONNECTION STRUCTURES','Identify each structure and choose a valid path using only the supplied links.',[
+  F('line','MODEL I · ALL HOSTS ATTACH TO ONE SHARED LINE',[O('BUS','Bus'),O('STAR','Star')]),
+  F('spokes','MODEL II · EACH HOST LINKS TO ONE CENTRAL CONNECTION POINT',[O('STAR','Star'),O('MESH','Mesh')]),
+  F('dense','MODEL III · HOSTS HAVE MANY DIRECT INTERCONNECTIONS',[O('MESH','Mesh'),O('BUS','Bus')]),
+  F('mixed','MODEL IV · TWO OR MORE CONNECTION STRUCTURES ARE COMBINED',[O('HYBRID','Hybrid'),O('STAR','Star')]),
+  F('path','MODEL II LINKS J–K, L–K, M–K · PATH J TO M',[O('J_K_M','J → K → M'),O('J_L_M','J → L → M')])
+ ],{line:'BUS',spokes:'STAR',dense:'MESH',mixed:'HYBRID',path:'J_K_M'}),
+ apply_a1_models:task('A1','CHOOSE A NETWORK MODEL','Match each new situation to a model and a reason.',[
+  F('managed','SCHOOL NEEDS CENTRALLY MANAGED ACCOUNTS AND FILES',[O('CLIENT_SERVER','Client-server'),O('PEER_TO_PEER','Peer-to-peer')]),
+  F('managedReason','WHY',[O('CENTRAL_MANAGEMENT','A dedicated computer can provide and manage shared services'),O('NO_DEPENDENCE','There can never be any central dependence')]),
+  F('smallTeam','FOUR LAPTOPS SHARE DIRECTLY WITHOUT A DEDICATED CENTRAL SERVICE',[O('PEER_TO_PEER','Peer-to-peer'),O('CLIENT_SERVER','Client-server')]),
+  F('smallReason','WHY',[O('DIRECT_EQUAL_ROLES','Computers can request from and provide to one another'),O('CENTRAL_REQUIRED','A dedicated central computer is required')])
+ ],{managed:'CLIENT_SERVER',managedReason:'CENTRAL_MANAGEMENT',smallTeam:'PEER_TO_PEER',smallReason:'DIRECT_EQUAL_ROLES'}),
+ apply_a2_topologies:task('A2','CHOOSE A TOPOLOGY','Use visible connection structure and situation constraints.',[
+  F('separateLinks','OFFICE WANTS EACH WORKSTATION ON ITS OWN LINK TO ONE CENTRAL CONNECTION POINT',[O('STAR','Star'),O('BUS','Bus')]),
+  F('separateReason','WHY',[O('CENTRAL_SPOKES','The structure gives each workstation a separate spoke to the central point'),O('ONE_SHARED_BACKBONE','Every workstation attaches to one shared backbone')]),
+  F('combined','CAMPUS COMBINES A CENTRAL-LINKED LAB WITH A SHARED-LINE WORKSHOP',[O('HYBRID','Hybrid'),O('STAR','Star')]),
+  F('combinedReason','WHY',[O('MIXED_STRUCTURES','The complete network combines different topology structures'),O('EVERYTHING_ONE_CENTRE','Every host uses one central connection point')])
+ ],{separateLinks:'STAR',separateReason:'CENTRAL_SPOKES',combined:'HYBRID',combinedReason:'MIXED_STRUCTURES'}),
+ apply_a3_terms:task('A3','TERMS IN CONTEXT','Classify network extent and client dependence in new descriptions.',[
+  F('museum','DEVICES INSIDE ONE MUSEUM BUILDING',[O('LAN','LAN'),O('WAN','WAN')]),
+  F('branches','BRANCH NETWORKS CONNECTED ACROSS SEVERAL CITIES',[O('WAN','WAN'),O('LAN','LAN')]),
+  F('terminal','TERMINAL DEPENDS ON ANOTHER COMPUTER FOR MOST PROCESSING',[O('THIN','Thin client'),O('THICK','Thick client')]),
+  F('editor','EDITOR RUNS MOST PROCESSING AND SOFTWARE LOCALLY',[O('THICK','Thick client'),O('THIN','Thin client')])
+ ],{museum:'LAN',branches:'WAN',terminal:'THIN',editor:'THICK'}),
+ checkpoint_p1:task('P1','PURPOSE / BENEFIT · LAN / WAN','A makerspace shares project files inside one building; its partner sites are in distant cities. Select exact statements.',[
+  F('purpose','WHY CONNECT MAKERSPACE DEVICES',[O('COMMUNICATE_AND_SHARE','Communicate and share data or resources'),O('MAKE_FAILURE_IMPOSSIBLE','Make every failure impossible')]),
+  F('local','ONE-BUILDING MAKERSPACE NETWORK',[O('LAN','LAN'),O('WAN','WAN')]),
+  F('distant','NETWORK CONNECTING DISTANT PARTNER SITES',[O('WAN','WAN'),O('LAN','LAN')]),
+  F('claim','CHECK THE ABSOLUTE CLAIM',[O('CHARACTERISTICS_NOT_ABSOLUTES','Classify by network characteristics, not one universal speed or cost claim'),O('LAN_ALWAYS_FASTER','A LAN is always faster in every situation')])
+ ],{purpose:'COMMUNICATE_AND_SHARE',local:'LAN',distant:'WAN',claim:'CHARACTERISTICS_NOT_ABSOLUTES'}),
+ checkpoint_p2:task('P2','CLIENT / SERVER / PEER ROLES','Use the new library and household descriptions to assign exact roles.',[
+  F('terminals','LIBRARY TERMINALS REQUEST THE CATALOGUE SERVICE',[O('CLIENTS','Clients'),O('SERVERS','Servers')]),
+  F('catalogue','CENTRAL COMPUTER PROVIDES THE CATALOGUE SERVICE',[O('SERVER','Server'),O('PEER_ONLY','Peer with no distinct role')]),
+  F('household','HOUSEHOLD COMPUTERS SHARE DIRECTLY AND EACH CAN REQUEST OR PROVIDE',[O('PEERS','Peers'),O('CLIENTS_ONLY','Clients only')]),
+  F('relationship','MODEL RELATIONSHIP',[O('DISTINCT_VS_EQUAL_ROLES','Client-server has service-request roles; peer-to-peer members can take both roles'),O('SAME_FIXED_ROLES','Both models require the same fixed roles')])
+ ],{terminals:'CLIENTS',catalogue:'SERVER',household:'PEERS',relationship:'DISTINCT_VS_EQUAL_ROLES'}),
+ checkpoint_p3:task('P3','MODEL EVALUATION + JUSTIFICATION','A company requires centrally managed accounts and regular central backups. Compare both models and justify one.',[
+  F('csBenefit','CLIENT-SERVER BENEFIT',[O('CENTRAL_CONTROL','Central management of services and data'),O('NO_ADMINISTRATION','No administration is needed')]),
+  F('csDrawback','CLIENT-SERVER DRAWBACK',[O('CENTRAL_DEPENDENCE_AND_COST','Central service dependence and setup or management cost'),O('NO_POSSIBLE_DRAWBACK','It has no possible drawback')]),
+  F('p2pBenefit','PEER-TO-PEER BENEFIT',[O('SIMPLE_SMALL_SETUP','Can be simpler for a small direct-sharing network'),O('GUARANTEED_CENTRAL_CONTROL','Guarantees central control')]),
+  F('p2pDrawback','PEER-TO-PEER DRAWBACK',[O('HARDER_CENTRAL_MANAGEMENT','Shared data and security can be harder to manage centrally'),O('DEDICATED_SERVICE_REQUIRED','Always requires a dedicated service computer')]),
+  F('choice','COMPANY MODEL',[O('CLIENT_SERVER','Client-server'),O('PEER_TO_PEER','Peer-to-peer')]),
+  F('reason','SITUATION REASON',[O('MANAGED_ACCOUNTS_BACKUPS','Its central account and backup requirements match central management'),O('ONE_MODEL_ALWAYS_BEST','One model is always best')])
+ ],{csBenefit:'CENTRAL_CONTROL',csDrawback:'CENTRAL_DEPENDENCE_AND_COST',p2pBenefit:'SIMPLE_SMALL_SETUP',p2pDrawback:'HARDER_CENTRAL_MANAGEMENT',choice:'CLIENT_SERVER',reason:'MANAGED_ACCOUNTS_BACKUPS'}),
+ checkpoint_p4:task('P4','THIN / THICK · FOUR TOPOLOGIES','Classify two new client descriptions and four new unlabelled connection structures.',[
+  F('viewer','VIEWER RELIES ON ANOTHER COMPUTER FOR MOST PROCESSING',[O('THIN','Thin client'),O('THICK','Thick client')]),
+  F('creator','CREATOR RUNS MOST PROCESSING AND SOFTWARE LOCALLY',[O('THICK','Thick client'),O('THIN','Thin client')]),
+  F('modelA','MODEL A · HOSTS ATTACH TO ONE SHARED BACKBONE',[O('BUS','Bus'),O('HYBRID','Hybrid')]),
+  F('modelB','MODEL B · HOSTS EACH LINK TO ONE CENTRAL CONNECTION POINT',[O('STAR','Star'),O('BUS','Bus')]),
+  F('modelC','MODEL C · HOSTS HAVE MANY DIRECT INTERCONNECTIONS',[O('MESH','Mesh'),O('STAR','Star')]),
+  F('modelD','MODEL D · DIFFERENT CONNECTION STRUCTURES ARE COMBINED',[O('HYBRID','Hybrid'),O('MESH','Mesh')])
+ ],{viewer:'THIN',creator:'THICK',modelA:'BUS',modelB:'STAR',modelC:'MESH',modelD:'HYBRID'}),
+ checkpoint_p5:task('P5','PACKET PATH + TOPOLOGY JUSTIFICATION','Use the new graph and field-station situation. Every step in the path must be a supplied link.',[
+  F('path','GRAPH LINKS A–B, B–C, A–D, D–C · PATH A TO C',[O('A_D_C','A → D → C'),O('A_B_D_C','A → B → D → C')]),
+  F('pathReason','WHY IS THE PATH VALID',[O('EVERY_STEP_IS_A_LINK','Every consecutive pair is an existing connection'),O('JUMP_ALLOWED','A packet may jump between unconnected hosts')]),
+  F('station','FIELD STATIONS REQUIRE ALTERNATIVE PATHS WHEN A LINK IS UNAVAILABLE',[O('MESH','Mesh'),O('BUS','Bus')]),
+  F('stationReason','WHY',[O('INTERCONNECTIONS_OFFER_ALTERNATIVES','Many direct interconnections can provide alternative paths'),O('SHARED_LINE_OFFERS_ALTERNATIVES','One shared line always provides many alternatives')])
+ ],{path:'A_D_C',pathReason:'EVERY_STEP_IS_A_LINK',station:'MESH',stationReason:'INTERCONNECTIONS_OFFER_ALTERNATIVES'})
+});
+const EXPECTED_NETWORK_FOUNDATIONS_CHECKPOINT=Object.freeze(['checkpoint_p1','checkpoint_p2','checkpoint_p3','checkpoint_p4','checkpoint_p5'].map(stage=>Object.freeze({id:TASKS[stage].id,expected:TASKS[stage].expected})));
+const NEXT=Object.freeze({
+ guided_g1_scope:'guided_g2_models',guided_g2_models:'guided_g3_clients',guided_g3_clients:'guided_g4_topologies',guided_g4_topologies:'apply_a1_models',
+ apply_a1_models:'apply_a2_topologies',apply_a2_topologies:'apply_a3_terms',
+ checkpoint_p1:'checkpoint_p2',checkpoint_p2:'checkpoint_p3',checkpoint_p3:'checkpoint_p4',checkpoint_p4:'checkpoint_p5'
+});
+const FEEDBACK=Object.freeze({
+ INCOMPLETE:'Complete every field before verifying.',
+ MISMATCH:'One choice conflicts with the supplied role, extent, connection structure, path or situation reason.',
+ CHECKPOINT_INCOMPLETE:'P1–P5 must all be independently complete.',
+ EVIDENCE:'The Course Map could not verify the exact Network Foundations evidence. Earlier Course Map bytes were not erased.'
+});
+const HINTS=Object.freeze({
+ G1:['Separate why devices connect from network extent.','One building points to local extent; distant regions point to wider extent.','Reject claims that networking removes every limitation.','Networking supports communication and shared data or resources; one-building and distant-site descriptions have different extents.'],
+ G2:['Ask who requests and who provides.','A dedicated provider has a different role from its requesters.','In direct sharing, each computer can request and provide.','Requesters are clients; a dedicated provider is a server; direct-sharing computers are peers.'],
+ G3:['Locate the processing and resources.','Heavy dependence on another computer points to thin.','Mostly local processing points to thick.','Thin and thick differ by the distribution of processing and dependence on external resources.'],
+ G4:['Read connections, not the drawing decoration.','Shared line, central spokes, dense interconnections and mixed structures are distinct.','A valid path uses a visible link at every step.','J–K and K–M are supplied links, so J → K → M is valid.'],
+ A1:['Match the model to management needs.','Central account control needs distinct provider and requester roles.','Small direct sharing can use equal peer roles.','Choose client-server for central management and peer-to-peer for direct sharing without a dedicated service computer.'],
+ A2:['Use the stated connection structure.','Separate links to one central point describe spokes.','A combination of structures is hybrid.','Choose star for separate central spokes and hybrid for a network combining different topology structures.'],
+ A3:['Classify extent separately from client dependence.','One building and several cities describe different extents.','External dependence and local processing distinguish the clients.','Museum = LAN, distant branches = WAN, dependent terminal = thin, local editor = thick.'],
+ P1:['Separate purpose from extent.','Shared resources are a benefit; one building is local.','Distant partner sites require wider extent.','Choose communication and sharing, LAN for one building, WAN for distant sites, and reject absolute speed or cost claims.'],
+ P2:['Identify requesters and the dedicated provider.','The library terminals request; the catalogue computer provides.','Direct household sharing gives both computers peer roles.','Library terminals are clients, the provider is a server, and direct-sharing household computers are peers.'],
+ P3:['Compare both models before choosing.','Central management helps the company but creates central dependence and cost.','Small direct sharing can be simpler but is harder to manage centrally.','The stated account and backup requirements justify client-server; neither model is universally best.'],
+ P4:['First locate processing, then read each connection structure.','A shared backbone differs from central spokes.','Many direct interconnections differ from a mixture of structures.','Dependent viewer = thin; local creator = thick; A bus, B star, C mesh, D hybrid.'],
+ P5:['List the supplied links before choosing a path.','A–D and D–C both exist.','The other candidate includes B–D, which is not supplied.','A → D → C is valid; many interconnections suit a need for alternative paths.']
+});
+function isNormalNetworkFoundationsRoute(search,hash){return hash===''&&(search===''||search==='?from=course-map')}
+const NORMAL_ROUTE=isNormalNetworkFoundationsRoute(location.search,location.hash);
+const TEST_ROUTE=location.search==='?test'&&location.hash==='';
+function hasExactFacts(evidence,names){return Boolean(isObject(evidence)&&isObject(evidence.facts)&&Object.keys(evidence.facts).length===names.length&&names.every(name=>evidence.facts[name]===true))}
+function validMap(map){return Boolean(isObject(map)&&map.version===1)}
+function compressionV2Passed(map){
+ return Boolean(window.GenesisSequence&&GenesisSequence.nodeEvidencePassed(map,'compression'));
+}
+function networkFoundationsPassed(map){
+ const evidence=map&&map.nodeEvidence&&map.nodeEvidence[NODE_ID];
+ const shared=Boolean(window.GenesisSequence&&GenesisSequence.nodeEvidencePassed(map,NODE_ID));
+ return Boolean(shared&&validMap(map)&&map.nodes&&map.nodes[NODE_ID]===true&&evidence&&evidence.contentId===CONTENT_ID&&evidence.checkpointId===EVIDENCE_ID&&evidence.answerSetVersion===ANSWER_SET_VERSION&&evidence.validationContract===VALIDATION_CONTRACT&&evidence.passed===true&&evidence.sectionProgress==='PARTIAL'&&hasExactFacts(evidence,FACT_NAMES));
+}
+let PREDECESSOR_OK=false,ALREADY_PASSED=false,PREVIEW_ONLY=NORMAL_ROUTE,COURSE_MAP=null;
+function refreshEligibility(storage=localStorage){
+ if(!NORMAL_ROUTE){PREVIEW_ONLY=false;return false}
+ let raw=null,map=null;
+ try{raw=storage.getItem(COURSE_KEY);map=JSON.parse(raw)}catch(_){map=null}
+ COURSE_MAP=validMap(map)?map:null;
+ PREDECESSOR_OK=compressionV2Passed(COURSE_MAP);
+ ALREADY_PASSED=networkFoundationsPassed(COURSE_MAP);
+ PREVIEW_ONLY=!PREDECESSOR_OK&&!ALREADY_PASSED;
+ return PREDECESSOR_OK||ALREADY_PASSED;
+}
+refreshEligibility();
+function defaultState(){return{version:1,contentId:CONTENT_ID,stage:'course_card',taskSelections:{},guidedPassed:{G1:false,G2:false,G3:false,G4:false},applyPassed:{A1:false,A2:false,A3:false},checkpointAnswers:{},checkpointAttempts:0,hintLevelByTaskAndType:{},errorsByTaskAndType:{},checkpointSafetyNetUsed:false,startedAt:Date.now(),errors:0,hints:0,evidenceRecorded:false,recordWritten:false,lastError:null,activeField:0}}
+let S=defaultState(),validatedSubmission=null,validatedRuntime=null,replayRetained=false,recordsUnavailable=false,saveUnavailable=false,toastTimer=0;
+function phaseFor(stage){
+ if(stage==='course_card')return'COURSE CARD';
+ if(stage.startsWith('teach_'))return'TEACH';
+ if(stage.startsWith('guided_'))return'GUIDED PRACTICE';
+ if(stage.startsWith('apply_'))return'APPLY';
+ if(stage.startsWith('checkpoint_')||stage==='commit_evidence')return'CHECKPOINT';
+ return'EVIDENCE';
+}
+function progress(){const index=STAGES.indexOf(S.stage);return Math.max(0,Math.min(100,Math.round(index/(STAGES.length-3)*100)))}
+function knowledge(){
+ const phase=phaseFor(S.stage);
+ if(phase==='COURSE CARD')return'Strict Compression v2 evidence leads into the first §2.1 node.';
+ if(S.stage==='teach_purpose')return'Connecting devices into a network supports communication and sharing data or resources.';
+ if(S.stage==='teach_lan_wan')return'LAN and WAN are distinguished by their network characteristics and extent.';
+ if(S.stage==='teach_models')return'Client-server uses distinct requester/provider roles; peers can request and provide.';
+ if(S.stage==='teach_clients')return'Thin/thick describes processing distribution and resource dependence.';
+ if(S.stage==='teach_topologies')return'Bus, star, mesh and hybrid describe connection structures.';
+ if(phase==='GUIDED PRACTICE')return'Roles, extent and visible links provide the evidence.';
+ if(phase==='APPLY')return'The situation decides which model or topology is defensible.';
+ if(phase==='CHECKPOINT')return'P1–P5 are independent from Guided and Apply.';
+ return'Exact N1 evidence keeps §2.1 PARTIAL and opens the next network node.';
+}
+function goal(){
+ if(S.stage==='course_card')return'Confirm official scope, strict prerequisite and PARTIAL §2.1 completion semantics.';
+ if(S.stage==='teach_purpose')return'Explain why devices are connected and what benefits a network can provide.';
+ if(S.stage==='teach_lan_wan')return'Distinguish LAN and WAN without relying on absolute claims.';
+ if(S.stage==='teach_models')return'Explain model roles, benefits, drawbacks and situation choice.';
+ if(S.stage==='teach_clients')return'Distinguish thin and thick clients by processing and dependence.';
+ if(S.stage==='teach_topologies')return'Read four topology structures, follow a supplied path and justify a choice.';
+ if(S.stage.startsWith('guided_'))return'Use the supplied description and visible connections.';
+ if(S.stage.startsWith('apply_'))return'Choose from a new situation and give a matching reason.';
+ if(S.stage.startsWith('checkpoint_'))return'Pass '+TASKS[S.stage].id+' independently; all five parts are required.';
+ if(S.stage==='evidence_retry')return'Retry the evidence transaction without erasing earlier Course Map bytes.';
+ return'Inspect eight official facts and the §2.1 PARTIAL boundary.';
+}
+function serializableState(state=S){
+ const copy=clone(state);
+ delete copy.lastError;delete copy.checkpointAnswers;
+ if(copy.stage.startsWith('checkpoint_')||copy.stage==='commit_evidence'||copy.stage==='evidence_retry'){
+  copy.stage='checkpoint_p1';
+  Object.keys(copy.taskSelections).filter(key=>key.startsWith('checkpoint_')).forEach(key=>delete copy.taskSelections[key]);
+  copy.evidenceRecorded=false;
+ }
+ return copy;
+}
+function canWriteProgress(){return NORMAL_ROUTE&&PREDECESSOR_OK&&!ALREADY_PASSED&&!['commit_evidence','evidence','evidence_retry'].includes(S.stage)}
+function saveProgress(){
+ if(!canWriteProgress())return false;
+ try{localStorage.setItem(SAVE_KEY,JSON.stringify(serializableState()));saveUnavailable=false;return true}catch(_){saveUnavailable=true;return false}
+}
+function loadProgress(){
+ if(!canWriteProgress())return;
+ let parsed=null;
+ try{parsed=JSON.parse(localStorage.getItem(SAVE_KEY)||'null')}catch(_){parsed=null}
+ if(!parsed||parsed.version!==1||parsed.contentId!==CONTENT_ID)return;
+ S=Object.assign(defaultState(),parsed,{checkpointAnswers:{},evidenceRecorded:false,recordWritten:false,lastError:null});
+ if(!STAGES.includes(S.stage)||S.stage.startsWith('checkpoint_')||S.stage==='commit_evidence'||S.stage.startsWith('evidence'))S.stage='checkpoint_p1';
+}
+loadProgress();
+function currentTask(){return TASKS[S.stage]||null}
+function currentSelection(){if(!S.taskSelections[S.stage])S.taskSelections[S.stage]={};return S.taskSelections[S.stage]}
+function valueLabel(field,value){const option=field.options.find(item=>item.value===value);return option?option.label:''}
+function escapeHtml(value){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
+function fieldMarkup(taskNow){
+ const selected=currentSelection();
+ return taskNow.fields.map((field,index)=>'<fieldset class="field" data-field-index="'+index+'"><legend>'+escapeHtml(field.label)+'</legend><div class="choices">'+field.options.map(option=>'<button type="button" class="choice" data-field="'+escapeHtml(field.key)+'" data-value="'+escapeHtml(option.value)+'" aria-label="'+escapeHtml(option.label)+'" aria-pressed="'+String(selected[field.key]===option.value)+'">'+escapeHtml(option.label)+'</button>').join('')+'</div></fieldset>').join('');
+}
+function wireChoices(){
+ document.querySelectorAll('.choice').forEach(choice=>choice.addEventListener('click',()=>{
+  const taskNow=currentTask();if(!taskNow)return;
+  currentSelection()[choice.dataset.field]=choice.dataset.value;
+  S.activeField=Math.max(0,taskNow.fields.findIndex(field=>field.key===choice.dataset.field));
+  S.lastError=null;$('feedback').textContent='';render(false);
+ }));
+}
+function button(label,handler,className=''){const node=document.createElement('button');node.type='button';node.className='btn '+className;node.textContent=label;node.addEventListener('click',handler);return node}
+function exactTaskAnswer(taskNow,actual){
+ if(!taskNow||!actual||!isObject(actual))return false;
+ const keys=Object.keys(taskNow.expected);
+ return keys.length===Object.keys(actual).length&&keys.every(key=>actual[key]===taskNow.expected[key]);
+}
+function answerForTask(taskNow){const selection=currentSelection();return Object.assign({id:taskNow.id},Object.fromEntries(taskNow.fields.map(field=>[field.key,selection[field.key]])))}
+function judgeNetworkFoundationsCheckpoint(submission){
+ if(!submission||!isObject(submission)||submission.answerSetVersion!==ANSWER_SET_VERSION||submission.validationContract!==VALIDATION_CONTRACT||Object.keys(submission).sort().join('|')!=='answerSetVersion|tasks|validationContract'||!Array.isArray(submission.tasks)||submission.tasks.length!==5)return{passed:false,score:0};
+ let score=0;
+ for(let index=0;index<EXPECTED_NETWORK_FOUNDATIONS_CHECKPOINT.length;index++){
+  const expected=EXPECTED_NETWORK_FOUNDATIONS_CHECKPOINT[index],actual=submission.tasks[index],taskNow=TASKS['checkpoint_p'+(index+1)];
+  if(!actual||actual.id!==expected.id)continue;
+  const actualKeys=Object.keys(actual).sort(),requiredKeys=['id'].concat(taskNow.fields.map(field=>field.key)).sort();
+  const fields=Object.fromEntries(taskNow.fields.map(field=>[field.key,actual[field.key]]));
+  if(same(actualKeys,requiredKeys)&&exactTaskAnswer(taskNow,fields))score++;
+ }
+ return{passed:score===5,score};
+}
+function factsObject(){return Object.fromEntries(FACT_NAMES.map(name=>[name,true]))}
+function commitNetworkFoundationsEvidence(submission,runtime,storage,now=Date.now()){
+ const judged=judgeNetworkFoundationsCheckpoint(submission);
+ if(!runtime||runtime.phase!=='CHECKPOINT'||runtime.stage!=='checkpoint_p5'||runtime.inputSource!=='PLAYER_VERIFY'||!isNormalNetworkFoundationsRoute(runtime.search||'',runtime.hash||'')||!judged.passed)return false;
+ let rawFirst,raw;
+ try{rawFirst=storage.getItem(COURSE_KEY);raw=storage.getItem(COURSE_KEY)}catch(_){return false}
+ if(rawFirst!==raw||typeof raw!=='string')return false;
+ let previous;
+ try{previous=JSON.parse(raw)}catch(_){return false}
+ if(!validMap(previous)||!compressionV2Passed(previous))return false;
+ const next=clone(previous),old=next.nodeEvidence&&next.nodeEvidence[NODE_ID]||{},oldStrict=networkFoundationsPassed(previous);
+ const evidence=Object.assign({},old,{
+  contentId:CONTENT_ID,
+  checkpointId:EVIDENCE_ID,
+  answerSetVersion:ANSWER_SET_VERSION,
+  validationContract:VALIDATION_CONTRACT,
+  passed:true,
+  sectionProgress:'PARTIAL',
+  scaffolded:(oldStrict&&old.scaffolded===true)||runtime.usedSafetyNet===true,
+  attempts:oldStrict?Math.max(1,Number(old.attempts)||0,Number(runtime.attempts)||0):Math.max(1,Number(runtime.attempts)||0),
+  passedAt:oldStrict&&Number.isFinite(old.passedAt)&&old.passedAt>0?old.passedAt:now,
+  lastPassedAt:now,
+  facts:factsObject()
+ });
+ next.nodes=Object.assign({},next.nodes||{},{[NODE_ID]:true});
+ next.nodeEvidence=Object.assign({},next.nodeEvidence||{},{[NODE_ID]:evidence});
+ next.updatedAt=now;
+ const encoded=JSON.stringify(next);
+ try{storage.setItem(COURSE_KEY,encoded)}catch(_){return false}
+ let readback=null,verified=null;
+ try{readback=storage.getItem(COURSE_KEY);verified=JSON.parse(readback)}catch(_){}
+ if(readback!==encoded||!networkFoundationsPassed(verified)){
+  try{storage.setItem(COURSE_KEY,raw)}catch(_){}
+  return false;
+ }
+ return true;
+}
+function memoryStorage(initial={},options={}){
+ const data=new Map(Object.entries(initial).map(([key,value])=>[key,String(value)])),stats={reads:0,writes:0,removes:0,keys:[]};
+ return{getItem(key){stats.reads++;if(options.failGet===key)throw Error('get');if(options.corruptAfterWrite===key&&stats.writes>0)return'{"version":1,"corrupt":true}';return data.has(key)?data.get(key):null},setItem(key,value){if(options.failSet===key)throw Error('set');data.set(key,String(value));stats.writes++;stats.keys.push(key)},removeItem(key){data.delete(key);stats.removes++},data,stats};
+}
+function fullCompressionMap(){
+ return{version:1,nodes:{compression:true},nodeEvidence:{compression:{contentId:'compression_v2',checkpointId:'compression_methods_situations_v1',answerSetVersion:2,validationContract:'compression_checkpoint_p1_p5_v2',passed:true,passedAt:40,lastPassedAt:40,facts:Object.fromEntries(COMPRESSION_FACTS.map(name=>[name,true]))}},unknown:{keep:{value:42}}};
+}
+function toast(message,duration=3600){$('toast').textContent=message;$('toast').classList.add('show');$('live').textContent=message;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),duration)}
+function currentHintKey(){return S.stage+':'+(S.lastError||'GENERAL')}
+function currentHintLevel(){return S.hintLevelByTaskAndType[currentHintKey()]||0}
+function hint(){
+ const taskNow=currentTask();if(!taskNow){toast('Open GUIDE, REFERENCE or CONTEXT for this concept.');return}
+ const key=currentHintKey(),level=Math.min(4,(S.hintLevelByTaskAndType[key]||0)+1);
+ S.hintLevelByTaskAndType[key]=level;S.hints++;
+ if(S.stage.startsWith('checkpoint_')&&level===4)S.checkpointSafetyNetUsed=true;
+ const messages=HINTS[taskNow.id]||HINTS.P1;
+ toast('HINT '+level+' / 4 · '+messages[level-1],5200);render();
+}
+function registerError(code){
+ const key=S.stage+':'+code,count=(S.errorsByTaskAndType[key]||0)+1;
+ S.errorsByTaskAndType[key]=count;S.lastError=code;S.errors++;
+ S.hintLevelByTaskAndType[key]=Math.max(S.hintLevelByTaskAndType[key]||0,count>=4?4:count>=3?3:count>=2?2:1);
+ if(S.stage.startsWith('checkpoint_')){S.checkpointSafetyNetUsed=S.checkpointSafetyNetUsed||S.hintLevelByTaskAndType[key]>=4;S.taskSelections[S.stage]={}}
+ $('feedback').textContent=FEEDBACK[code]||FEEDBACK.MISMATCH;toast(FEEDBACK[code]||FEEDBACK.MISMATCH,4300);render();
+}
+function verifyTask(){
+ const taskNow=currentTask(),selection=currentSelection();
+ if(!taskNow||taskNow.fields.some(field=>selection[field.key]===undefined)){registerError('INCOMPLETE');return}
+ if(!exactTaskAnswer(taskNow,selection)){registerError('MISMATCH');return}
+ const answer=answerForTask(taskNow);S.lastError=null;$('feedback').textContent='';
+ if(taskNow.id.startsWith('G'))S.guidedPassed[taskNow.id]=true;
+ if(taskNow.id.startsWith('A'))S.applyPassed[taskNow.id]=true;
+ if(taskNow.id.startsWith('P'))S.checkpointAnswers[taskNow.id]=answer;
+ toast(taskNow.id+' · VERIFIED');
+ if(taskNow.id==='P5'){
+  S.checkpointAttempts++;
+  const submission={answerSetVersion:ANSWER_SET_VERSION,validationContract:VALIDATION_CONTRACT,tasks:EXPECTED_NETWORK_FOUNDATIONS_CHECKPOINT.map(expected=>S.checkpointAnswers[expected.id])};
+  if(!judgeNetworkFoundationsCheckpoint(submission).passed){registerError('CHECKPOINT_INCOMPLETE');return}
+  validatedSubmission=clone(submission);
+  validatedRuntime={phase:'CHECKPOINT',stage:'checkpoint_p5',inputSource:'PLAYER_VERIFY',search:location.search,hash:location.hash,usedSafetyNet:S.checkpointSafetyNetUsed,attempts:S.checkpointAttempts};
+  commitValidated();return;
+ }
+ if(taskNow.id==='A3'){advanceApply();return}
+ setStage(NEXT[S.stage]);
+}
+function beginCheckpoint(){
+ S.checkpointAnswers={};Object.keys(S.taskSelections).filter(key=>key.startsWith('checkpoint_')).forEach(key=>delete S.taskSelections[key]);
+ S.checkpointAttempts=0;S.lastError=null;setStage('checkpoint_p1');
+}
+function focusPrimary(){requestAnimationFrame(()=>{const target=document.querySelector('#fields .choice,#controls .btn');if(target&&target.focus)target.focus()})}
+function setStage(stage){S.stage=stage;S.activeField=0;S.lastError=null;$('feedback').textContent='';render();focusPrimary()}
+function renderTeach(controls){
+ const copy={
+  teach_purpose:['T1 · PURPOSE / BENEFITS','Devices are networked so they can communicate and share data or resources. The useful benefit depends on the situation.'],
+  teach_lan_wan:['T2 · LAN / WAN','A LAN covers a limited local area. A WAN connects networks across a wider geographical area. Classify from characteristics, not a universal claim about speed, price or ownership.'],
+  teach_models:['T3 · TWO NETWORK MODELS','In client-server, clients request services and a server provides them: central management is a benefit, while cost and central dependence can be drawbacks. In peer-to-peer, computers can request from and provide to each other: a small setup can be simpler, while central management can be harder. Choose from the situation.'],
+  teach_clients:['T4 · THIN / THICK CLIENT','A thin client relies more heavily on another computer for processing or resources. A thick client performs more processing and runs more resources locally.'],
+  teach_topologies:['T5 · CONNECTION STRUCTURE / PATH','Bus uses one shared backbone; star gives hosts separate links to one central point; mesh uses many interconnections that can provide alternative paths; hybrid combines structures and their trade-offs. A host-to-host packet path must follow existing links, and topology choice depends on the situation.']
+ }[S.stage];
+ $('taskKicker').textContent='TEACH · OBSERVE';$('taskTitle').textContent=copy[0];$('prompt').textContent=copy[1];
+ const fixtures={
+  teach_purpose:'CONNECT → COMMUNICATE · SHARE DATA · SHARE RESOURCES',
+  teach_lan_wan:'LIMITED LOCAL AREA → LAN\\nWIDER GEOGRAPHICAL AREA → WAN',
+  teach_models:'CLIENT → REQUESTS\\nSERVER → PROVIDES\\nPEER ↔ PEER',
+  teach_clients:'THIN → MORE EXTERNAL DEPENDENCE\\nTHICK → MORE LOCAL PROCESSING',
+  teach_topologies:'READ NODES + LINKS\\nTRACE ONLY ADJACENT CONNECTIONS\\nJUSTIFY FROM THE SITUATION'
+ };
+ $('fields').innerHTML='<div class="fixture">'+escapeHtml(fixtures[S.stage]).replace(/\\n/g,'<br>')+'</div>';
+ const sequence=['teach_purpose','teach_lan_wan','teach_models','teach_clients','teach_topologies','guided_g1_scope'],next=sequence[sequence.indexOf(S.stage)+1];
+ controls.append(button(S.stage==='teach_topologies'?'START GUIDED PRACTICE':'OBSERVE NEXT',()=>setStage(next)));
+}
+function render(){
+ const phase=phaseFor(S.stage),percent=progress(),taskNow=currentTask();
+ $('stageName').textContent=S.stage.toUpperCase();$('percent').textContent=percent+'%';$('progress').style.width=percent+'%';if($('progress').parentElement)$('progress').parentElement.setAttribute('aria-valuenow',percent);
+ $('knowledge').textContent=knowledge();$('goal').textContent=goal();
+ const badge=ALREADY_PASSED?'FORMAL EVIDENCED':NORMAL_ROUTE&&PREDECESSOR_OK?'FORMAL ELIGIBLE':NORMAL_ROUTE?'PREVIEW · NO WRITES':'DEBUG · NO I/O';
+ $('routeBadge').textContent=badge;$('routeBadge').className='route '+(badge.startsWith('FORMAL')?'formal':'preview');
+ $('phaseRail').innerHTML=PHASES.map(name=>'<div class="phase '+(name===phase?'active':PHASES.indexOf(name)<PHASES.indexOf(phase)?'done':'')+'" '+(name===phase?'aria-current="step"':'')+'>'+name+(name===phase?'<br>NOW':'')+'</div>').join('');
+ const controls=$('controls');controls.replaceChildren();$('feedback').textContent=S.lastError?(FEEDBACK[S.lastError]||FEEDBACK.MISMATCH):'';
+ if(taskNow){
+  $('taskKicker').textContent=phase+' · '+taskNow.id;$('taskTitle').textContent=taskNow.ticket;$('prompt').textContent=taskNow.prompt;$('fields').innerHTML=fieldMarkup(taskNow);wireChoices();
+  $('constraint').textContent=currentHintLevel()>=4?'HINT 4 ACTIVE · worked reasoning is visible; you must still choose and submit.':'Select every field, then verify. A Checkpoint failure clears only the current part.';
+  controls.append(button('PREV CHOICE',()=>cycleChoice(-1),'sub'),button('NEXT CHOICE',()=>cycleChoice(1),'sub'),button(S.stage.startsWith('checkpoint_')?'SUBMIT '+taskNow.id:'VERIFY',verifyTask));
+ }else if(S.stage.startsWith('teach_'))renderTeach(controls);
+ else{
+  $('taskKicker').textContent=phase;$('taskTitle').textContent=S.stage==='commit_evidence'?'COMMITTING VERIFIED P1–P5':'NETWORK MODEL HALL';$('prompt').textContent=goal();$('fields').innerHTML='';
+  $('constraint').textContent='Canvas nodes, links and path state are mirrored in DOM telemetry.';
+  if(S.stage==='course_card'){const openCourse=button('OPEN COURSE CARD',event=>showCourseCard(event.currentTarget));openCourse.id='openCourseCard';controls.append(openCourse)}
+  if(S.stage==='evidence'||S.stage==='evidence_retry'){const openEvidence=button('OPEN EVIDENCE',event=>showEvidence(false,event.currentTarget));openEvidence.id='openEvidence';controls.append(openEvidence)}
+ }
+ updateTelemetry();resize();draw();saveProgress();
+}
+function cycleChoice(direction){
+ const taskNow=currentTask();if(!taskNow)return;
+ const field=taskNow.fields[Math.max(0,Math.min(taskNow.fields.length-1,S.activeField))],selection=currentSelection(),index=field.options.findIndex(option=>option.value===selection[field.key]),next=(index+direction+field.options.length)%field.options.length;
+ selection[field.key]=field.options[next].value;render();
+}
+function topologyMirror(){
+ if(S.stage==='guided_g4_topologies')return'MODEL I: hosts use short stubs to a separate shared backbone\nMODEL II: J–K, L–K, M–K; K is the CENTRE connection point\nMODEL III: hosts have many direct interconnections\nMODEL IV: a shared-line segment joins a central-spoke cluster\nPATH TASK: J TO M';
+ if(S.stage==='checkpoint_p5')return'CHECKPOINT GRAPH NODES: A, B, C, D\nLINKS: A–B, B–C, A–D, D–C\nPATH TASK: A TO C';
+ if(S.stage==='teach_topologies'||S.stage==='apply_a2_topologies')return'BUS: separate backbone + host stubs\nSTAR: hosts connect to a distinct CENTRE point\nMESH: many direct host connections\nHYBRID: combines at least two topology patterns';
+ if(S.stage==='checkpoint_p4')return'MODELS A–D: inspect the shared line, distinct centre, direct interconnections and combined patterns';
+ if(S.stage==='teach_models'||S.stage==='guided_g2_models'||S.stage==='apply_a1_models'||S.stage==='checkpoint_p2'||S.stage==='checkpoint_p3')return'CLIENT-SERVER: requesters and a distinct service provider\nPEER-TO-PEER: computers can request and provide';
+ if(S.stage==='teach_clients'||S.stage==='guided_g3_clients')return'THIN: greater external dependence\nTHICK: more processing and resources held locally';
+ if(S.stage==='teach_lan_wan'||S.stage==='guided_g1_scope'||S.stage==='apply_a3_terms'||S.stage==='checkpoint_p1')return'LAN: limited local area\nWAN: wider geographical area connecting networks';
+ if(S.stage==='teach_purpose')return'CONNECT → COMMUNICATE\nCONNECT → SHARE DATA OR RESOURCES';
+ return'NODES: COMPUTERS OR DEVICES\nLINKS: SUPPLIED CONNECTIONS\nPATH: CONSECUTIVE LINKED HOSTS';
+}
+function updateTelemetry(){
+ const taskNow=currentTask(),selected=taskNow?taskNow.fields.map(field=>field.label+': '+(valueLabel(field,currentSelection()[field.key])||'WAIT')).join('\n'):'';
+ let facts='NODES → LINKS → PATH → REASON\n'+topologyMirror();
+ if(S.stage==='evidence')facts='OFFICIAL: P1–P5 + 8 FACTS\nSECTION 2.1: PARTIAL\nNEXT NETWORK NODE: UNLOCKED';
+ else if(selected)facts+='\n\nCURRENT SELECTIONS\n'+selected;
+ $('factMirror').textContent=facts;$('telemetryText').textContent=phaseFor(S.stage)+' · '+(taskNow?taskNow.id:'OBSERVE');
+}
+let VW=0,VH=0,dpr=1,ctx=$('viz').getContext&&$('viz').getContext('2d');
+function documentFlow(){return innerWidth<=760||innerHeight<=640}
+function resize(){
+ const canvas=$('viz'),rect=$('scene').getBoundingClientRect(),flow=documentFlow();
+ VW=Math.max(1,flow?rect.width:innerWidth);VH=Math.max(1,flow?rect.height:innerHeight);dpr=Math.min(2,devicePixelRatio||1);
+ canvas.width=Math.round(VW*dpr);canvas.height=Math.round(VH*dpr);canvas.style.width=VW+'px';canvas.style.height=VH+'px';
+ if(ctx&&ctx.setTransform)ctx.setTransform(dpr,0,0,dpr,0,0);draw();
+}
+function safeRect(){
+ if(documentFlow())return{x:10,y:10,w:Math.max(0,VW-20),h:Math.max(0,VH-20)};
+ const top=Math.max($('hud').getBoundingClientRect().bottom,$('quick').getBoundingClientRect().bottom)+12,bottom=$('console').getBoundingClientRect().top-12;
+ return{x:18,y:Math.max(18,top),w:Math.max(0,VW-36),h:Math.max(0,bottom-Math.max(18,top))};
+}
+function box(x,y,w,h,stroke,fill,dash=[]){if(!ctx)return;ctx.save();ctx.strokeStyle=stroke;ctx.fillStyle=fill;ctx.lineWidth=1.5;ctx.setLineDash(dash);ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);ctx.restore()}
+function label(text,x,y,size=11,color='#e2fffa',align='center'){if(!ctx)return;ctx.save();ctx.fillStyle=color;ctx.font=size+'px Consolas,monospace';ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(text,x,y);ctx.restore()}
+function edge(a,b,color='#4c9387',width=2){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.restore()}
+function node(point,name,color='#7dfff5',radius=8){ctx.save();ctx.fillStyle='#031411';ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(point.x,point.y,radius,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();label(name,point.x,point.y,Math.max(7,radius-1),color)}
+function centre(point,key='',size=9){ctx.save();ctx.fillStyle='#171006';ctx.strokeStyle='#f0c874';ctx.lineWidth=2;ctx.strokeRect(point.x-size,point.y-size,size*2,size*2);ctx.strokeRect(point.x-size-3,point.y-size-3,size*2+6,size*2+6);ctx.fillRect(point.x-size+2,point.y-size+2,size*2-4,size*2-4);ctx.restore();if(key)label(key,point.x,point.y,7,'#fff0bf');label('CENTRE',point.x,point.y-size-10,7,'#f0c874')}
+function servicePoint(point,labelText='SERVER',w=50,h=24){box(point.x-w/2,point.y-h/2,w,h,'#f0c874','#171006');label(labelText,point.x,point.y,8,'#fff0bf')}
+function modelHeader(x,y,w,modelId,term,showName,suffix=''){label((showName?modelId+' · '+term:'MODEL '+modelId)+(suffix?' · '+suffix:''),x+w/2,y+14,8,showName?'#f0c874':'#9abdb5')}
+function drawTopology(type,x,y,w,h,modelId,term,showName,guided=false){
+ box(x,y,w,h,'#326f66','#020b09cf');
+ const cx=x+w/2,cy=y+h*.58,r=Math.max(5,Math.min(8,Math.min(w,h)*.065)),points={};
+ if(type==='line'){
+  const left={x:x+w*.13,y:cy},right={x:x+w*.87,y:cy};edge(left,right,'#7dfff5',3);
+  const xs=[.23,.42,.61,.8];xs.forEach((ratio,index)=>{const attach={x:x+w*ratio,y:cy},above=index%2===0,host={x:attach.x,y:above?y+h*.32:y+h*.82};edge(attach,host,'#4c9387',2);points[String.fromCharCode(65+index)]=host});
+ }else if(type==='spokes'){
+  const hub={x:cx,y:cy};
+  if(guided){points.J={x:x+w*.2,y:cy};points.L={x:x+w*.76,y:y+h*.3};points.M={x:x+w*.76,y:y+h*.8};Object.values(points).forEach(point=>edge(point,hub));Object.entries(points).forEach(([key,point])=>node(point,key,key==='J'?'#7dfff5':key==='M'?'#f0c874':'#91ffad',r));centre(hub,'K',r+1);modelHeader(x,y,w,modelId,term,false,'J → M');return}
+  points.A={x:x+w*.2,y:y+h*.32};points.B={x:x+w*.8,y:y+h*.32};points.C={x:x+w*.2,y:y+h*.82};points.D={x:x+w*.8,y:y+h*.82};Object.values(points).forEach(point=>edge(point,hub));Object.entries(points).forEach(([key,point])=>node(point,key,'#7dfff5',r));centre(hub,'',r+1);modelHeader(x,y,w,modelId,term,showName);return;
+ }else if(type==='dense'){
+  points.A={x:x+w*.25,y:y+h*.32};points.B={x:x+w*.75,y:y+h*.32};points.C={x:x+w*.25,y:y+h*.8};points.D={x:x+w*.75,y:y+h*.8};
+  const list=Object.values(points);for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++)edge(list[i],list[j]);
+ }else{
+  const busLeft={x:x+w*.1,y:cy},busRight={x:x+w*.46,y:cy};edge(busLeft,busRight,'#7dfff5',3);
+  [.18,.3,.42].forEach((ratio,index)=>{const attach={x:x+w*ratio,y:cy},host={x:attach.x,y:index===1?y+h*.82:y+h*.34};edge(attach,host);points['B'+(index+1)]=host});
+  const hub={x:x+w*.7,y:cy};edge(busRight,hub,'#4c9387',2);const starHosts=[{x:x+w*.62,y:y+h*.3},{x:x+w*.87,y:y+h*.34},{x:x+w*.87,y:y+h*.8}];starHosts.forEach((host,index)=>{edge(hub,host);points['S'+(index+1)]=host});
+  Object.entries(points).forEach(([key,point])=>node(point,key,'#7dfff5',Math.max(4,r-1)));centre(hub,'',Math.max(5,r));modelHeader(x,y,w,modelId,term,showName);return;
+ }
+ Object.entries(points).forEach(([key,point])=>node(point,key,'#7dfff5',r));
+ modelHeader(x,y,w,modelId,term,showName);
+}
+function drawPathGraph(area){
+ box(area.x,area.y,area.w,area.h,'#326f66','#020b09d9');
+ const cx=area.x+area.w/2,cy=area.y+area.h/2,points={};
+ points.A={x:area.x+area.w*.22,y:cy};points.B={x:cx,y:area.y+area.h*.24};points.C={x:area.x+area.w*.78,y:cy};points.D={x:cx,y:area.y+area.h*.76};
+ edge(points.A,points.B);edge(points.B,points.C);edge(points.A,points.D);edge(points.D,points.C);
+ label('CHECKPOINT GRAPH · PACKET A → C',cx,area.y+18,10,'#f0c874');
+ Object.entries(points).forEach(([name,point])=>node(point,name,name==='A'?'#7dfff5':name==='C'?'#f0c874':'#91ffad',10));
+ label('FOLLOW SUPPLIED LINKS ONLY',cx,area.y+area.h-16,9,'#9abdb5');
+}
+function drawPurposeDiagram(area){
+ box(area.x,area.y,area.w,area.h,'#326f66','#020b09d9');const cx=area.x+area.w/2,cy=area.y+area.h*.55,shared={x:cx,y:cy};
+ const devices=[{x:area.x+area.w*.18,y:cy},{x:cx,y:area.y+area.h*.28},{x:area.x+area.w*.82,y:cy}];devices.forEach((point,index)=>{edge(point,shared);node(point,'D'+(index+1),'#7dfff5',10)});box(cx-72,cy-23,144,46,'#f0c874','#171006');label('SHARED DATA',cx,cy-7,10,'#fff0bf');label('SHARED RESOURCES',cx,cy+10,9,'#fff0bf');label('CONNECT → COMMUNICATE + SHARE',cx,area.y+18,10,'#91ffad');
+}
+function drawScopeDiagram(area){
+ const gap=12,w=(area.w-gap)/2,small=w<230,titleSize=small?7:9,left={x:area.x,y:area.y,w,h:area.h},right={x:area.x+w+gap,y:area.y,w,h:area.h};box(left.x,left.y,left.w,left.h,'#326f66','#020b09d9');box(right.x,right.y,right.w,right.h,'#326f66','#020b09d9');label('LAN · LIMITED LOCAL AREA',left.x+left.w/2,left.y+17,titleSize,'#7dfff5');
+ const local=[{x:left.x+left.w*.25,y:left.y+left.h*.48},{x:left.x+left.w*.5,y:left.y+left.h*.68},{x:left.x+left.w*.75,y:left.y+left.h*.48}];edge(local[0],local[1]);edge(local[1],local[2]);local.forEach((point,index)=>node(point,'L'+(index+1),'#7dfff5',8));
+ label('WAN · WIDER GEOGRAPHICAL AREA',right.x+right.w/2,right.y+17,titleSize,'#f0c874');const bw=Math.min(78,right.w*.32),bh=Math.min(60,right.h*.3),a={x:right.x+right.w*.25,y:right.y+right.h*.58},b={x:right.x+right.w*.75,y:right.y+right.h*.58};box(a.x-bw/2,a.y-bh/2,bw,bh,'#287970','#031411');box(b.x-bw/2,b.y-bh/2,bw,bh,'#287970','#031411');label('AREA A',a.x,a.y,small?7:8,'#7dfff5');label('AREA B',b.x,b.y,small?7:8,'#7dfff5');edge({x:a.x+bw/2,y:a.y},{x:b.x-bw/2,y:b.y},'#f0c874',3);if(S.stage==='checkpoint_p1')label('PURPOSE? · BENEFIT? · EXTENT?',area.x+area.w/2,area.y+area.h-13,8,'#91ffad');
+}
+function drawModelsDiagram(area){
+ const formal=S.stage==='checkpoint_p2'||S.stage==='checkpoint_p3',gap=12,w=(area.w-gap)/2,small=w<230,titleSize=small?7:9,left={x:area.x,y:area.y,w,h:area.h},right={x:area.x+w+gap,y:area.y,w,h:area.h};box(left.x,left.y,left.w,left.h,'#326f66','#020b09d9');box(right.x,right.y,right.w,right.h,'#326f66','#020b09d9');label(formal?'MODEL 1 · DISTINCT ROLES':'CLIENT-SERVER',left.x+left.w/2,left.y+17,titleSize,'#f0c874');const provider={x:left.x+left.w*.68,y:left.y+left.h*.56};servicePoint(provider,formal?'PROVIDES':'SERVER',small?44:50,small?22:24);[{x:left.x+left.w*.2,y:left.y+left.h*.38},{x:left.x+left.w*.2,y:left.y+left.h*.72}].forEach((point,index)=>{edge(point,provider);node(point,formal?'R'+(index+1):'C'+(index+1),'#7dfff5',small?7:9)});
+ label(formal?'MODEL 2 · EQUAL ROLES':'PEER-TO-PEER',right.x+right.w/2,right.y+17,titleSize,'#91ffad');const peers=[{x:right.x+right.w*.25,y:right.y+right.h*.38},{x:right.x+right.w*.75,y:right.y+right.h*.38},{x:right.x+right.w*.5,y:right.y+right.h*.7}];edge(peers[0],peers[1]);edge(peers[1],peers[2]);edge(peers[2],peers[0]);peers.forEach((point,index)=>node(point,formal?'E'+(index+1):'P'+(index+1),'#91ffad',small?7:9));if(['teach_models','apply_a1_models'].includes(S.stage)){label('CENTRAL CONTROL',left.x+left.w/2,left.y+left.h-25,7,'#f0c874');label('COST / DEPENDENCE',left.x+left.w/2,left.y+left.h-12,7,'#9abdb5');label('SIMPLE SMALL SETUP',right.x+right.w/2,right.y+right.h-25,7,'#91ffad');label('HARDER CENTRAL CONTROL',right.x+right.w/2,right.y+right.h-12,7,'#9abdb5')}else if(S.stage==='checkpoint_p3'){label('BENEFIT? · DRAWBACK?',area.x+area.w/2,area.y+area.h-13,8,'#9abdb5')}
+}
+function drawClientsDiagram(area){
+ const gap=12,w=(area.w-gap)/2,items=[{x:area.x,title:'THIN CLIENT',local:1,external:4,color:'#7dfff5'},{x:area.x+w+gap,title:'THICK CLIENT',local:4,external:1,color:'#f0c874'}];items.forEach(item=>{box(item.x,area.y,w,area.h,'#326f66','#020b09d9');label(item.title,item.x+w/2,area.y+17,10,item.color);const clientX=item.x+w*.34,resourceX=item.x+w*.75,cy=area.y+area.h*.58;box(clientX-45,cy-38,90,76,item.color,'#031411');label('LOCAL',clientX,cy-25,8,item.color);for(let i=0;i<item.local;i++)box(clientX-31+i*15,cy-8,10,20,item.color,item.color);box(resourceX-38,cy-30,76,60,'#91ffad','#06150f');label('EXTERNAL',resourceX,cy-8,8,'#91ffad');label('RESOURCES',resourceX,cy+8,8,'#91ffad');edge({x:clientX+45,y:cy},{x:resourceX-38,y:cy},item.color,item.external>item.local?4:1.5)});
+}
+function drawTermsDiagram(area){
+ const gap=12,w=(area.w-gap)/2;const left={x:area.x,y:area.y,w,h:area.h},right={x:area.x+w+gap,y:area.y,w,h:area.h};box(left.x,left.y,left.w,left.h,'#326f66','#020b09d9');label('NETWORK EXTENT',left.x+left.w/2,left.y+17,9,'#7dfff5');box(left.x+left.w*.12,left.y+left.h*.35,left.w*.3,left.h*.4,'#287970','#031411');label('LOCAL',left.x+left.w*.27,left.y+left.h*.55,8,'#7dfff5');box(left.x+left.w*.58,left.y+left.h*.35,left.w*.3,left.h*.4,'#287970','#031411');label('DISTANT',left.x+left.w*.73,left.y+left.h*.55,8,'#f0c874');edge({x:left.x+left.w*.42,y:left.y+left.h*.55},{x:left.x+left.w*.58,y:left.y+left.h*.55},'#f0c874',3);
+ box(right.x,right.y,right.w,right.h,'#326f66','#020b09d9');label('CLIENT DEPENDENCE',right.x+right.w/2,right.y+17,9,'#91ffad');box(right.x+right.w*.12,right.y+right.h*.35,right.w*.3,right.h*.4,'#7dfff5','#031411');label('MORE',right.x+right.w*.27,right.y+right.h*.5,8,'#7dfff5');label('EXTERNAL',right.x+right.w*.27,right.y+right.h*.64,7,'#7dfff5');box(right.x+right.w*.58,right.y+right.h*.35,right.w*.3,right.h*.4,'#f0c874','#171006');label('MORE',right.x+right.w*.73,right.y+right.h*.5,8,'#f0c874');label('LOCAL',right.x+right.w*.73,right.y+right.h*.64,7,'#f0c874');
+}
+function draw(){
+ if(!ctx)return;ctx.clearRect(0,0,VW,VH);const area=safeRect();if(area.h<80||area.w<160)return;
+ if(S.stage==='checkpoint_p5'){drawPathGraph(area);return}
+ if(S.stage==='teach_purpose'){drawPurposeDiagram(area);return}
+ if(['teach_lan_wan','guided_g1_scope','checkpoint_p1'].includes(S.stage)){drawScopeDiagram(area);return}
+ if(['teach_models','guided_g2_models','apply_a1_models','checkpoint_p2','checkpoint_p3'].includes(S.stage)){drawModelsDiagram(area);return}
+ if(['teach_clients','guided_g3_clients'].includes(S.stage)){drawClientsDiagram(area);return}
+ if(S.stage==='apply_a3_terms'){drawTermsDiagram(area);return}
+ const gap=10,columns=area.w<700?2:4,rows=Math.ceil(4/columns),cellW=(area.w-gap*(columns-1))/columns,cellH=(area.h-gap*(rows-1))/rows,showNames=S.stage==='teach_topologies'||S.stage==='evidence';
+ const ids=S.stage==='checkpoint_p4'?['A','B','C','D']:['I','II','III','IV'],kinds=[['line',ids[0],'BUS'],['spokes',ids[1],'STAR'],['dense',ids[2],'MESH'],['mixed',ids[3],'HYBRID']];
+ kinds.forEach((item,index)=>{const col=index%columns,row=Math.floor(index/columns);drawTopology(item[0],area.x+col*(cellW+gap),area.y+row*(cellH+gap),cellW,cellH,item[1],item[2],showNames,S.stage==='guided_g4_topologies')});
+}
+let invoker=null,overlayScrollY=0,previousBodyOverflow='',previousAppInert=false,overlayReturn=null;
+function focusables(){return Array.from($('panel').querySelectorAll('button,a[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')).filter(node=>!node.disabled&&!node.hidden)}
+function openOverlay(html,source=null,onDismiss=null){
+ const alreadyOpen=$('overlay').classList.contains('open');
+ if(!alreadyOpen){invoker=source||document.activeElement;overlayScrollY=scrollY;previousBodyOverflow=document.body.style.overflow;previousAppInert=$('app').inert===true}
+ overlayReturn=typeof onDismiss==='function'?onDismiss:null;$('panel').innerHTML=html;$('overlay').classList.add('open');$('app').inert=true;document.body.style.overflow='hidden';$('panel').scrollTop=0;requestAnimationFrame(()=>$('panel').focus());
+}
+function closeOverlay(restore=true){overlayReturn=null;$('overlay').classList.remove('open');$('app').inert=previousAppInert;document.body.style.overflow=previousBodyOverflow;scrollTo(0,overlayScrollY);if(restore&&invoker&&invoker.focus)invoker.focus()}
+function dismissOverlay(){if(overlayReturn){const resume=overlayReturn;overlayReturn=null;resume();return}closeOverlay()}
+function showCourseCard(source=null){
+ const status=ALREADY_PASSED?'STRICT EVIDENCE FOUND':PREDECESSOR_OK?'FORMAL ENTRY READY':!NORMAL_ROUTE?'NON-CANONICAL DEBUG / TEST ROUTE · PLAYABLE · ZERO OFFICIAL I/O':'OUT-OF-SEQUENCE PREVIEW · PLAYABLE · NO FORMAL SAVE, RECORD OR COURSE MAP EVIDENCE';
+ openOverlay('<h1 id="overlayTitle">CH.05 · 网络如何连接</h1><div class="callout"><b>CAIE 9618 (2026) §2.1 NETWORK FOUNDATIONS</b><br>CH.04 COMPRESSION V2 → YOU ARE HERE → N2 NEXT NETWORK NODE</div><div class="callout boundary"><b>'+status+'</b></div><p><b>YOU WILL PROVE</b></p><ul><li>purpose and benefits of networking devices; LAN and WAN characteristics</li><li>client-server and peer-to-peer roles, benefits, drawbacks and situation justification</li><li>thin-client and thick-client differences</li><li>bus, star, mesh and hybrid structures</li><li>host-to-host packet path in a supplied topology and topology situation justification</li></ul><div class="callout"><b>PACKET · PATH ONLY</b><br>Follow supplied links between the named hosts. No detail beyond that supplied path is taught here.</div><div class="callout boundary"><b>SECTION STATUS · PARTIAL</b><br><b>NOT IN THIS CHAPTER · LATER §2.1 MATERIAL</b><br>This node is only the first printed part of §2.1; later material remains outside this chapter and is not evidenced here.</div><div class="actions"><button class="btn" id="enter">'+(ALREADY_PASSED?'REPLAY STRICT CHAPTER':S.stage==='course_card'?'ENTER MODEL HALL':'RESUME MODEL HALL')+'</button><button class="btn sub" id="courseGuide">GUIDE</button><button class="btn sub" id="courseContext">CONTEXT</button><button class="btn sub" id="courseMap">COURSE MAP</button></div>',source||$('openCourseCard')||document.activeElement||$('guideBtn'));
+ $('enter').onclick=()=>{closeOverlay(false);if(ALREADY_PASSED)replayChapter();else if(S.stage==='course_card')setStage('teach_purpose');else{render();focusPrimary()}};
+ $('courseGuide').onclick=()=>showGuide('course');$('courseContext').onclick=()=>showContext('course');$('courseMap').onclick=()=>location.href='course-map.html';
+}
+function showGuide(context='game'){
+ openOverlay('<h2 id="overlayTitle">COURSE GUIDE · NETWORK FOUNDATIONS</h2><div class="callout"><b>COURSE CARD → TEACH → GUIDED PRACTICE → APPLY → CHECKPOINT P1–P5 → EVIDENCE</b></div><p><b>CURRENT KNOWLEDGE</b><br>'+escapeHtml(knowledge())+'</p><p><b>CURRENT GOAL</b><br>'+escapeHtml(goal())+'</p><div class="callout boundary"><b>BOUNDARY</b><br>Use only roles, extent, client dependence, visible connection structures, supplied host-to-host paths and situation evidence. Completing this node keeps §2.1 PARTIAL.</div><div class="actions"><button class="btn" id="guideClose">RETURN</button><button class="btn sub" id="guideMap">COURSE MAP</button></div>',$('guideBtn'),context==='course'?()=>showCourseCard():null);
+ $('guideClose').onclick=()=>context==='course'?showCourseCard():closeOverlay();$('guideMap').onclick=()=>location.href='course-map.html';
+}
+function showReference(){
+ openOverlay('<h2 id="overlayTitle">REFERENCE · MODELS AND CONNECTIONS</h2><div class="callout"><b>LAN / WAN</b><br>LAN: limited local area. WAN: wider geographical area connecting networks.</div><div class="callout"><b>CLIENT-SERVER / PEER-TO-PEER</b><br>Clients request and a server provides: central management versus cost and central dependence. Peers can request from and provide to each other: simpler small setup versus harder central management. Choose from the situation.</div><div class="callout"><b>THIN / THICK CLIENT</b><br>Thin: greater dependence on another computer. Thick: more local processing and resources.</div><div class="callout boundary"><b>TOPOLOGIES</b><br>Bus: shared backbone. Star: separate links to a central point. Mesh: many interconnections can offer alternative paths. Hybrid: combined structures and trade-offs. A packet path must follow supplied links.</div><div class="actions"><button class="btn" id="referenceClose">RETURN TO GAME</button></div>',$('referenceBtn'));
+ $('referenceClose').onclick=()=>closeOverlay();
+}
+function showContext(context='game'){
+ const taskNow=currentTask(),taskText=taskNow?'<p><b>CURRENT TASK · '+escapeHtml(taskNow.id)+'</b><br>'+escapeHtml(taskNow.prompt)+'</p>':'<p><b>CURRENT STAGE</b><br>'+escapeHtml(phaseFor(S.stage))+'</p>';
+ openOverlay('<h2 id="overlayTitle">CONTEXT · WHERE THIS FITS</h2><div class="callout"><b>PREVIOUS</b><br>CH.04 Compression v2 strict Evidence</div><div class="callout"><b>NOW</b><br>First printed part of §2.1 · Network Foundations</div><div class="callout boundary"><b>AFTER THIS NODE</b><br>§2.1 remains PARTIAL and N2 becomes available.</div>'+taskText+'<div class="actions"><button class="btn" id="contextClose">RETURN</button><button class="btn sub" id="contextGuide">GUIDE</button></div>',$('contextBtn'),context==='course'?()=>showCourseCard():null);
+ $('contextClose').onclick=()=>context==='course'?showCourseCard():closeOverlay();$('contextGuide').onclick=()=>showGuide(context);
+}
+function recordHtml(){
+ if(!NORMAL_ROUTE)return'<p>LOCAL RUNS · THIS DEVICE · unavailable on preview/debug route.</p>';
+ let rows=[];try{rows=JSON.parse(localStorage.getItem(RECORDS_KEY)||'[]');if(!Array.isArray(rows))rows=[]}catch(_){rows=[]}
+ return'<div class="callout"><b>LOCAL TOP 5 · THIS DEVICE</b><br>'+(rows.length?rows.slice(0,5).map((row,index)=>(index+1)+'. '+row.sec+'s · '+row.hints+' hints · '+row.errors+' errors').join('<br>'):'No ranked run stored.')+'</div>';
+}
+function writeRunAndFinalSave(){
+ if(replayRetained||!NORMAL_ROUTE||!PREDECESSOR_OK)return;
+ const run={sec:Math.max(1,Math.round((Date.now()-S.startedAt)/1000)),hints:S.hints,errors:S.errors,passedAt:Date.now()};
+ try{let rows=JSON.parse(localStorage.getItem(RECORDS_KEY)||'[]');if(!Array.isArray(rows))rows=[];rows.push(run);rows.sort((a,b)=>a.sec-b.sec||a.hints-b.hints||a.errors-b.errors);localStorage.setItem(RECORDS_KEY,JSON.stringify(rows.slice(0,5)));S.recordWritten=true}catch(_){recordsUnavailable=true}
+ try{localStorage.setItem(SAVE_KEY,JSON.stringify(Object.assign(serializableState(),{stage:'evidence',evidenceRecorded:true,recordWritten:S.recordWritten})));saveUnavailable=false}catch(_){saveUnavailable=true}
+}
+function commitValidated(){
+ S.stage='commit_evidence';render();let ok=false;
+ if(PREDECESSOR_OK&&validatedSubmission&&validatedRuntime)ok=commitNetworkFoundationsEvidence(validatedSubmission,validatedRuntime,localStorage);
+ if(ok){
+  const retainedReplay=replayRetained;S.evidenceRecorded=true;ALREADY_PASSED=true;S.stage='evidence';refreshEligibility();writeRunAndFinalSave();render();showEvidence(retainedReplay);return;
+ }
+ if(ALREADY_PASSED){S.evidenceRecorded=true;S.stage='evidence';render();showEvidence(true);return}
+ S.evidenceRecorded=false;S.stage=PREDECESSOR_OK?'evidence_retry':'evidence';render();showEvidence(false);
+}
+function retryEvidence(){if(validatedSubmission&&validatedRuntime)commitValidated();else beginCheckpoint()}
+function showEvidence(retained=false,source=null){
+ const ok=ALREADY_PASSED&&S.evidenceRecorded,title=ok?'CH.05 CHECKPOINT · 5 / 5 PASSED':S.stage==='evidence_retry'?'PLAYTHROUGH COMPLETE · EVIDENCE NOT SAVED':'PREVIEW COMPLETE · EVIDENCE NOT RECORDED';
+ openOverlay('<h1 id="overlayTitle">'+title+'</h1>'+(ok?'<div class="callout"><b>OFFICIAL EVIDENCE · network_foundations_v1</b><br>answer set 1 · network_foundations_checkpoint_p1_p5_v1</div>'+FACT_NAMES.map(name=>'<div class="evidence-row">✓ '+name+'</div>').join('')+'<div class="callout boundary"><b>§2.1 STATUS · PARTIAL</b><br>N1 COMPLETE · N2 NEXT NETWORK NODE UNLOCKED<br>The rest of §2.1 is not evidenced by this checkpoint.</div><p>'+(retained?'Prior strict evidence retained; this replay was not ranked.':'Exact local evidence was committed after Compression v2 was rechecked.')+'</p>'+recordHtml():'<div class="callout boundary"><b>NO FORMAL EVIDENCE WRITTEN</b><br>Course Map, ranked records and final save were not created by this result.</div>')+(recordsUnavailable?'<div class="callout boundary" role="alert">LOCAL RUN HISTORY UNAVAILABLE · evidence saved, but this run could not be ranked on this device.</div>':'')+(saveUnavailable?'<div class="callout boundary" role="alert">LOCAL SAVE UNAVAILABLE · Course Map evidence remains verified.</div>':'')+'<div class="actions">'+(ok?'<button class="btn" id="nextChapter">NEXT · N2</button>':'')+(S.stage==='evidence_retry'?'<button class="btn" id="retryEvidence">RETRY EVIDENCE</button>':'')+'<button class="btn sub" id="replay">REPLAY CHAPTER</button><button class="btn sub" id="retryCheckpoint">RETRY CHECKPOINT</button><button class="btn sub" id="evidenceMap">COURSE MAP</button></div>',source||document.activeElement||$('guideBtn'));
+ if($('nextChapter'))$('nextChapter').onclick=()=>location.href='course-map.html';
+ if($('retryEvidence'))$('retryEvidence').onclick=retryEvidence;
+ $('replay').onclick=replayChapter;$('retryCheckpoint').onclick=()=>{closeOverlay(false);beginCheckpoint()};$('evidenceMap').onclick=()=>location.href='course-map.html';
+}
+function replayChapter(){
+ const retained=ALREADY_PASSED;closeOverlay(false);S=defaultState();S.stage='teach_purpose';S.evidenceRecorded=retained;S.recordWritten=retained;replayRetained=retained;validatedSubmission=null;validatedRuntime=null;render();focusPrimary();
+}
+function advanceApply(){
+ if(!S.applyPassed.A1||!S.applyPassed.A2||!S.applyPassed.A3){toast('Complete all three Apply tasks first.');return}
+ beginCheckpoint();
+}
+function prepareDebug(stage){
+ S=defaultState();S.stage=STAGES.includes(stage)?stage:'checkpoint_p1';
+ const checkpointStages=['checkpoint_p1','checkpoint_p2','checkpoint_p3','checkpoint_p4','checkpoint_p5'],index=checkpointStages.indexOf(S.stage);
+ for(let cursor=0;cursor<index;cursor++){const taskNow=TASKS[checkpointStages[cursor]];S.checkpointAnswers[taskNow.id]=Object.assign({id:taskNow.id},taskNow.expected)}
+}
+function runTests(){
+ const results=[],assert=(value,id)=>{results.push({id,passed:Boolean(value)});console.assert(value,id)};
+ assert(isNormalNetworkFoundationsRoute('','')&&isNormalNetworkFoundationsRoute('?from=course-map',''),'R01 normal routes');
+ for(const search of ['?test','?debug','?stage=x','?from=course-map&x=1','?from=course-map&from=course-map','?unknown'])assert(!isNormalNetworkFoundationsRoute(search,''),'R02 reject '+search);
+ assert(!isNormalNetworkFoundationsRoute('','#x'),'R03 reject hash');
+ const exact={answerSetVersion:1,validationContract:VALIDATION_CONTRACT,tasks:EXPECTED_NETWORK_FOUNDATIONS_CHECKPOINT.map((expected,index)=>Object.assign({id:expected.id},TASKS['checkpoint_p'+(index+1)].expected))};
+ assert(judgeNetworkFoundationsCheckpoint(exact).passed&&judgeNetworkFoundationsCheckpoint(exact).score===5,'J01 exact 5/5');
+ const wrong=clone(exact);wrong.tasks[4].path='A_B_D_C';assert(!judgeNetworkFoundationsCheckpoint(wrong).passed,'J02 invalid path answer');
+ const extra=clone(exact);extra.tasks[0].extra=true;assert(!judgeNetworkFoundationsCheckpoint(extra).passed,'J03 extra task field');
+ const extraTop=clone(exact);extraTop.extra=true;assert(!judgeNetworkFoundationsCheckpoint(extraTop).passed,'J04 extra top-level field');
+ const reordered=clone(exact);reordered.tasks.reverse();assert(!judgeNetworkFoundationsCheckpoint(reordered).passed,'J05 reordered parts');
+ const map=fullCompressionMap(),storage=memoryStorage({[COURSE_KEY]:JSON.stringify(map)});
+ const runtime={phase:'CHECKPOINT',stage:'checkpoint_p5',inputSource:'PLAYER_VERIFY',search:'',hash:'',usedSafetyNet:false,attempts:1};
+ assert(commitNetworkFoundationsEvidence(exact,runtime,storage,100),'E01 transactional commit');
+ const saved=JSON.parse(storage.getItem(COURSE_KEY));
+ assert(networkFoundationsPassed(saved),'E02 strict local predicate');
+ assert(saved.unknown.keep.value===42&&saved.nodeEvidence[NODE_ID].passedAt===100&&saved.nodeEvidence[NODE_ID].sectionProgress==='PARTIAL','E03 unknown, timestamp and partial status');
+ assert(storage.stats.keys.filter(key=>key===COURSE_KEY).length===1,'E04 one successful map write');
+ const replay=memoryStorage({[COURSE_KEY]:JSON.stringify(saved)});assert(commitNetworkFoundationsEvidence(exact,Object.assign({},runtime,{attempts:2}),replay,200),'E05 strict replay');const replayed=JSON.parse(replay.getItem(COURSE_KEY));
+ assert(replayed.nodeEvidence[NODE_ID].passedAt===100&&replayed.nodeEvidence[NODE_ID].lastPassedAt===200,'E06 preserve first timestamp');
+ const corrupt=memoryStorage({[COURSE_KEY]:JSON.stringify(map)},{corruptAfterWrite:COURSE_KEY});assert(!commitNetworkFoundationsEvidence(exact,runtime,corrupt,100),'E07 corrupt readback fails');assert(corrupt.data.get(COURSE_KEY)===JSON.stringify(map),'E08 exact rollback');
+ const invalid=memoryStorage({[COURSE_KEY]:JSON.stringify(map)});assert(!commitNetworkFoundationsEvidence(exact,Object.assign({},runtime,{search:'?test'}),invalid,100)&&invalid.stats.writes===0,'E09 non-normal route no write');
+ const noPredecessor=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,nodes:{},nodeEvidence:{}})});assert(!commitNetworkFoundationsEvidence(exact,runtime,noPredecessor,100)&&noPredecessor.stats.writes===0,'E10 predecessor required');
+ assert(FACT_NAMES.length===8&&new Set(FACT_NAMES).size===8,'S01 eight exact facts');
+ assert(['G1','G2','G3','G4'].every(id=>TASKS[Object.keys(TASKS).find(key=>TASKS[key].id===id)])&&['A1','A2','A3'].every(id=>TASKS[Object.keys(TASKS).find(key=>TASKS[key].id===id)]),'S02 guided and apply complete');
+ const phasePrompts={guided:Object.values(TASKS).filter(item=>item.id.startsWith('G')).map(item=>item.prompt),apply:Object.values(TASKS).filter(item=>item.id.startsWith('A')).map(item=>item.prompt),checkpoint:Object.values(TASKS).filter(item=>item.id.startsWith('P')).map(item=>item.prompt)};
+ assert(new Set([].concat(phasePrompts.guided,phasePrompts.apply,phasePrompts.checkpoint)).size===phasePrompts.guided.length+phasePrompts.apply.length+phasePrompts.checkpoint.length,'S03 independent prompts');
+ window.__chapter5TestResults={passed:results.every(result=>result.passed),count:results.length,failed:results.filter(result=>!result.passed),results};
+ document.documentElement.dataset.testPassed=String(window.__chapter5TestResults.passed);document.documentElement.dataset.testCount=String(results.length);
+ console.info('[CHAPTER5 NETWORK FOUNDATIONS TEST]',window.__chapter5TestResults);
+}
+$('guideBtn').addEventListener('click',()=>showGuide('game'));$('referenceBtn').addEventListener('click',showReference);$('contextBtn').addEventListener('click',()=>showContext('game'));$('hintBtn').addEventListener('click',hint);$('mapBtn').addEventListener('click',()=>location.href='course-map.html');
+$('overlay').addEventListener('click',event=>{if(event.target===$('overlay'))dismissOverlay()});
+addEventListener('resize',resize);
+addEventListener('keydown',event=>{
+ if($('overlay').classList.contains('open')){
+  if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();dismissOverlay();return}
+  if(event.key==='Tab'){const list=focusables();if(!list.length){event.preventDefault();$('panel').focus();return}const first=list[0],last=list[list.length-1];if(document.activeElement===$('panel')){event.preventDefault();(event.shiftKey?last:first).focus()}else if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}}
+  return;
+ }
+ const key=event.key.toLowerCase();
+ if(key==='h'){event.preventDefault();hint()}else if(key==='g'){event.preventDefault();showGuide('game')}else if(key==='arrowleft'||key==='a'){event.preventDefault();cycleChoice(-1)}else if(key==='arrowright'||key==='d'){event.preventDefault();cycleChoice(1)}else if(key==='arrowup'||key==='w'){const taskNow=currentTask();if(taskNow){event.preventDefault();S.activeField=Math.max(0,S.activeField-1);render()}}else if(key==='arrowdown'||key==='s'){const taskNow=currentTask();if(taskNow){event.preventDefault();S.activeField=Math.min(taskNow.fields.length-1,S.activeField+1);render()}}else if((event.key==='Enter'||key==='e')&&currentTask()){event.preventDefault();verifyTask()}
+});
+const query=new URLSearchParams(location.search),debugStage=query.get('stage')||query.get('scene');
+if(!NORMAL_ROUTE&&debugStage)prepareDebug(debugStage);
+resize();render();
+if(S.stage==='course_card')showCourseCard($('openCourseCard'));else if(S.stage==='evidence'||S.stage==='evidence_retry')showEvidence(false,$('openEvidence'));
+if(TEST_ROUTE)runTests();
+</script>
+</body>
+</html>
