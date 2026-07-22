@@ -19,15 +19,17 @@ const NODE_FACTS=Object.freeze({
   bitmap:Object.freeze(['bitmapEncoding','pixelAndFileHeader','imageAndScreenResolution','colourDepth','bitmapFileSizeCalculation','qualityAndFileSizeEffects']),
   vector:Object.freeze(['vectorEncoding','drawingObjectPropertyList','bitmapVectorSuitability','taskJustification']),
   sound:Object.freeze(['soundEncoding','sampling','samplingRate','samplingResolution','analogueDigital','fileSizeAndAccuracyEffects']),
-  compression:Object.freeze(['needAndUses','losslessVsLossy','situationJustification','fourFileTypes','rle'])
+  compression:Object.freeze(['needAndUses','losslessVsLossy','situationJustification','textCompression','bitmapCompression','vectorCompression','soundCompression','rleMechanism','rleSuitability'])
 });
+const LEGACY_COMPRESSION_FACTS=Object.freeze(['needAndUses','losslessVsLossy','situationJustification','fourFileTypes','rle']);
+const COMPRESSION_CONTRACT='compression_checkpoint_p1_p5_v2';
 
 function isObject(value){return Boolean(value)&&typeof value==='object'&&!Array.isArray(value)}
 function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value))}
 function hasFacts(evidence,names){const facts=evidence&&evidence.facts;return isObject(facts)&&names.every(name=>facts[name]===true)}
 function repairFlag(map,key){return Boolean(map&&map.repairs&&map.repairs[key]===true)}
 function repairDetail(map,key){const value=map&&map.repairEvidence&&map.repairEvidence[key];return isObject(value)?value:null}
-function acceptedAnswerSetVersion(id,version){return version===1||(id===IDS.sound&&version===2)}
+function acceptedAnswerSetVersion(id,version){return version===1||((id===IDS.sound||id===IDS.compression)&&version===2)}
 function exactEvidence(evidence,id,facts){return Boolean(evidence&&evidence.checkpointId===id&&acceptedAnswerSetVersion(id,evidence.answerSetVersion)&&evidence.passed===true&&hasFacts(evidence,facts))}
 
 function chapter0EvidencePassed(map){
@@ -45,12 +47,19 @@ function section11EvidencePassed(map){return chapter0EvidencePassed(map)&&prefix
 function nodeEvidencePassed(map,node){
   if(!Object.prototype.hasOwnProperty.call(IDS,node)||!Object.prototype.hasOwnProperty.call(NODE_FACTS,node))return false;
   const evidence=map&&map.nodeEvidence&&map.nodeEvidence[node];
+  if(node==='compression'&&(!evidence||evidence.contentId!=='compression_v2'||evidence.answerSetVersion!==2||evidence.validationContract!==COMPRESSION_CONTRACT))return false;
   return Boolean(map&&map.version===1&&map.nodes&&map.nodes[node]===true&&exactEvidence(evidence,IDS[node],NODE_FACTS[node]));
 }
-function legacyCompressionEvidencePassed(map){
+function legacyChapterCompressionEvidencePassed(map){
   const chapter=map&&map.chapters&&map.chapters.ch4,checkpoint=chapter&&chapter.checkpoint,evidence=chapter&&chapter.evidence;
-  return Boolean(map&&map.version===1&&checkpoint&&checkpoint.passed===true&&isObject(evidence)&&NODE_FACTS.compression.every(name=>evidence[name]===true));
+  return Boolean(map&&map.version===1&&checkpoint&&checkpoint.passed===true&&isObject(evidence)&&LEGACY_COMPRESSION_FACTS.every(name=>evidence[name]===true));
 }
+function legacyNodeCompressionEvidencePassed(map){
+  const evidence=map&&map.nodeEvidence&&map.nodeEvidence.compression;
+  return Boolean(map&&map.version===1&&map.nodes&&map.nodes.compression===true&&evidence&&evidence.checkpointId===IDS.compression&&evidence.answerSetVersion===1&&evidence.passed===true&&hasFacts(evidence,LEGACY_COMPRESSION_FACTS));
+}
+function compressionPriorEvidencePassed(map){return legacyChapterCompressionEvidencePassed(map)||legacyNodeCompressionEvidencePassed(map)}
+function legacyCompressionEvidencePassed(map){return compressionPriorEvidencePassed(map)}
 
 function migratedRepairEvidence(source,id,facts){
   return {
@@ -90,31 +99,13 @@ function migrateSequenceMap(map,now){
     }
   }
 
-  const hasCompressionNode=Object.prototype.hasOwnProperty.call(next.nodes,'compression')||Object.prototype.hasOwnProperty.call(next.nodeEvidence,'compression');
-  if(legacyCompressionEvidencePassed(map)&&!hasCompressionNode){
-    const chapter=map.chapters.ch4,checkpoint=chapter.checkpoint;
-    next.nodes.compression=true;
-    next.nodeEvidence.compression={
-      checkpointId:IDS.compression,
-      answerSetVersion:1,
-      passed:true,
-      scaffolded:checkpoint.scaffolded===true,
-      attempts:Math.max(1,Number(checkpoint.attempts)||1),
-      passedAt:Number(checkpoint.passedAt)||0,
-      lastPassedAt:Number(checkpoint.lastPassedAt)||Number(checkpoint.passedAt)||0,
-      migratedFrom:'chapters.ch4',
-      sourceEvidencePath:'chapters.ch4.evidence',
-      facts:{needAndUses:true,losslessVsLossy:true,situationJustification:true,fourFileTypes:true,rle:true}
-    };
-  }
-
   const oldMigration=isObject(next.migrations.syllabusSequenceV2)?next.migrations.syllabusSequenceV2:null;
   next.migrations.syllabusSequenceV2=Object.assign({},oldMigration||{},{applied:true,contractVersion:1,appliedAt:oldMigration&&Number.isFinite(oldMigration.appliedAt)?oldMigration.appliedAt:stamp});
   const changed=JSON.stringify(next)!==JSON.stringify(map);
   return{ok:true,changed,map:next,reason:changed?'MIGRATED':'UNCHANGED'};
 }
 
-const api={IDS,NODE_FACTS,chapter0EvidencePassed,prefixEvidencePassed,legacyRepair2EvidencePassed,repair2aEvidencePassed,signedEvidencePassed,repair2bEvidencePassed,characterDataEvidencePassed,section11EvidencePassed,nodeEvidencePassed,legacyCompressionEvidencePassed,migrateSequenceMap};
+const api={IDS,NODE_FACTS,chapter0EvidencePassed,prefixEvidencePassed,legacyRepair2EvidencePassed,repair2aEvidencePassed,signedEvidencePassed,repair2bEvidencePassed,characterDataEvidencePassed,section11EvidencePassed,nodeEvidencePassed,compressionPriorEvidencePassed,legacyCompressionEvidencePassed,migrateSequenceMap};
 root.GenesisSequence=Object.freeze(api);
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

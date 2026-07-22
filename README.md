@@ -69,10 +69,11 @@
 |---|---|
 | Need for compression | 四类原文件共 144 fixture units，无法装入 64-unit 教学舱 |
 | Lossless / lossy | 通过 source 与 restored 的 `=` / `≈` 证据判断信息能否完整回来 |
-| File-type methods | 分别操作 text、bitmap、vector、sound；RLE 在本章首次系统教学 |
-| Situation justification | 根据诊断、master、stream、合同等用途选择 lossless 或 lossy |
+| File-type methods | 分别学习 text、bitmap、vector、sound 文件可如何压缩；非 RLE 机制只标为课程示例 |
+| RLE | 解释重复数据如何写成 run 与 count，并完成短编码、解码及适用性判断 |
+| Situation justification | 根据诊断、master、stream、合同等用途选择 lossless 或 lossy，并说明理由 |
 
-第 4 章严格对应 **CAIE 9618 (2026) §1.3 Compression**。`144/64`、`quality 88` 和各 method size 都是明确标注的教学模型，不是现实格式的固定压缩率。进度、断点续玩和本机 Top 5 继续使用 `localStorage`，没有伪造的全局排行榜。
+第 4 章严格对应 **CAIE 9618 (2026) §1.3 Compression**，按 `COURSE CARD → TEACH → GUIDED PRACTICE → APPLY → CHECKPOINT P1–P5 → EVIDENCE` 推进。正式证据使用 `compression_v2`、answer-set `2` 与 `compression_checkpoint_p1_p5_v2`，并要求 Bitmap、Vector、Sound 三章完整证据；旧五项 Compression 记录只显示为 `PRIOR EVIDENCE`，不会自动解锁 Networks。`61/64` manifest、`quality 88` 和各 method size 都是明确标注的教学模型，不是现实格式的固定压缩率。进度、断点续玩和本机 Top 5 继续使用 `localStorage`，没有账号、服务器同步或伪造的全局排行榜。
 
 ▶ **[打开课程地图](https://haoni0818.github.io/bit-genesis/course-map.html)**：逐章显示 official scope、已覆盖知识、旧存档、checkpoint 证据与仍需补齐的 syllabus gap。
 
