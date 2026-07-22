@@ -13,7 +13,8 @@ const IDS=Object.freeze({
   vector:'vector_encoding_suitability_v1',
   sound:'sound_sampling_representation_v1',
   compression:'compression_methods_situations_v1',
-  networks:'network_foundations_models_topologies_v1'
+  networks:'network_foundations_models_topologies_v1',
+  networkCloudMedia:'cloud_wired_wireless_media_v1'
 });
 
 const NODE_FACTS=Object.freeze({
@@ -21,12 +22,15 @@ const NODE_FACTS=Object.freeze({
   vector:Object.freeze(['vectorEncoding','drawingObjectPropertyList','bitmapVectorSuitability','taskJustification']),
   sound:Object.freeze(['soundEncoding','sampling','samplingRate','samplingResolution','analogueDigital','fileSizeAndAccuracyEffects']),
   compression:Object.freeze(['needAndUses','losslessVsLossy','situationJustification','textCompression','bitmapCompression','vectorCompression','soundCompression','rleMechanism','rleSuitability']),
-  networks:Object.freeze(['networkPurposeBenefits','lanWanCharacteristics','clientServerPeerToPeerRoles','clientServerPeerToPeerEvaluationAndJustification','thinThickClientDifferences','busStarMeshHybridTopologies','topologyPacketTransmission','topologySituationJustification'])
+  networks:Object.freeze(['networkPurposeBenefits','lanWanCharacteristics','clientServerPeerToPeerRoles','clientServerPeerToPeerEvaluationAndJustification','thinThickClientDifferences','busStarMeshHybridTopologies','topologyPacketTransmission','topologySituationJustification']),
+  networkCloudMedia:Object.freeze(['cloudComputingConceptAndUse','publicPrivateCloudUse','cloudBenefitsDrawbacks','wiredWirelessDifferences','wiredWirelessImplications','copperCableCharacteristics','fibreOpticCableCharacteristics','radioWifiCharacteristics','microwaveCharacteristics','satelliteCharacteristics'])
 });
 const LEGACY_COMPRESSION_FACTS=Object.freeze(['needAndUses','losslessVsLossy','situationJustification','fourFileTypes','rle']);
 const COMPRESSION_CONTRACT='compression_checkpoint_p1_p5_v2';
 const NETWORK_FOUNDATIONS_CONTENT='network_foundations_v1';
 const NETWORK_FOUNDATIONS_CONTRACT='network_foundations_checkpoint_p1_p5_v1';
+const CLOUD_TRANSMISSION_MEDIA_CONTENT='cloud_transmission_media_v1';
+const CLOUD_TRANSMISSION_MEDIA_CONTRACT='cloud_transmission_media_checkpoint_p1_p5_v1';
 
 function isObject(value){return Boolean(value)&&typeof value==='object'&&!Array.isArray(value)}
 function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value))}
@@ -54,6 +58,7 @@ function nodeEvidencePassed(map,node){
   const evidence=map&&map.nodeEvidence&&map.nodeEvidence[node];
   if(node==='compression'&&(!evidence||evidence.contentId!=='compression_v2'||evidence.answerSetVersion!==2||evidence.validationContract!==COMPRESSION_CONTRACT))return false;
   if(node==='networks'&&(!evidence||evidence.contentId!==NETWORK_FOUNDATIONS_CONTENT||evidence.answerSetVersion!==1||evidence.validationContract!==NETWORK_FOUNDATIONS_CONTRACT||evidence.sectionProgress!=='PARTIAL'||!hasExactFacts(evidence,NODE_FACTS.networks)))return false;
+  if(node==='networkCloudMedia'&&(!evidence||evidence.contentId!==CLOUD_TRANSMISSION_MEDIA_CONTENT||evidence.answerSetVersion!==1||evidence.validationContract!==CLOUD_TRANSMISSION_MEDIA_CONTRACT||evidence.sectionProgress!=='PARTIAL'||!hasExactFacts(evidence,NODE_FACTS.networkCloudMedia)))return false;
   return Boolean(map&&map.version===1&&map.nodes&&map.nodes[node]===true&&exactEvidence(evidence,IDS[node],NODE_FACTS[node]));
 }
 function legacyChapterCompressionEvidencePassed(map){
@@ -71,6 +76,12 @@ function networkFoundationsPriorEvidenceSeen(map){
   const nodes=isObject(map.nodes)?map.nodes:{},evidence=isObject(map.nodeEvidence)?map.nodeEvidence:{},chapters=isObject(map.chapters)?map.chapters:{};
   const oldNode=evidence.networks,oldNamedNode=evidence.networkFoundations,oldChapter=chapters.ch5||chapters.networks;
   return Boolean(nodes.networks===true||nodes.networkFoundations===true||(isObject(oldNode)&&oldNode.passed===true)||(isObject(oldNamedNode)&&oldNamedNode.passed===true)||(isObject(oldChapter)&&(oldChapter.playthroughSeen===true||oldChapter.stage==='end'||isObject(oldChapter.checkpoint)||isObject(oldChapter.evidence))));
+}
+function networkCloudMediaPriorEvidenceSeen(map){
+  if(!map||map.version!==1||nodeEvidencePassed(map,'networkCloudMedia'))return false;
+  const nodes=isObject(map.nodes)?map.nodes:{},evidence=isObject(map.nodeEvidence)?map.nodeEvidence:{},chapters=isObject(map.chapters)?map.chapters:{};
+  const oldNode=evidence.networkCloudMedia,oldNamedNode=evidence.cloudTransmissionMedia,oldChapter=chapters.ch6||chapters.networkCloudMedia;
+  return Boolean(nodes.networkCloudMedia===true||nodes.cloudTransmissionMedia===true||(isObject(oldNode)&&oldNode.passed===true)||(isObject(oldNamedNode)&&oldNamedNode.passed===true)||(isObject(oldChapter)&&(oldChapter.playthroughSeen===true||oldChapter.stage==='end'||isObject(oldChapter.checkpoint)||isObject(oldChapter.evidence))));
 }
 
 function migratedRepairEvidence(source,id,facts){
@@ -117,7 +128,7 @@ function migrateSequenceMap(map,now){
   return{ok:true,changed,map:next,reason:changed?'MIGRATED':'UNCHANGED'};
 }
 
-const api={IDS,NODE_FACTS,chapter0EvidencePassed,prefixEvidencePassed,legacyRepair2EvidencePassed,repair2aEvidencePassed,signedEvidencePassed,repair2bEvidencePassed,characterDataEvidencePassed,section11EvidencePassed,nodeEvidencePassed,compressionPriorEvidencePassed,legacyCompressionEvidencePassed,networkFoundationsPriorEvidenceSeen,migrateSequenceMap};
+const api={IDS,NODE_FACTS,chapter0EvidencePassed,prefixEvidencePassed,legacyRepair2EvidencePassed,repair2aEvidencePassed,signedEvidencePassed,repair2bEvidencePassed,characterDataEvidencePassed,section11EvidencePassed,nodeEvidencePassed,compressionPriorEvidencePassed,legacyCompressionEvidencePassed,networkFoundationsPriorEvidenceSeen,networkCloudMediaPriorEvidenceSeen,migrateSequenceMap};
 root.GenesisSequence=Object.freeze(api);
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
