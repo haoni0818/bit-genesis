@@ -135,6 +135,17 @@ const oldNamedNetworks={version:1,nodes:{networkFoundations:true},nodeEvidence:{
 check(schema.networkFoundationsPriorEvidenceSeen(oldNamedNetworks),true,'old named Network Foundations draft is prior/unverified');
 check(schema.nodeEvidencePassed(oldNamedNetworks,'networks'),false,'old named draft cannot unlock N2');
 
+const oldCloudMedia={version:1,nodes:{networkCloudMedia:true},nodeEvidence:{networkCloudMedia:{checkpointId:'cloud_media_draft_v0',answerSetVersion:1,passed:true,facts:{cloud:true},sentinel:'preserve'}}};
+check(schema.networkCloudMediaPriorEvidenceSeen(oldCloudMedia),true,'old N2 evidence is visible only as prior/unverified');
+check(schema.nodeEvidencePassed(oldCloudMedia,'networkCloudMedia'),false,'old N2 evidence never satisfies strict Cloud & Transmission Media v1');
+const migratedOldCloudMedia=schema.migrateSequenceMap(oldCloudMedia,100).map;
+check(migratedOldCloudMedia.nodeEvidence.networkCloudMedia,oldCloudMedia.nodeEvidence.networkCloudMedia,'old N2 evidence is preserved byte-semantically');
+check(schema.networkCloudMediaPriorEvidenceSeen(migratedOldCloudMedia),true,'old N2 remains prior/unverified after migration');
+check(schema.nodeEvidencePassed(migratedOldCloudMedia,'networkCloudMedia'),false,'migration never invents strict N2 facts');
+const oldNamedCloudMedia={version:1,nodes:{cloudTransmissionMedia:true},nodeEvidence:{cloudTransmissionMedia:{checkpointId:'cloud_transmission_media_draft_v0',answerSetVersion:1,passed:true,facts:{draft:true}}}};
+check(schema.networkCloudMediaPriorEvidenceSeen(oldNamedCloudMedia),true,'old named N2 draft is prior/unverified');
+check(schema.nodeEvidencePassed(oldNamedCloudMedia,'networkCloudMedia'),false,'old named N2 draft cannot unlock N3');
+
 for(const bad of [null,{},[],{version:2},'bad']){
   const result=schema.migrateSequenceMap(bad,100);
   check(result.ok,false,'unsupported map fails closed');

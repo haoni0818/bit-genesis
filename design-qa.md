@@ -230,6 +230,32 @@ Final result: READY · no unresolved P0/P1/P2 finding.
 
 ---
 
+# Design QA · CH.06 Cloud & Transmission Media
+
+## Visual and interaction evidence
+
+- Course Card: `qa/ch6-cloud-media-audit-2026-07-23/01-course-card-1366x768.png`.
+- Five-media Teach state at 1024×768: `02-teach-media-1024x768.png`.
+- Short-height Guided G4: `03-guided-g4-700x600-full.png`.
+- Mobile P5 with non-colour selected states: `04-p5-selected-390x844-full.png`.
+- Mobile Preview Evidence: `05-evidence-preview-390x844.png`.
+- Same-viewport CH.05/CH.06 comparison: `source-vs-build-2732x768.png`.
+- Detailed audit: `qa/ch6-cloud-media-audit-2026-07-23/REPORT.md`.
+
+## Result
+
+The formal 1664×936 ImageGen environment is a neutral exchange court with six identical plinths and no baked cloud type, link mode, medium, hardware or protocol answer. Runtime Canvas and DOM layers teach exactly five media families; WiFi remains visibly inside radio waves rather than becoming a sixth medium.
+
+At 1024×768, the corrected left HUD and right quick controls do not intersect; the console height leaves a measured 220.41px safeRect, and the 3×2 rail/media board remains readable. At 700×600 the chapter enters document flow. At 390×844 the media scene becomes one column, `RADIO WAVES · INCLUDING WIFI` remains complete, selected answers use white outline plus `✓ SELECTED`, and no horizontal overflow occurs.
+
+Course Card → Guide → Esc returns to Course Card; a second Esc closes and restores focus to `OPEN COURSE CARD`. The progressbar is named, modal background is inert, focus is trapped and restored, Canvas has a DOM mirror, and reduced-motion rules preserve the teaching facts. Chrome recorded no error or warning.
+
+Automated corroboration: CH.06 release-contract, embedded, sequence-schema, CH.05, CH.04, CH.03 and CH.02 suites all pass at the counts recorded by their current console output. Exact CH.06 Evidence contains ten facts, keeps §2.1 `PARTIAL`, and unlocks only N3. The final audit report records the frozen release counts.
+
+Final result: READY · no unresolved P0/P1/P2 finding.
+
+---
+
 # Design QA · CH.05 Network Foundations
 
 ## Visual and interaction evidence
