@@ -7,515 +7,86 @@
 <meta name="color-scheme" content="dark">
 <title>IT://COURSE MAP · CAIE 9618</title>
 <style>
-:root{
-  --bg:#010302;
-  --panel:#031008;
-  --panel-2:#06140b;
-  --line:#285f38;
-  --line-strong:#3d9154;
-  --text:#d9ffe4;
-  --muted:#8fb49a;
-  --green:#8dffab;
-  --cyan:#75dce7;
-  --amber:#e7bd62;
-  --red:#ff8178;
-  --shadow:#0b2b16;
-}
-*{box-sizing:border-box}
-html{background:var(--bg);scroll-behavior:smooth}
-body{
-  margin:0;
-  min-width:0;
-  min-height:100vh;
-  background:
-    linear-gradient(180deg,rgba(30,92,49,.08),transparent 30rem),
-    repeating-linear-gradient(0deg,rgba(125,255,160,.018) 0,rgba(125,255,160,.018) 1px,transparent 1px,transparent 4px),
-    var(--bg);
-  color:var(--text);
-  font-family:Consolas,"Cascadia Mono","Microsoft YaHei",monospace;
-  line-height:1.55;
-  overflow-wrap:anywhere;
-}
-a{color:inherit}
-button,a{font:inherit}
-a:focus-visible,summary:focus-visible{outline:2px solid #fff;outline-offset:4px}
-.shell{width:min(1160px,100%);margin:0 auto;padding:28px 20px 48px}
-.terminal-head{
-  border:1px solid var(--line-strong);
-  background:rgba(3,16,8,.94);
-  box-shadow:0 0 34px var(--shadow);
-  padding:24px;
-}
-.eyebrow,.section-kicker{margin:0;color:var(--green);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
-h1{margin:7px 0 4px;color:var(--green);font-size:clamp(25px,5vw,46px);font-weight:500;letter-spacing:.04em;line-height:1.12}
-.subtitle{margin:0;color:#b9dfc3;font-size:clamp(13px,2vw,17px)}
-.truth-note{margin:18px 0 0;padding:12px 14px;border-left:3px solid var(--amber);background:#171205;color:#e7d9aa;font-size:13px}
-.head-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
-.btn{
-  min-height:44px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:9px 15px;
-  border:1px solid #58cf79;
-  background:#0b2c15;
-  color:#e7ffed;
-  text-decoration:none;
-  cursor:pointer;
-}
-.btn:hover{background:#1d6832}
-.btn.sub{border-color:#49644f;background:#071109;color:#b2cbb8}
-.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:16px;color:var(--muted);font-size:11px}
-.legend span{display:inline-flex;align-items:center;gap:7px}
-.legend i{width:10px;height:10px;border:1px solid currentColor;background:currentColor;display:inline-block}
-.legend .evidenced{color:var(--green)}
-.legend .partial{color:var(--amber)}
-.legend .legacy{color:var(--cyan)}
-.legend .gap{color:var(--red)}
-main{display:grid;gap:26px;margin-top:26px}
-.block{border:1px solid var(--line);background:rgba(3,12,7,.9);padding:20px;box-shadow:0 0 22px rgba(10,43,22,.45)}
-.section-title{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:15px}
-.section-title h2{margin:3px 0 0;color:var(--green);font-size:19px;font-weight:500}
-.section-note{margin:0;color:var(--muted);font-size:12px;text-align:right;max-width:52ch}
-.order-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.order-item{min-width:0;border:1px solid var(--line);background:var(--panel);padding:12px;position:relative}
-.order-item:not(:last-child)::after{content:"";position:absolute;right:-11px;top:22px;width:10px;border-top:1px solid var(--line-strong)}
-.order-item .num{color:#568464;font-size:10px;letter-spacing:.12em}
-.order-item b{display:block;margin-top:4px;color:#dfffe7;font-size:13px;font-weight:500}
-.order-item p{margin:5px 0 0;color:var(--muted);font-size:11px}
-.status{
-  display:inline-flex;
-  align-items:center;
-  min-height:24px;
-  width:max-content;
-  max-width:100%;
-  margin-top:9px;
-  padding:3px 8px;
-  border:1px solid currentColor;
-  font-size:10px;
-  letter-spacing:.07em;
-  line-height:1.35;
-}
-.status.evidenced{color:var(--green);background:rgba(43,128,64,.12)}
-.status.partial{color:var(--amber);background:rgba(156,112,24,.11)}
-.status.legacy{color:var(--cyan);background:rgba(37,122,131,.11)}
-.status.gap{color:var(--red);background:rgba(126,42,37,.11)}
-.chapter-list{display:grid;gap:12px}
-.chapter{
-  border:1px solid var(--line);
-  background:linear-gradient(90deg,rgba(7,28,14,.78),rgba(3,10,6,.94));
-  padding:16px;
-}
-.chapter-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
-.chapter-id{color:#5e966b;font-size:11px;letter-spacing:.13em}
-.chapter h3{margin:3px 0 0;color:#dffff0;font-size:17px;font-weight:500}
-.mapping{margin:7px 0 0;color:var(--green);font-size:12px}
-.badge-stack{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-.badge-stack .status{margin-top:0}
-.scope-label{color:var(--amber);font-size:10px;text-align:right}
-.chapter-body{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;margin-top:14px}
-.info{border-top:1px solid #173d22;padding-top:11px}
-.info h4{margin:0 0 7px;color:#75b887;font-size:10px;font-weight:500;letter-spacing:.12em}
-.info ul{margin:0;padding-left:18px;color:#bed8c4;font-size:12px}
-.info li+li{margin-top:5px}
-.chapter details{margin-top:13px;border-top:1px solid #173d22}
-.chapter summary{min-height:44px;display:flex;align-items:center;color:#86b993;font-size:12px;cursor:pointer;list-style:none}
-.chapter summary::-webkit-details-marker{display:none}
-.chapter summary::before{content:"+";width:20px;color:var(--green)}
-.chapter details[open] summary::before{content:"−"}
-.sequence{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 0 10px 20px;color:#abc8b2;font-size:11px}
-.sequence b{display:block;color:#6d9c78;font-weight:500}
-.chapter-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px}
-.read-note{color:#668e70;font-size:10px}
-.repair-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.repair{border:1px solid var(--line);background:var(--panel);padding:14px}
-.repair-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.repair-no{color:#5d8d68;font-size:10px;letter-spacing:.13em}
-.repair h3{margin:4px 0 0;color:#d9ffe4;font-size:14px;font-weight:500}
-.repair p{margin:9px 0 0;color:#abc8b2;font-size:12px}
-.repair-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px;padding-top:12px;border-top:1px solid #173d22}
-.repair-evidence-note{color:#6f9c7a;font-size:10px;max-width:42ch}
-.graphics-gap{margin-top:12px;border:1px solid #6e5430;background:#171205;padding:15px}
-.graphics-gap h3{margin:0;color:var(--amber);font-size:14px;font-weight:500}
-.graphics-gap ul{margin:9px 0 0;padding-left:18px;color:#d9ca99;font-size:12px}
-.next-card{border:1px solid #304f37;background:#040a06;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:15px;align-items:center}
-.next-card h3{margin:0;color:#b6d4bd;font-size:16px;font-weight:500}
-.next-card p{margin:7px 0 0;color:#7f9c86;font-size:12px;max-width:76ch}
-.test-report{display:none;margin-top:18px;border:1px solid var(--cyan);background:#041216;padding:12px;color:#b9f7ff;font-size:12px}
-.test-report.show{display:block}
-.test-report.fail{border-color:var(--red);color:#ffd0cc;background:#160605}
-.foot{margin-top:26px;color:#5f8668;font-size:10px;text-align:center}
-@media(max-width:760px){
-  .shell{padding:16px 12px 36px}
-  .terminal-head,.block{padding:16px}
-  .section-title{display:block}
-  .section-note{text-align:left;margin-top:7px}
-  .order-grid{grid-template-columns:1fr 1fr}
-  .order-item:nth-child(2)::after{display:none}
-  .chapter-head{grid-template-columns:1fr}
-  .badge-stack{align-items:flex-start}
-  .scope-label{text-align:left}
-  .chapter-body,.repair-list{grid-template-columns:1fr}
-  .next-card{grid-template-columns:1fr}
-}
-@media(max-width:430px){
-  .shell{padding-left:10px;padding-right:10px}
-  .terminal-head,.block{padding:14px}
-  .truth-note{padding:10px 11px}
-  .head-actions,.chapter-actions,.repair-actions{align-items:stretch;flex-direction:column}
-  .head-actions .btn,.chapter-actions .btn,.repair-actions .btn{width:100%}
-  .order-grid{grid-template-columns:1fr}
-  .order-item::after{display:none}
-  .sequence{grid-template-columns:1fr;padding-left:20px}
-  .chapter{padding:13px}
-}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+:root{--bg:#010302;--panel:#031008;--panel2:#06140b;--line:#285f38;--strong:#3d9154;--text:#d9ffe4;--muted:#8fb49a;--green:#8dffab;--cyan:#75dce7;--amber:#e7bd62;--red:#ff8178}
+*{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;min-height:100vh;background:linear-gradient(180deg,rgba(30,92,49,.08),transparent 30rem),repeating-linear-gradient(0deg,rgba(125,255,160,.018) 0,rgba(125,255,160,.018) 1px,transparent 1px,transparent 4px),var(--bg);color:var(--text);font-family:Consolas,"Cascadia Mono","Microsoft YaHei",monospace;line-height:1.55;overflow-wrap:anywhere}
+a{color:inherit}a:focus-visible,summary:focus-visible{outline:2px solid #fff;outline-offset:4px}.shell{width:min(1160px,100%);margin:auto;padding:28px 20px 48px}.head,.block{border:1px solid var(--strong);background:rgba(3,16,8,.94);padding:22px;box-shadow:0 0 30px #0b2b16}.block{border-color:var(--line);margin-top:22px}.eyebrow,.kicker{margin:0;color:var(--green);font-size:12px;letter-spacing:.14em;text-transform:uppercase}h1{margin:7px 0 4px;color:var(--green);font-size:clamp(25px,5vw,44px);font-weight:500}h2{margin:4px 0;color:var(--green);font-size:19px;font-weight:500}.sub,.note{color:var(--muted);font-size:12px}.truth{padding:12px;border-left:3px solid var(--amber);background:#171205;color:#e7d9aa}.legend,.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;border:1px solid #58cf79;background:#0b2c15;color:#e7ffed;text-decoration:none}.btn.locked{border-color:#49644f;background:#071109;color:#78927e}.status{display:inline-flex;align-items:center;min-height:25px;padding:3px 8px;border:1px solid currentColor;font-size:10px;letter-spacing:.06em}.evidenced{color:var(--green)}.partial{color:var(--amber)}.legacy{color:var(--cyan)}.gap{color:var(--red)}.route{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:7px;margin-top:15px}.route span{border:1px solid var(--line);background:var(--panel);padding:9px 6px;color:#ccebd4;font-size:10px;text-align:center}.list{display:grid;gap:11px;margin-top:14px}.repairs{grid-template-columns:repeat(2,minmax(0,1fr))}.card{border:1px solid var(--line);background:linear-gradient(90deg,rgba(7,28,14,.8),rgba(3,10,6,.94));padding:15px}.card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.id{color:#6fa17b;font-size:10px;letter-spacing:.12em}.card h3{margin:4px 0;color:#dffff0;font-size:15px;font-weight:500}.mapping{margin:5px 0;color:var(--green);font-size:11px}.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}.cols div{border-top:1px solid #173d22;padding-top:9px}.cols b{display:block;color:#75b887;font-size:10px;font-weight:500}.cols p{margin:5px 0;color:#b8d0be;font-size:11px}.card details{border-top:1px solid #173d22;margin-top:10px}.card summary{min-height:44px;display:flex;align-items:center;color:#86b993;font-size:11px;cursor:pointer}.entry{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px}.entry .note{max-width:54ch}.gate{border:1px solid #6e5430;background:#171205;padding:14px;margin-top:12px}.report{display:none;margin-top:14px;border:1px solid var(--cyan);padding:10px;color:#b9f7ff}.report.show{display:block}.report.fail{border-color:var(--red);color:#ffd0cc}.foot{text-align:center;color:#5f8668;font-size:10px;margin-top:24px}
+@media(max-width:900px){.route{grid-template-columns:repeat(4,1fr)}}@media(max-width:700px){.shell{padding:14px 10px 34px}.head,.block{padding:15px}.repairs,.cols{grid-template-columns:1fr}.entry{align-items:stretch;flex-direction:column}.entry .btn{width:100%}.route{grid-template-columns:repeat(2,1fr)}}@media(max-width:430px){.route{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
 <div class="shell">
-  <header class="terminal-head">
-    <p class="eyebrow">IT://COURSE MAP · LOCAL READ-ONLY TERMINAL</p>
-    <h1>INFORMATION REPRESENTATION</h1>
-    <p class="subtitle">CAIE 9618 (2026) · Chapter 0–4 + Repair 1–3 syllabus route</p>
-    <p class="truth-note"><b>证据边界：</b>旧存档的 <code>end</code> 或 completion marker 只显示 <b>LEGACY PLAYTHROUGH</b>。它表示“走完旧版”，不等于新版 checkpoint evidence。</p>
-    <div class="head-actions">
-      <a class="btn" href="#learningRoute">查看学习顺序</a>
-      <a class="btn sub" href="index.html">返回第 0 章</a>
-    </div>
-    <div class="legend" aria-label="状态说明">
-      <span class="evidenced"><i></i>EVIDENCED · checkpoint 已通过</span>
-      <span class="partial"><i></i>PARTIAL · 仍是子集或有 syllabus 缺口</span>
-      <span class="legacy"><i></i>LEGACY · 旧版走完，无 checkpoint</span>
-      <span class="gap"><i></i>GAP · 本机无证据或尚未覆盖</span>
-    </div>
-    <div id="testReport" class="test-report" role="status" aria-live="polite"></div>
-  </header>
-
-  <main>
-    <section class="block" aria-labelledby="orderTitle">
-      <div class="section-title">
-        <div><p class="section-kicker">OFFICIAL ORDER</p><h2 id="orderTitle">§1 → §2.1</h2></div>
-        <p class="section-note">先完成 §1.1，再进入 §1.2；Course Map 不把已上线顺序误写成学习顺序。</p>
-      </div>
-      <div id="officialOrder" class="order-grid"></div>
-    </section>
-
-    <section class="block" id="learningRoute" aria-labelledby="chapterZeroTitle">
-      <div class="section-title">
-        <div><p class="section-kicker">LEARNING ROUTE · STEP 01</p><h2 id="chapterZeroTitle">Chapter 0 · §1.1 subset</h2></div>
-        <p class="section-note">先建立 binary、BCD、ASCII 与 Unicode 的初步经验，再立即补齐 §1.1 repairs。</p>
-      </div>
-      <div id="chapterZeroList" class="chapter-list"></div>
-    </section>
-
-    <section class="block" id="repairSequence" aria-labelledby="repairTitle">
-      <div class="section-title">
-        <div><p class="section-kicker">LEARNING ROUTE · STEPS 02–05</p><h2 id="repairTitle">§1.1 prerequisite gate</h2></div>
-        <p class="section-note">CH.00 → Repair 1 → Repair 2 → Repair 3 → Repair 4 → CH.01。四项 repair 全部留下证据后才进入 §1.2 学习顺序。</p>
-      </div>
-      <div id="repairList" class="repair-list"></div>
-    </section>
-
-    <section class="block" id="laterChapters" aria-labelledby="laterChaptersTitle">
-      <div class="section-title">
-        <div><p class="section-kicker">LEARNING ROUTE · STEPS 06–09</p><h2 id="laterChaptersTitle">Chapter 1–4 · §1.2 then §1.3</h2></div>
-        <p class="section-note">推荐顺序：CH.01 BITMAP / RLE → CH.02 SOUND → CH.03 VECTOR → CH.04 COMPRESSION。每张卡分别显示 syllabus 范围与本机 evidence。</p>
-      </div>
-      <div id="chapterLaterList" class="chapter-list"></div>
-      <article class="graphics-gap">
-        <div class="repair-top">
-          <div><p class="repair-no">§1.2 GRAPHICS TERMINOLOGY GAP</p><h3>Bitmap terminology repair</h3></div>
-          <span id="graphicsStatus" class="status gap">GAP</span>
-        </div>
-        <ul>
-          <li>file header</li>
-          <li>image resolution and its effect on image quality and file size</li>
-          <li>screen resolution</li>
-        </ul>
-      </article>
-    </section>
-
-    <section class="block" aria-labelledby="nextTitle">
-      <div class="section-title">
-        <div><p class="section-kicker">NEXT OFFICIAL SECTION</p><h2 id="nextTitle">§2.1 Networks including the internet</h2></div>
-      </div>
-      <article class="next-card">
-        <div>
-          <h3>NETWORKS · NOT YET EVIDENCED</h3>
-          <p>§2.1 是 §1 Information Representation 之后的下一正式小节。本页不提前宣称任何 Networks 知识已覆盖；建议先完成 §1.1 四项 repair，并补齐 §1.2 graphics terminology gap。</p>
-        </div>
-        <span class="status gap">GAP</span>
-      </article>
-    </section>
-  </main>
-  <p class="foot">LOCAL STORAGE IS READ ONLY · DEBUG AND RECORD TABLES NEVER CREATE EVIDENCE</p>
+<header class="head">
+  <p class="eyebrow">IT://COURSE MAP · LOCAL SCHEMA-AWARE TERMINAL</p>
+  <h1>INFORMATION REPRESENTATION</h1>
+  <p class="sub">CAIE 9618 (2026) · 按 printed syllabus 学习顺序</p>
+  <p class="truth"><b>证据边界：</b><code>end</code> 和 completion marker 只是 <b>LEGACY PLAYTHROUGH</b>。只有完整 checkpoint predicate 才是 <b>EVIDENCED</b>。正常入口只会幂等升级已经完整验证的旧 Repair 2 / Compression 证据，不删改旧字段。</p>
+  <div class="legend"><span class="status evidenced">EVIDENCED</span><span class="status partial">PARTIAL</span><span class="status legacy">LEGACY PLAYTHROUGH</span><span class="status gap">GAP</span></div>
+  <div id="testReport" class="report" role="status" aria-live="polite"></div>
+</header>
+<main>
+  <section class="block" aria-labelledby="routeTitle"><p class="kicker">CANONICAL ROUTE</p><h2 id="routeTitle">§1.1 → §1.2 → §1.3 → §2.1</h2><div id="route" class="route"></div><div id="sectionStatus" class="legend"></div></section>
+  <section class="block" aria-labelledby="ch0Title"><p class="kicker">STEP 01</p><h2 id="ch0Title">CH.00 · §1.1 opening subset</h2><div id="chapterZeroList" class="list"></div></section>
+  <section class="block" aria-labelledby="repairTitle"><p class="kicker">STEPS 02–06</p><h2 id="repairTitle">§1.1 repair gate</h2><p class="note">Repair 2A 在 Repair 3 之前；Repair 2B 在 Repair 3 之后。</p><div id="repairList" class="list repairs"></div></section>
+  <section class="block" aria-labelledby="chapterTitle"><p class="kicker">STEPS 07–10</p><h2 id="chapterTitle">CH.01 Bitmap → CH.02 Vector → CH.03 Sound → CH.04 Compression</h2><p class="note">物理文件名保持兼容：Vector 使用 <code>chapter3.html</code>，Sound 使用 <code>chapter2.html</code>。</p><div id="chapterLaterList" class="list"></div><div class="gate"><b>§1.2 EVIDENCE GATE</b><p class="note">Bitmap + Vector + Sound 的语义 full predicates 全部成立才能关闭 §1.2。<code>graphicsTerminology:true</code> 不能代替 Bitmap evidence。</p><span id="multimediaStatus" class="status gap">GAP</span></div></section>
+  <section class="block" aria-labelledby="networkTitle"><p class="kicker">NEXT OFFICIAL SECTION</p><h2 id="networkTitle">§2.1 Networks including the internet</h2><p class="note">只有 CH.04 Compression full evidence 通过后才满足进入前提；本页不宣称 Networks 内容已建成或已覆盖。</p><span class="status gap">GAP</span></section>
+</main>
+<p class="foot">NORMAL ENTRY MAY APPLY ONE IDEMPOTENT LOCAL SCHEMA MIGRATION · TEST / DEBUG ROUTES NEVER WRITE</p>
 </div>
-<noscript>此课程地图需要 JavaScript 才能读取本机章节进度。</noscript>
+<noscript>此课程地图需要 JavaScript 才能读取本机进度。</noscript>
+<script src="sequence-schema.js"></script>
 <script>
 'use strict';
-const COURSE_KEY='genesis_course_map_v1';
-const LEGACY_KEYS={
-  ch0:{save:'genesis_mvp_v1',field:'beat',marker:'genesis_ch0_complete_v1'},
-  ch1:{save:'genesis_ch1_v1',field:'stage'},
-  ch2:{save:'genesis_ch2_v1',field:'stage'},
-  ch3:{save:'genesis_ch3_v1',field:'stage'},
-  ch4:{save:'genesis_ch4_compression_v1',field:'stage'}
-};
+const Seq=globalThis.GenesisSequence;if(!Seq)throw new Error('sequence-schema.js required');
+function normalRoute(search,hash){return search===''&&hash===''}
+const COURSE_KEY='genesis_course_map_v1',NORMAL_ROUTE=normalRoute(location.search,location.hash);
+const LEGACY={ch0:{save:'genesis_mvp_v1',field:'beat',map:'ch0',marker:'genesis_ch0_complete_v1',label:'GENESIS'},bitmap:{save:'genesis_ch1_v1',field:'stage',map:'ch1',label:'LEGACY MIXED SCOPE'},vector:{save:'genesis_ch3_v1',field:'stage',map:'ch3',label:'VECTOR'},sound:{save:'genesis_ch2_v1',field:'stage',map:'ch2',label:'SOUND'},compression:{save:'genesis_ch4_compression_v1',field:'stage',map:'ch4',label:'COMPRESSION'}};
 const CHAPTERS=[
-  {
-    id:'ch0',number:'CH.00',title:'GENESIS · 世界从黑暗开始',href:'index.html',
-    mapping:['CAIE 9618 (2026) §1.1 Data Representation · SUBSET'],scope:'PARTIAL',
-    covers:['small non-negative binary patterns','BCD clock application','ASCII character mapping','Unicode character representation'],
-    gaps:['binary and decimal prefixes; magnitudes','systematic binary/denary/hexadecimal conversion','one’s/two’s complement; binary addition/subtraction; overflow','extended ASCII'],
-    prerequisite:'NONE',successor:'REPAIR 1 · PREFIX MAGNITUDES'
-  },
-  {
-    id:'ch1',number:'CH.01',title:'COLOUR / RLE · 颜色的重量',href:'chapter1.html',
-    mapping:['§1.2 Multimedia · Graphics · BITMAP SUBSET','§1.3 Compression · RLE SUBSET'],scope:'PARTIAL',
-    covers:['pixel grid and colour depth','bitmap size estimate at fixed image resolution','RLE count/value runs and exact reconstruction','RLE suitability and expansion counterexample'],
-    gaps:['file header and screen resolution','systematic image-resolution comparison','lossy/lossless across all required file types'],
-    prerequisite:'REPAIR 1–4 · §1.1 EVIDENCE',successor:'CH.2 · SOUND'
-  },
-  {
-    id:'ch2',number:'CH.02',title:'THE FIRST SOUND · 第一声',href:'chapter2.html',
-    mapping:['§1.2 Multimedia · Sound'],scope:'CHECKPOINT REQUIRED',
-    covers:['analogue-to-digital sampling','sampling rate and sampling resolution','file size and accuracy relationship','fixed-duration, fixed-buffer application'],
-    gaps:['sound-file compression belongs to §1.3','Hz, buffer and threshold values are TEACHING MODEL values'],
-    prerequisite:'CH.1 · FILE-SIZE TRADE-OFF',successor:'CH.3 · VECTOR GRAPHICS'
-  },
-  {
-    id:'ch3',number:'CH.03',title:'VECTOR · 没有碎掉的门',href:'chapter3.html',
-    mapping:['§1.2 Multimedia · Graphics · VECTOR + SUITABILITY'],scope:'CHECKPOINT REQUIRED',
-    covers:['drawing object, property and drawing list','scale comparison','bitmap/vector suitability for two situations','justification from image characteristics'],
-    gaps:['vector compression belongs to §1.3','“vector is always smaller” is not a valid claim','bitmap terminology repair remains'],
-    prerequisite:'CH.1 · BITMAP CONCEPTS',successor:'CH.4 · COMPRESSION'
-  },
-  {
-    id:'ch4',number:'CH.04',title:'COMPRESSION · 可以忘记多少',href:'chapter4.html',
-    mapping:['§1.3 Compression · COMPLETE CAPSTONE'],scope:'CHECKPOINT REQUIRED',
-    covers:['need for compression and examples of use','lossy and lossless methods','method justification from the situation','text, bitmap, vector and sound compression, including RLE'],
-    gaps:['specific codec internals are not claimed','capacity, unit and quality values are TEACHING MODEL values','§2.1 Networks has not started'],
-    prerequisite:'CH.1 RLE + CH.2 SOUND + CH.3 VECTOR',successor:'§2.1 NETWORKS'
-  }
+ {id:'ch0',number:'CH.00',contentId:'representation_chapter0_subset_v1',title:'GENESIS CHECKPOINT',href:'chapter0-checkpoint.html',mapping:'§1.1 Data Representation · SUBSET',covers:'binary pattern · one BCD digit · supplied ASCII lookup · Unicode suitability',gaps:'prefixes · hexadecimal · signed arithmetic · extended ASCII; PIXEL/COLOUR are §1.2 preview only',pre:'NONE',next:'REPAIR 1'},
+ {id:'bitmap',number:'CH.01',contentId:'multimedia_bitmap_v1',title:'BITMAP',href:'chapter1.html',mapping:'§1.2 Graphics · Bitmap',covers:'pixel + file header · image/screen resolution · colour depth · size/quality effects',gaps:'Vector · Sound · RLE/compression',pre:'COMPLETE §1.1',next:'CH.02 VECTOR'},
+ {id:'vector',number:'CH.02',contentId:'multimedia_vector_v1',title:'VECTOR',href:'chapter3.html',mapping:'§1.2 Graphics · Vector + suitability',covers:'objects · properties · drawing list · task justification',gaps:'Sound · compression',pre:'CH.01 BITMAP',next:'CH.03 SOUND'},
+ {id:'sound',number:'CH.03',contentId:'multimedia_sound_v1',title:'SOUND',href:'chapter2.html',mapping:'§1.2 Sound',covers:'encoding · sampling · rate/resolution · analogue/digital · size/accuracy',gaps:'sound compression',pre:'CH.02 VECTOR',next:'CH.04 COMPRESSION'},
+ {id:'compression',number:'CH.04',contentId:'compression_v1',title:'COMPRESSION',href:'chapter4.html',mapping:'§1.3 Compression',covers:'need/use · lossless/lossy · situation justification · four file types · RLE',gaps:'codec internals · Networks',pre:'BITMAP + VECTOR + SOUND',next:'§2.1 NETWORKS'}
 ];
 const REPAIRS=[
-  {id:'prefixes',title:'Magnitudes and prefixes',body:'Compare binary and decimal magnitudes; distinguish kibi/mebi/gibi/tebi from kilo/mega/giga/tera.',href:'repair1.html'},
-  {id:'hexAndApplications',title:'Hexadecimal and applications',body:'Convert positive integers between binary, denary and hexadecimal; distinguish BCD from ordinary binary; justify selected BCD and hexadecimal applications.',href:'repair2.html'},
-  {id:'signedArithmeticAndOverflow',title:'Signed integers and overflow',body:'Use one’s and two’s complement representations; add and subtract positive and negative binary integers; distinguish signed overflow from carry-out.',href:'repair3.html'},
-  {id:'extendedAscii',title:'Extended ASCII',body:'Distinguish ASCII, extended ASCII and Unicode for different character requirements.'}
+ {id:'prefixes',label:'REPAIR 1',title:'Magnitudes and prefixes',href:'repair1.html',body:'Binary and decimal prefixes; magnitude comparison.'},
+ {id:'numberSystemsAndBcd',label:'REPAIR 2A',title:'Number systems and BCD representation',href:'repair2.html#representation',body:'Positive integer representation/conversion, then BCD representation.'},
+ {id:'signedArithmeticAndOverflow',label:'REPAIR 3',title:'Signed arithmetic and overflow',href:'repair3.html',body:'One’s/two’s complement, binary addition/subtraction and overflow.'},
+ {id:'bcdHexApplications',label:'REPAIR 2B',title:'BCD and hexadecimal applications',href:'repair2.html#applications',body:'Practical BCD and hexadecimal applications after signed arithmetic.'},
+ {id:'extendedAscii',label:'REPAIR 4',title:'Character set boundary',href:'repair4.html',body:'ASCII, extended ASCII and Unicode from declared/supplied character sets.'}
 ];
-const REQUIRED_LEARNING_ROUTE=Object.freeze(['ch0','prefixes','hexAndApplications','signedArithmeticAndOverflow','extendedAscii','ch1','ch2','ch3','ch4','networks']);
-
-function safeGet(storage,key){try{return storage.getItem(key)}catch(error){return null}}
-function safeJson(storage,key){const raw=safeGet(storage,key);if(typeof raw!=='string'||raw==='')return null;try{const value=JSON.parse(raw);return value&&typeof value==='object'?value:null}catch(error){return null}}
-function readCourseMap(storage){const map=safeJson(storage,COURSE_KEY);return map&&map.version===1?map:null}
-function mapChapter(map,id){const value=map&&map.chapters&&map.chapters[id];return value&&typeof value==='object'?value:null}
-function checkpointPassed(map,id){const chapter=mapChapter(map,id);return Boolean(chapter&&chapter.checkpoint&&chapter.checkpoint.passed===true)}
-function oldPlaythroughSeen(storage,id){
-  const def=LEGACY_KEYS[id];
-  if(!def)return false;
-  if(id==='ch0'&&safeGet(storage,def.marker)==='1')return true;
-  const save=safeJson(storage,def.save);
-  return Boolean(save&&save[def.field]==='end');
+const ROUTE=['ch0','prefixes','numberSystemsAndBcd','signedArithmeticAndOverflow','bcdHexApplications','extendedAscii','bitmap','vector','sound','compression','networks'];
+function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}function cp(v){return JSON.parse(JSON.stringify(v))}
+function get(s,k){try{return s.getItem(k)}catch(e){return null}}function set(s,k,v){try{s.setItem(k,v);return true}catch(e){return false}}
+function parse(raw){if(typeof raw!=='string'||!raw)return null;try{const v=JSON.parse(raw);return obj(v)&&v.version===1?v:null}catch(e){return null}}
+function json(s,k){const raw=get(s,k);if(typeof raw!=='string'||!raw)return null;try{const v=JSON.parse(raw);return obj(v)?v:null}catch(e){return null}}
+function readMap(s){return parse(get(s,COURSE_KEY))}
+function readAndMigrate(s,normal=NORMAL_ROUTE,now=Date.now()){
+ const raw=get(s,COURSE_KEY),map=parse(raw);if(!map||!normal)return map;const m=Seq.migrateSequenceMap(map,now);if(!m.ok||!m.changed)return m.ok?m.map:map;
+ const encoded=JSON.stringify(m.map);if(!set(s,COURSE_KEY,encoded))return map;const back=get(s,COURSE_KEY),verified=parse(back);if(back===encoded&&verified&&JSON.stringify(verified)===encoded)return verified;set(s,COURSE_KEY,raw);return map;
 }
-function playthroughSeen(storage,map,id){const chapter=mapChapter(map,id);return Boolean(chapter&&chapter.playthroughSeen===true)||oldPlaythroughSeen(storage,id)}
-function chapterStatus(storage,map,id){
-  if(checkpointPassed(map,id))return'EVIDENCED';
-  if(playthroughSeen(storage,map,id))return'LEGACY PLAYTHROUGH';
-  return'GAP';
-}
-function repairPassed(map,id){return Boolean(map&&map.repairs&&map.repairs[id]===true)}
-function repairEvidence(map,id){const value=map&&map.repairEvidence&&map.repairEvidence[id];return value&&typeof value==='object'?value:null}
-function prefixEvidencePassed(map){const evidence=repairEvidence(map,'prefixes');return repairPassed(map,'prefixes')&&Boolean(evidence&&evidence.passed===true)}
-function prefixRepairStatus(map){return prefixEvidencePassed(map)?'EVIDENCED':'PARTIAL'}
-function prefixEvidenceNote(map){
-  const flag=repairPassed(map,'prefixes'),evidence=repairEvidence(map,'prefixes');
-  if(flag&&evidence&&evidence.passed===true)return evidence.scaffolded===true?'CHECKPOINT VERIFIED · PASSED WITH SCAFFOLDING':'CHECKPOINT VERIFIED · LOCAL EVIDENCE';
-  if(flag||evidence)return'PARTIAL · FLAG / EVIDENCE PAYLOAD NOT BOTH VERIFIED';
-  return'PARTIAL · CHECKPOINT AVAILABLE';
-}
-const HEX_EVIDENCE_ID='positive_bases_bcd_hex_apps_v1';
-function hexApplicationEvidencePassed(map){
-  const evidence=repairEvidence(map,'hexAndApplications'),facts=evidence&&evidence.facts;
-  return repairPassed(map,'hexAndApplications')&&Boolean(
-    evidence&&evidence.passed===true&&
-    evidence.checkpointId===HEX_EVIDENCE_ID&&
-    evidence.answerSetVersion===1&&
-    facts&&facts.positiveBaseConversion===true&&
-    facts.bcdRepresentation===true&&
-    facts.bcdApplication===true&&
-    facts.hexadecimalApplication===true
-  );
-}
-function hexApplicationRepairStatus(map){return hexApplicationEvidencePassed(map)?'EVIDENCED':'PARTIAL'}
-function hexApplicationEvidenceNote(map){
-  const flag=repairPassed(map,'hexAndApplications'),evidence=repairEvidence(map,'hexAndApplications');
-  if(hexApplicationEvidencePassed(map))return evidence.scaffolded===true?'CHECKPOINT VERIFIED · 4/4 WITH SCAFFOLDING':'CHECKPOINT VERIFIED · 4/4 LOCAL EVIDENCE';
-  if(flag||evidence)return'PARTIAL · FLAG / DETAIL EVIDENCE NOT FULLY VERIFIED';
-  return'PARTIAL · CHECKPOINT AVAILABLE';
-}
-const SIGNED_EVIDENCE_ID='signed_binary_arithmetic_overflow_v1';
-function signedArithmeticEvidencePassed(map){
-  const evidence=repairEvidence(map,'signedArithmeticAndOverflow'),facts=evidence&&evidence.facts;
-  return Boolean(map&&map.version===1)&&repairPassed(map,'signedArithmeticAndOverflow')&&Boolean(
-    evidence&&evidence.passed===true&&
-    evidence.checkpointId===SIGNED_EVIDENCE_ID&&
-    evidence.answerSetVersion===1&&
-    facts&&facts.onesComplementRepresentation===true&&
-    facts.twosComplementRepresentation===true&&
-    facts.binaryAddition===true&&
-    facts.binarySubtraction===true&&
-    facts.overflowRecognition===true
-  );
-}
-function signedArithmeticRepairStatus(map){return signedArithmeticEvidencePassed(map)?'EVIDENCED':'PARTIAL'}
-function signedArithmeticEvidenceNote(map){
-  const flag=repairPassed(map,'signedArithmeticAndOverflow'),evidence=repairEvidence(map,'signedArithmeticAndOverflow');
-  if(signedArithmeticEvidencePassed(map))return evidence.scaffolded===true?'CHECKPOINT VERIFIED · 4/4 WITH SCAFFOLDING':'CHECKPOINT VERIFIED · 4/4 LOCAL EVIDENCE';
-  if(flag||evidence)return'PARTIAL · FLAG / DETAIL EVIDENCE NOT FULLY VERIFIED';
-  return'PARTIAL · CHECKPOINT AVAILABLE';
-}
-function deriveSectionStatuses(storage,map){
-  const allRepresentation=prefixEvidencePassed(map)&&hexApplicationEvidencePassed(map)&&signedArithmeticEvidencePassed(map)&&repairPassed(map,'extendedAscii');
-  const graphics=repairPassed(map,'graphicsTerminology');
-  const allMultimedia=['ch1','ch2','ch3'].every(id=>checkpointPassed(map,id));
-  let compression='GAP';
-  if(checkpointPassed(map,'ch4'))compression='EVIDENCED';
-  else if(playthroughSeen(storage,map,'ch4'))compression='LEGACY PLAYTHROUGH';
-  else if(checkpointPassed(map,'ch1'))compression='PARTIAL';
-  return{
-    representation:checkpointPassed(map,'ch0')&&allRepresentation?'EVIDENCED':'PARTIAL',
-    multimedia:allMultimedia&&graphics?'EVIDENCED':'PARTIAL',
-    compression,
-    networks:'GAP'
-  };
-}
-function statusClass(value){if(value==='EVIDENCED')return'evidenced';if(value==='PARTIAL')return'partial';if(value==='LEGACY PLAYTHROUGH')return'legacy';return'gap'}
-function node(tag,className,text){const element=document.createElement(tag);if(className)element.className=className;if(text!==undefined)element.textContent=text;return element}
-function statusNode(value){const element=node('span','status '+statusClass(value),value);element.setAttribute('aria-label','Status: '+value);return element}
-
-function renderOrder(storage,map){
-  const statuses=deriveSectionStatuses(storage,map);
-  const items=[
-    ['01','§1.1 Data Representation','Ch.0 subset + four repairs',statuses.representation],
-    ['02','§1.2 Multimedia','Ch.1 bitmap · Ch.2 sound · Ch.3 vector',statuses.multimedia],
-    ['03','§1.3 Compression','Ch.1 RLE subset · Ch.4 capstone',statuses.compression],
-    ['04','§2.1 Networks including the internet','Next official section',statuses.networks]
-  ];
-  const root=document.getElementById('officialOrder');root.replaceChildren();
-  for(const item of items){const card=node('article','order-item');card.append(node('span','num',item[0]),node('b','',item[1]),node('p','',item[2]),statusNode(item[3]));root.append(card)}
-}
-function renderChapterGroup(rootId,chapters,storage,map){
-  const root=document.getElementById(rootId);root.replaceChildren();
-  for(const chapter of chapters){
-    const progress=chapterStatus(storage,map,chapter.id),article=node('article','chapter');article.dataset.chapter=chapter.id;
-    const head=node('div','chapter-head'),titleWrap=node('div'),badge=node('div','badge-stack');
-    titleWrap.append(node('div','chapter-id',chapter.number),node('h3','',chapter.title));
-    for(const mapping of chapter.mapping)titleWrap.append(node('p','mapping',mapping));
-    badge.append(statusNode(progress),node('span','scope-label','SYLLABUS SCOPE · '+chapter.scope));
-    head.append(titleWrap,badge);
-    const body=node('div','chapter-body'),covered=node('div','info'),gaps=node('div','info');
-    covered.append(node('h4','','COVERED IN THIS CHAPTER'));
-    const coveredList=node('ul');for(const item of chapter.covers)coveredList.append(node('li','',item));covered.append(coveredList);
-    gaps.append(node('h4','','NOT COVERED / NOT CLAIMED'));
-    const gapList=node('ul');for(const item of chapter.gaps)gapList.append(node('li','',item));gaps.append(gapList);body.append(covered,gaps);
-    const details=node('details'),summary=node('summary','','PREREQUISITE / SUCCESSOR'),sequence=node('div','sequence');
-    const before=node('div'),after=node('div');before.append(node('b','','PREREQUISITE'),document.createTextNode(chapter.prerequisite));after.append(node('b','','SUCCESSOR'),document.createTextNode(chapter.successor));sequence.append(before,after);details.append(summary,sequence);
-    const actions=node('div','chapter-actions'),link=node('a','btn','返回对应章节'),note=node('span','read-note',progress==='LEGACY PLAYTHROUGH'?'旧版完成不会自动生成 checkpoint':'本页不会修改章节存档');link.href=chapter.href;actions.append(link,note);
-    article.append(head,body,details,actions);root.append(article);
-  }
-}
-function renderChapters(storage,map){
-  renderChapterGroup('chapterZeroList',CHAPTERS.filter(chapter=>chapter.id==='ch0'),storage,map);
-  renderChapterGroup('chapterLaterList',CHAPTERS.filter(chapter=>chapter.id!=='ch0'),storage,map);
-}
-function renderRepairs(map){
-  const root=document.getElementById('repairList');root.replaceChildren();
-  REPAIRS.forEach((repair,index)=>{
-    const value=repair.id==='prefixes'?prefixRepairStatus(map):repair.id==='hexAndApplications'?hexApplicationRepairStatus(map):repair.id==='signedArithmeticAndOverflow'?signedArithmeticRepairStatus(map):(repairPassed(map,repair.id)?'EVIDENCED':'GAP'),card=node('article','repair'),top=node('div','repair-top'),copy=node('div');
-    copy.append(node('p','repair-no','REPAIR '+String(index+1).padStart(2,'0')),node('h3','',repair.title));top.append(copy,statusNode(value));card.append(top,node('p','',repair.body));
-    if(repair.href){const repairNumber=index+1,actions=node('div','repair-actions'),link=node('a','btn',(value==='EVIDENCED'?'重做 Repair ':'进入 Repair ')+repairNumber),noteText=repair.id==='prefixes'?prefixEvidenceNote(map):repair.id==='hexAndApplications'?hexApplicationEvidenceNote(map):signedArithmeticEvidenceNote(map),note=node('span','repair-evidence-note',noteText);link.href=repair.href;actions.append(link,note);card.append(actions)}
-    root.append(card);
-  });
-  const graphics=document.getElementById('graphicsStatus'),value=repairPassed(map,'graphicsTerminology')?'EVIDENCED':'GAP';graphics.className='status '+statusClass(value);graphics.textContent=value;
-}
-function render(storage=localStorage){const map=readCourseMap(storage);renderOrder(storage,map);renderChapters(storage,map);renderRepairs(map)}
-
-function memoryStorage(values={}){return{getItem:key=>Object.prototype.hasOwnProperty.call(values,key)?values[key]:null}}
-function runAssertions(){
-  const tests=[];
-  const assert=(condition,name)=>{console.assert(condition,name);tests.push({name,ok:Boolean(condition)})};
-  let storage=memoryStorage({genesis_ch0_complete_v1:'1'}),map=readCourseMap(storage);
-  assert(chapterStatus(storage,map,'ch0')==='LEGACY PLAYTHROUGH','T1 ch0 marker is legacy only');
-  assert(!checkpointPassed(map,'ch0'),'T2 ch0 marker does not create checkpoint evidence');
-  const allLegacyEnds=Object.keys(LEGACY_KEYS).filter(id=>id!=='ch0').every(id=>{const def=LEGACY_KEYS[id],sample=memoryStorage({[def.save]:JSON.stringify({stage:'end',recorded:true})});return chapterStatus(sample,readCourseMap(sample),id)==='LEGACY PLAYTHROUGH'});
-  assert(allLegacyEnds,'T3 ch1–ch4 stage=end are legacy only');
-  storage=memoryStorage({genesis_ch3_v1:JSON.stringify({stage:'objects',recorded:true})});map=readCourseMap(storage);
-  assert(chapterStatus(storage,map,'ch3')==='GAP','T4 records and partial stages are not evidence');
-  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch4:{playthroughSeen:true,checkpoint:{passed:true}}},repairs:{}})});map=readCourseMap(storage);
-  assert(chapterStatus(storage,map,'ch4')==='EVIDENCED','T5 explicit checkpoint can create evidence');
-  storage=memoryStorage({[COURSE_KEY]:'{broken'});map=readCourseMap(storage);
-  assert(map===null&&chapterStatus(storage,map,'ch1')==='GAP','T6 malformed map fails closed');
-  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch0:{checkpoint:{passed:true}}},repairs:{prefixes:true,hexAndApplications:true,signedArithmeticAndOverflow:true,extendedAscii:true},repairEvidence:{prefixes:{passed:true},hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}},signedArithmeticAndOverflow:{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}}}})});map=readCourseMap(storage);
-  assert(deriveSectionStatuses(storage,map).representation==='EVIDENCED','T7 four repairs plus ch0 checkpoint close §1.1');
-  storage=memoryStorage({[COURSE_KEY]:JSON.stringify({version:1,chapters:{ch1:{checkpoint:{passed:true}},ch2:{checkpoint:{passed:true}},ch3:{checkpoint:{passed:true}}},repairs:{graphicsTerminology:false}})});map=readCourseMap(storage);
-  assert(deriveSectionStatuses(storage,map).multimedia==='PARTIAL','T8 graphics gap keeps §1.2 partial');
-  assert(CHAPTERS.map(x=>x.id).join(',')==='ch0,ch1,ch2,ch3,ch4','T9 chapter order is fixed');
-  assert(REPAIRS.map(x=>x.id).join(',')==='prefixes,hexAndApplications,signedArithmeticAndOverflow,extendedAscii','T10 repair order is fixed');
-  map={version:1,repairs:{prefixes:true},repairEvidence:{prefixes:{passed:false}}};
-  assert(prefixRepairStatus(map)==='PARTIAL','T11 prefix flag without passed evidence stays partial');
-  map={version:1,repairs:{prefixes:false},repairEvidence:{prefixes:{passed:true}}};
-  assert(prefixRepairStatus(map)==='PARTIAL','T12 prefix evidence without flag stays partial');
-  map={version:1,repairs:{prefixes:true},repairEvidence:{prefixes:{passed:true,scaffolded:false}}};
-  assert(prefixRepairStatus(map)==='EVIDENCED','T13 prefix flag plus evidence is evidenced');
-  storage=memoryStorage({[COURSE_KEY]:JSON.stringify(map)});
-  assert(deriveSectionStatuses(storage,map).representation==='PARTIAL','T14 Repair 1 alone keeps all of §1.1 partial');
-  assert(REPAIRS[0].href==='repair1.html','T15 Repair 1 route is playable');
-  map={version:1,repairs:{hexAndApplications:true},repairEvidence:{}};
-  assert(hexApplicationRepairStatus(map)==='PARTIAL','T16 Repair 2 boolean only is partial');
-  map={version:1,repairs:{hexAndApplications:false},repairEvidence:{hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}}}};
-  assert(hexApplicationRepairStatus(map)==='PARTIAL','T17 Repair 2 detail only is partial');
-  map={version:1,repairs:{hexAndApplications:true},repairEvidence:{hexAndApplications:{passed:true,checkpointId:'wrong_id',answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}}}};
-  assert(hexApplicationRepairStatus(map)==='PARTIAL','T18 Repair 2 wrong checkpoint ID is partial');
-  const invalidHexDetails=[
-    {passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:2,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}},
-    {passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:false}}
-  ];
-  assert(invalidHexDetails.every(evidence=>hexApplicationRepairStatus({version:1,repairs:{hexAndApplications:true},repairEvidence:{hexAndApplications:evidence}})==='PARTIAL'),'T19 Repair 2 wrong version or incomplete facts are partial');
-  map={version:1,repairs:{hexAndApplications:true},repairEvidence:{hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}}}};
-  assert(hexApplicationRepairStatus(map)==='EVIDENCED','T20 Repair 2 complete detail evidence is evidenced');
-  storage=memoryStorage({[COURSE_KEY]:JSON.stringify(map)});
-  assert(deriveSectionStatuses(storage,map).representation==='PARTIAL','T21 Repair 2 alone keeps all of §1.1 partial');
-  assert(REPAIRS.map(x=>x.id).join(',')==='prefixes,hexAndApplications,signedArithmeticAndOverflow,extendedAscii'&&REPAIRS[1].href==='repair2.html','T22 Repair order and Repair 2 route are fixed');
-  assert(REQUIRED_LEARNING_ROUTE.join('>')==='ch0>prefixes>hexAndApplications>signedArithmeticAndOverflow>extendedAscii>ch1>ch2>ch3>ch4>networks','T23 syllabus learning route puts all §1.1 repairs before Chapter 1');
-  map={version:1,repairs:{signedArithmeticAndOverflow:true},repairEvidence:{}};
-  assert(signedArithmeticRepairStatus(map)==='PARTIAL','T24 Repair 3 boolean only is partial');
-  map={version:1,repairs:{signedArithmeticAndOverflow:false},repairEvidence:{signedArithmeticAndOverflow:{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}}}};
-  assert(signedArithmeticRepairStatus(map)==='PARTIAL','T25 Repair 3 detail only is partial');
-  const signedFactKeys=['onesComplementRepresentation','twosComplementRepresentation','binaryAddition','binarySubtraction','overflowRecognition'],validSignedDetail={passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}},invalidSignedDetails=[
-    {passed:true,checkpointId:'wrong_id',answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}},
-    {passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:2,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}},
-    {passed:false,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}},
-    ...signedFactKeys.map(key=>{const facts={onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true};facts[key]=false;return{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts}})
-  ];
-  assert(invalidSignedDetails.every(evidence=>signedArithmeticRepairStatus({version:1,repairs:{signedArithmeticAndOverflow:true},repairEvidence:{signedArithmeticAndOverflow:evidence}})==='PARTIAL')&&signedArithmeticRepairStatus({version:2,repairs:{signedArithmeticAndOverflow:true},repairEvidence:{signedArithmeticAndOverflow:validSignedDetail}})==='PARTIAL','T26 Repair 3 wrong map, ID, version, passed or any fact stays partial');
-  map={version:1,repairs:{signedArithmeticAndOverflow:true},repairEvidence:{signedArithmeticAndOverflow:{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}}}};
-  assert(signedArithmeticRepairStatus(map)==='EVIDENCED','T27 Repair 3 complete detail evidence is evidenced');
-  storage=memoryStorage({[COURSE_KEY]:JSON.stringify(map)});
-  assert(deriveSectionStatuses(storage,map).representation==='PARTIAL','T28 Repair 3 alone keeps all of §1.1 partial');
-  assert(REPAIRS[2].href==='repair3.html'&&SIGNED_EVIDENCE_ID==='signed_binary_arithmetic_overflow_v1','T29 Repair 3 route and evidence ID are fixed');
-  const nearComplete={version:1,chapters:{ch0:{checkpoint:{passed:true}}},repairs:{prefixes:true,hexAndApplications:true,signedArithmeticAndOverflow:true,extendedAscii:false},repairEvidence:{prefixes:{passed:true},hexAndApplications:{passed:true,checkpointId:HEX_EVIDENCE_ID,answerSetVersion:1,facts:{positiveBaseConversion:true,bcdRepresentation:true,bcdApplication:true,hexadecimalApplication:true}},signedArithmeticAndOverflow:{passed:true,checkpointId:SIGNED_EVIDENCE_ID,answerSetVersion:1,facts:{onesComplementRepresentation:true,twosComplementRepresentation:true,binaryAddition:true,binarySubtraction:true,overflowRecognition:true}}}},nearStorage=memoryStorage({[COURSE_KEY]:JSON.stringify(nearComplete)});
-  assert(deriveSectionStatuses(nearStorage,readCourseMap(nearStorage)).representation==='PARTIAL','T30 Chapter 0 plus Repairs 1–3 still needs Repair 4');
-  const failed=tests.filter(test=>!test.ok),report=document.getElementById('testReport');report.classList.add('show');
-  if(failed.length){report.classList.add('fail');report.textContent='TEST FAIL · '+failed.map(test=>test.name).join(' · ')}else report.textContent='TEST PASS · '+tests.length+' pure JavaScript assertions';
-  console.info('[COURSE MAP TEST]',tests.length-failed.length+'/'+tests.length,'assertions passed');
-  return failed.length===0;
-}
-
-render();
-addEventListener('storage',event=>{if(event.key===null||event.key===COURSE_KEY||Object.values(LEGACY_KEYS).some(item=>event.key===item.save||event.key===item.marker))render()});
-if(new URLSearchParams(location.search).has('test'))runAssertions();
+function legacySeen(s,map,id){const d=LEGACY[id];if(id==='ch0'&&get(s,d.marker)==='1')return true;const save=json(s,d.save),old=map&&map.chapters&&map.chapters[d.map];return !!(save&&save[d.field]==='end')||!!(obj(old)&&(old.playthroughSeen===true||obj(old.checkpoint)||obj(old.evidence)||old.stage==='end'))}
+function touched(map,id){return !!(map&&((map.nodes&&Object.prototype.hasOwnProperty.call(map.nodes,id))||(map.nodeEvidence&&Object.prototype.hasOwnProperty.call(map.nodeEvidence,id))))}
+function chapterStatus(s,map,id){if(id==='ch0'){if(Seq.chapter0EvidencePassed(map))return'EVIDENCED';if(map&&map.chapters&&obj(map.chapters.ch0)&&obj(map.chapters.ch0.checkpoint))return'PARTIAL';return legacySeen(s,map,id)?'LEGACY PLAYTHROUGH':'GAP'}if(Seq.nodeEvidencePassed(map,id))return'EVIDENCED';if(touched(map,id))return'PARTIAL';return legacySeen(s,map,id)?'LEGACY PLAYTHROUGH':'GAP'}
+function repairPass(map,id){if(id==='prefixes')return Seq.prefixEvidencePassed(map);if(id==='numberSystemsAndBcd')return Seq.repair2aEvidencePassed(map)||Seq.legacyRepair2EvidencePassed(map);if(id==='signedArithmeticAndOverflow')return Seq.signedEvidencePassed(map);if(id==='bcdHexApplications')return Seq.repair2bEvidencePassed(map)||Seq.legacyRepair2EvidencePassed(map);return Seq.characterDataEvidencePassed(map)}
+function repairUnlock(map,id){if(repairPass(map,id))return true;if(id==='prefixes')return Seq.chapter0EvidencePassed(map);if(id==='numberSystemsAndBcd')return Seq.prefixEvidencePassed(map);if(id==='signedArithmeticAndOverflow')return repairPass(map,'numberSystemsAndBcd');if(id==='bcdHexApplications')return Seq.signedEvidencePassed(map);return repairPass(map,'bcdHexApplications')}
+function chapterUnlock(map,id){if(id==='ch0'||Seq.nodeEvidencePassed(map,id))return true;if(id==='bitmap')return Seq.section11EvidencePassed(map);if(id==='vector')return Seq.nodeEvidencePassed(map,'bitmap');if(id==='sound')return Seq.nodeEvidencePassed(map,'vector');return Seq.nodeEvidencePassed(map,'bitmap')&&Seq.nodeEvidencePassed(map,'vector')&&Seq.nodeEvidencePassed(map,'sound')}
+function sections(s,map){const b=Seq.nodeEvidencePassed(map,'bitmap'),v=Seq.nodeEvidencePassed(map,'vector'),a=Seq.nodeEvidencePassed(map,'sound'),any=['bitmap','vector','sound'].some(id=>touched(map,id)||legacySeen(s,map,id));let c='GAP';if(Seq.nodeEvidencePassed(map,'compression'))c='EVIDENCED';else if(touched(map,'compression'))c='PARTIAL';else if(legacySeen(s,map,'compression'))c='LEGACY PLAYTHROUGH';return{representation:Seq.section11EvidencePassed(map)?'EVIDENCED':'PARTIAL',multimedia:b&&v&&a?'EVIDENCED':any?'PARTIAL':'GAP',compression:c,networks:'GAP'}}
+function cls(v){return v==='EVIDENCED'?'evidenced':v==='PARTIAL'?'partial':v==='LEGACY PLAYTHROUGH'?'legacy':'gap'}function el(tag,c,text){const n=document.createElement(tag);if(c)n.className=c;if(text!==undefined)n.textContent=text;return n}function badge(v){const n=el('span','status '+cls(v),v);n.setAttribute('aria-label','Status: '+v);return n}function control(href,ok,replay){if(ok){const a=el('a','btn',replay?'REPLAY ENTRY':'OPEN ENTRY');a.href=href;return a}const n=el('span','btn locked','ENTRY LOCKED');n.setAttribute('aria-disabled','true');return n}
+function renderCard(root,data,status,unlocked,legacy){const a=el('article','card'),h=el('div','card-head'),t=el('div');a.dataset.contentId=data.contentId||data.id;t.append(el('div','id',data.number||data.label),el('h3','',data.title),el('p','mapping',data.mapping||''));h.append(t,badge(status));a.append(h);if(data.covers){const cols=el('div','cols'),x=el('div'),y=el('div');x.append(el('b','','COVERED / CHECKPOINT CONTRACT'),el('p','',data.covers));y.append(el('b','','NOT COVERED / NOT CLAIMED'),el('p','',data.gaps));cols.append(x,y);a.append(cols);const d=el('details'),s=el('summary','','PREREQUISITE / SUCCESSOR');d.append(s,el('p','note','PREREQUISITE · '+data.pre+' → SUCCESSOR · '+data.next));a.append(d)}else a.append(el('p','note',data.body));const e=el('div','entry');e.append(control(data.href,unlocked,status==='EVIDENCED'),el('span','note',legacy?'LEGACY PLAYTHROUGH · '+legacy+' · NO CANONICAL EVIDENCE':unlocked?'ENTRY STATUS · FULL PREDICATE CONTROLS EVIDENCE':'PREREQUISITE LOCK · DIRECT URL REMAINS PREVIEW-ONLY'));a.append(e);root.append(a)}
+function render(s=localStorage){const map=readAndMigrate(s),route=document.getElementById('route');route.replaceChildren();ROUTE.forEach(id=>route.append(el('span','',id)));const st=sections(s,map),ss=document.getElementById('sectionStatus');ss.replaceChildren(el('span','note','§1.1'),badge(st.representation),el('span','note','§1.2'),badge(st.multimedia),el('span','note','§1.3'),badge(st.compression));const z=document.getElementById('chapterZeroList'),r=document.getElementById('repairList'),c=document.getElementById('chapterLaterList');z.replaceChildren();r.replaceChildren();c.replaceChildren();const ch0=CHAPTERS[0],zst=chapterStatus(s,map,'ch0');renderCard(z,ch0,zst,chapterUnlock(map,'ch0'),zst==='LEGACY PLAYTHROUGH'?LEGACY.ch0.label:'');REPAIRS.forEach(x=>renderCard(r,x,repairPass(map,x.id)?'EVIDENCED':'PARTIAL',repairUnlock(map,x.id),''));CHAPTERS.slice(1).forEach(x=>{const v=chapterStatus(s,map,x.id);renderCard(c,x,v,chapterUnlock(map,x.id),v==='LEGACY PLAYTHROUGH'?LEGACY[x.id].label:'')});const ms=document.getElementById('multimediaStatus');ms.className='status '+cls(st.multimedia);ms.textContent=st.multimedia;return map}
+function mem(values={},failSet=false){const data=Object.assign({},values),writes=[];return{getItem:k=>Object.prototype.hasOwnProperty.call(data,k)?data[k]:null,setItem(k,v){if(failSet)throw Error('set');data[k]=String(v);writes.push([k,String(v)])},data,writes}}
+function runAssertions(){const tests=[],assert=(v,n)=>{console.assert(v,n);tests.push({ok:!!v,n})},facts=names=>Object.fromEntries(names.map(n=>[n,true]));const ch0={checkpointId:Seq.IDS.ch0,answerSetVersion:1,passed:true,facts:facts(['smallNonNegativeBinaryPattern','bcdDigitRepresentation','asciiCharacterMapping','unicodeSuitability'])},p={checkpointId:Seq.IDS.prefixes,answerSetVersion:1,passed:true,facts:facts(['prefixFamilies','magnitudes','comparisonInBytes'])},h={checkpointId:Seq.IDS.legacyRepair2,answerSetVersion:1,passed:true,scaffolded:true,attempts:3,passedAt:11,lastPassedAt:19,facts:facts(['positiveBaseConversion','bcdRepresentation','bcdApplication','hexadecimalApplication'])},sg={checkpointId:Seq.IDS.signed,answerSetVersion:1,passed:true,facts:facts(['onesComplementRepresentation','twosComplementRepresentation','binaryAddition','binarySubtraction','overflowRecognition'])},e={checkpointId:Seq.IDS.characterData,answerSetVersion:1,passed:true,facts:facts(['characterSetDependentBinary','asciiSuitability','extendedAsciiRepresentation','unicodeSuitability'])},node=id=>({checkpointId:Seq.IDS[id],answerSetVersion:1,passed:true,facts:facts(Seq.NODE_FACTS[id])});
+ assert(ROUTE.join('>')==='ch0>prefixes>numberSystemsAndBcd>signedArithmeticAndOverflow>bcdHexApplications>extendedAscii>bitmap>vector>sound>compression>networks','route identity');assert(REPAIRS[1].href==='repair2.html#representation'&&REPAIRS[3].href==='repair2.html#applications','Repair 2 hashes');assert(CHAPTERS[2].href==='chapter3.html'&&CHAPTERS[3].href==='chapter2.html','semantic chapter URLs');assert(normalRoute('','')&&!normalRoute('?test','')&&!normalRoute('?debug','')&&!normalRoute('','#route'),'only exact empty route migrates');assert(!NORMAL_ROUTE,'?test is non-normal');
+ let map={version:1,chapters:{ch0:{checkpoint:{passed:true}}}};assert(!Seq.chapter0EvidencePassed(map)&&chapterStatus(mem(),map,'ch0')==='PARTIAL','ch0 boolean-only rejected');map={version:1,chapters:{ch0:{checkpoint:cp(ch0)}}};assert(Seq.chapter0EvidencePassed(map),'ch0 full predicate');
+ let s=mem({genesis_ch2_v1:JSON.stringify({stage:'end'})});assert(chapterStatus(s,null,'sound')==='LEGACY PLAYTHROUGH'&&chapterStatus(s,null,'vector')==='GAP','legacy Chapter 2 maps to Sound');s=mem({genesis_ch3_v1:JSON.stringify({stage:'end'})});assert(chapterStatus(s,null,'vector')==='LEGACY PLAYTHROUGH'&&chapterStatus(s,null,'sound')==='GAP','legacy Chapter 3 maps to Vector');
+ const fullLegacy={version:1,repairs:{hexAndApplications:true},repairEvidence:{hexAndApplications:cp(h)}};assert(repairPass(fullLegacy,'numberSystemsAndBcd')&&repairPass(fullLegacy,'bcdHexApplications'),'exact legacy Repair 2 covers both steps');const bad=cp(fullLegacy);bad.repairEvidence.hexAndApplications.facts.bcdApplication=false;assert(!repairPass(bad,'numberSystemsAndBcd')&&!repairPass(bad,'bcdHexApplications'),'partial legacy Repair 2 covers neither step');
+ const predicates=[[Seq.prefixEvidencePassed,'prefixes','prefixes',p],[Seq.legacyRepair2EvidencePassed,'hexAndApplications','hexAndApplications',h],[Seq.signedEvidencePassed,'signedArithmeticAndOverflow','signedArithmeticAndOverflow',sg],[Seq.characterDataEvidencePassed,'extendedAscii','extendedAscii',e]];predicates.forEach(([fn,flag,key,detail])=>{const valid={version:1,repairs:{[flag]:true},repairEvidence:{[key]:cp(detail)}};assert(fn(valid),flag+' exact predicate');assert(!fn({version:1,repairs:{[flag]:true},repairEvidence:{}}),flag+' boolean-only');assert(!fn({version:1,repairs:{[flag]:false},repairEvidence:{[key]:cp(detail)}}),flag+' detail-only');assert(!fn(Object.assign(cp(valid),{version:2})),flag+' wrong map version');for(const patch of [{checkpointId:'wrong'},{answerSetVersion:2},{passed:false}]){const bad=cp(valid);Object.assign(bad.repairEvidence[key],patch);assert(!fn(bad),flag+' wrong exact field')}Object.keys(detail.facts).forEach(fact=>{const bad=cp(valid);bad.repairEvidence[key].facts[fact]=false;assert(!fn(bad),flag+' false '+fact)})});
+ ['bitmap','vector','sound','compression'].forEach(id=>{const b={version:1,nodes:{[id]:true},nodeEvidence:{}};assert(chapterStatus(mem(),b,id)==='PARTIAL','node boolean-only '+id);const f={version:1,nodes:{[id]:true},nodeEvidence:{[id]:node(id)}};assert(Seq.nodeEvidencePassed(f,id)&&chapterStatus(mem(),f,id)==='EVIDENCED','node full '+id)});
+ const all={version:1,nodes:{bitmap:true,vector:true,sound:true},nodeEvidence:{bitmap:node('bitmap'),vector:node('vector'),sound:node('sound')}};assert(sections(mem(),all).multimedia==='EVIDENCED','semantic multimedia aggregate');assert(!Seq.nodeEvidencePassed({version:1,repairs:{graphicsTerminology:true}},'bitmap'),'generic graphics flag rejected');
+ const source={version:1,chapters:{ch4:{checkpoint:{passed:true,passedAt:23},evidence:{needAndUses:true,losslessVsLossy:true,situationJustification:true,fourFileTypes:true,rle:true}}},repairs:{hexAndApplications:true,signedArithmeticAndOverflow:true},repairEvidence:{hexAndApplications:cp(h),signedArithmeticAndOverflow:{sentinel:'keep'}},unknown:{keep:42}};s=mem({[COURSE_KEY]:JSON.stringify(source)});const migrated=readAndMigrate(s,true,100);assert(s.writes.length===1&&Seq.repair2aEvidencePassed(migrated)&&Seq.repair2bEvidencePassed(migrated),'normal fan-out');assert(Seq.nodeEvidencePassed(migrated,'compression'),'compression migration');assert(migrated.unknown.keep===42&&migrated.repairEvidence.signedArithmeticAndOverflow.sentinel==='keep','unknown + Repair3 preserved');const snap=JSON.stringify(migrated),twice=readAndMigrate(s,true,200);assert(s.writes.length===1&&JSON.stringify(twice)===snap,'migration idempotent');s=mem({[COURSE_KEY]:JSON.stringify(source)});const preview=readAndMigrate(s,false,100);assert(s.writes.length===0&&!Seq.repair2aEvidencePassed(preview),'test/debug zero write');s=mem({[COURSE_KEY]:JSON.stringify(source)},true);assert(JSON.stringify(readAndMigrate(s,true,100))===JSON.stringify(source),'write failure fail-closed');
+ const full11={version:1,chapters:{ch0:{checkpoint:ch0}},repairs:{prefixes:true,hexAndApplications:true,signedArithmeticAndOverflow:true,extendedAscii:true},repairEvidence:{prefixes:p,hexAndApplications:h,signedArithmeticAndOverflow:sg,extendedAscii:e}};assert(Seq.section11EvidencePassed(full11)&&chapterUnlock(full11,'bitmap'),'full §1.1 unlocks Bitmap');assert(!chapterUnlock(null,'bitmap'),'missing predecessor locks Bitmap');
+ const failed=tests.filter(x=>!x.ok),report=document.getElementById('testReport');report.classList.add('show');if(failed.length){report.classList.add('fail');report.textContent='TEST FAIL · '+failed.map(x=>x.n).join(' · ')}else report.textContent='TEST PASS · '+tests.length+' assertions';console.info('[COURSE MAP TEST]',tests.length-failed.length+'/'+tests.length);return failed.length===0}
+render();addEventListener('storage',event=>{if(event.key===null||event.key===COURSE_KEY||Object.values(LEGACY).some(x=>event.key===x.save||event.key===x.marker))render()});if(new URLSearchParams(location.search).has('test'))runAssertions();
 </script>
 </body>
 </html>

@@ -1010,17 +1010,19 @@ function startTeleport(){
 }
 
 /* ================= 章末卡 ================= */
+const CH0_CHECKPOINT_HREF='chapter0-checkpoint.html';
 function showEndCard(){
   G.beat='end'; save();
   openPanel('<div class="endcard"><h2>第 0 章 · 创世</h2>'+
     '<div class="got">这个混沌的世界，因为你而有了——<br>'+
     '<b>数</b> · <b>时间</b> · <b>文字</b> · <b>万语</b> · <b>形状 (PIXEL)</b> · <b>颜色 (COLOUR DEPTH)</b></div>'+
-    '<div class="next">但这些颜色太占地方了，磁盘要满了 —— RLE 压缩<br>'+
-    '它还听不见任何声音 —— SAMPLING<br>'+
-    '它还没法和外面说话 —— NETWORK<br><br>'+
-    '(这个世界至今一片寂静。这不是缺陷，是尚未被你创造。)<br><br>'+
-    '<b style="color:#5ad477">—— 本版本的内容到这里为止 ——</b><br>后面的黑暗，等下一次更新来点亮。</div>'+
-    '<button id="chapter1">进入第 1 章</button><button class="sub" id="wander">继续游荡</button><button class="sub" id="regen">重新创世</button></div>','end');
+    '<div class="next">这次创世只是 §1.1 的开端。<br>'+
+    'prefixes、完整 number representation、signed arithmetic、applications 与 character-set boundary，仍要在课程地图逐项留下证据。<br><br>'+
+    '完成 §1.1 后，下一段黑暗才会成为真正的 BITMAP：pixel、file header、image / screen resolution、colour depth 与 file size。<br><br>'+
+    '(这个世界至今一片寂静。这不是缺陷；SOUND 仍在 Graphics 之后。)</div>'+
+    '<button id="ch0checkpoint">验证第 0 章知识</button><button class="sub" id="chapter1">预览第 1 章 · BITMAP</button>'+
+    '<button class="sub" id="wander">继续游荡</button><button class="sub" id="regen">重新创世</button></div>','end');
+  document.getElementById('ch0checkpoint').onclick=()=>{ location.href=CH0_CHECKPOINT_HREF; };
   document.getElementById('chapter1').onclick=()=>{ location.href='chapter1.html'; };
   try{ localStorage.setItem('genesis_ch0_complete_v1','1'); }catch(e){}
   document.getElementById('wander').onclick=()=>{ closePanel(); G.teleAt=0; G.teleEnded=false;
@@ -1084,15 +1086,30 @@ const TESTS=[
   ['⑭ 传送阵·完整传送', ()=>{ testReset(); G.beat='colour'; G.pixelBornAt=1; G.colourBornAt=1; G.colourRoadBorn=1; G.px=TERMINUS4.x-70; G.camx=G.px; openTeleport(); }],
   ['⑮ 章末卡', ()=>{ testReset(); G.beat='colour'; G.pixelBornAt=1; G.colourBornAt=1; showEndCard(); }],
 ];
+function endingContractSelfTest(){
+  const checks=[
+    ['Chapter 0 checkpoint uses a query-free relative URL', CH0_CHECKPOINT_HREF==='chapter0-checkpoint.html'],
+    ['TERMINUS4_X remains 9400', TERMINUS4_X===9400],
+    ['altar image dimensions remain 1080 × 603', AIMG_W===1080 && AIMG_H===603],
+    ['altar circle remains aligned at 775, 222', AIMG_CIRCLE_X===775 && AIMG_CIRCLE_Y===222],
+    ['altar image edge, scale and offset remain fixed', AIMG_EDGE===208 && AIMG_SCALE===0.8 && AIMG_YOFF===252],
+    ['teleport ending trigger remains 7000 ms', update.toString().includes('el>=7000')],
+  ];
+  const failed=checks.filter(([,passed])=>!passed).map(([label])=>label);
+  if(failed.length) throw new Error('ENDING CONTRACT FAILED: '+failed.join('; '));
+  return checks.length+'/'+checks.length;
+}
 let testOpen=false, testEl=null;
 function toggleTest(){
   testOpen=!testOpen;
   if(!testOpen){ if(testEl){testEl.remove(); testEl=null;} return; }
+  const endingContract=endingContractSelfTest();
   testEl=document.createElement('div');
   testEl.style.cssText='position:fixed;left:10px;top:10px;z-index:200;background:#050a06;'+
     'border:1px solid #3fae5c;border-radius:6px;padding:12px 14px;max-width:260px;'+
     'box-shadow:0 0 30px rgba(40,220,90,.25);font-family:monospace';
-  testEl.innerHTML='<div style="color:#5ad477;font-size:12px;letter-spacing:2px;margin-bottom:8px">TEST · 选关 ( ` 开关 )</div>';
+  testEl.innerHTML='<div style="color:#5ad477;font-size:12px;letter-spacing:2px;margin-bottom:3px">TEST · 选关 ( ` 开关 )</div>'+
+    '<div style="color:#4a7050;font-size:10px;margin-bottom:8px">ENDING CONTRACT · '+endingContract+'</div>';
   TESTS.forEach(([label,fn])=>{
     const b=document.createElement('div');
     b.textContent=label;
