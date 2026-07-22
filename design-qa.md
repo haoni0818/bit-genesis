@@ -38,6 +38,40 @@ The 390×844 course map is single-column, has no horizontal overflow, keeps stat
 
 Final result: passed
 
+---
+
+# Design QA · CH.01 Bitmap Foundry
+
+## Visual source truth
+
+- Existing product reference: `qa/repair3-checkpoint-1915x895.png`
+- Candidate checkpoint: `qa/ch1-live-audit-2026-07-22/D05-checkpoint-p4-1915x895.png`
+- Same-viewport comparison: `qa/ch1-live-audit-2026-07-22/design-compare-repair3-chapter1-bitmap-1915x895.png`
+- Stage contact sheet: `qa/ch1-live-audit-2026-07-22/design-contact-sheet-d02-d05.png`
+- Real verified Evidence: `qa/ch1-live-audit-2026-07-22/D06-evidence-verified-1915x895.png`
+- Mobile checkpoint and Evidence: `qa/ch1-live-audit-2026-07-22/M01-checkpoint-p4-390x844.png`, `M02-evidence-preview-390x844.png`
+- Detailed evidence index: `qa/ch1-live-audit-2026-07-22/README.md`
+
+## Visible comparison and correction history
+
+1. The initial implementation matched the established industrial pixel-art environment but used an unconstrained console track. P4 fields and the primary action were clipped on desktop and mobile.
+2. The console now has an explicit height, the mission is a six-row grid, only `.fields` scrolls, and controls remain visible. The mobile quick bar is positioned from the measured HUD bottom.
+3. Choice groups now expose labelled semantics, pressed state, visible `SELECTED`, field-level error text and focus restoration. Dialogs make the background inert and return focus on Escape.
+4. The former generic grid Canvas is now stage-specific for header metadata, pixel grids, image/screen grids, size calculation and controlled quality/file-size comparisons. The final R label says `BOTH DIMENSIONS×2`, matching the fixture and ×4 result.
+5. Course Card now states prerequisite and successor explicitly; legacy history is read-only and inspectable; Evidence includes full replay and a clear local-only runs label.
+6. Same-viewport comparison confirms the existing cyan/amber square-panel design language, while the Bitmap press and three Bitmap visual paths remain chapter-specific.
+
+## Interaction and responsive evidence
+
+- Desktop: 1915×895 and 1366×768 passed with independent field scrolling and reachable actions.
+- Mobile: 390×844 and 366×768 passed with no HUD/quick/console overlap and 44px minimum visible actions.
+- Effective 200% half-viewports use vertical document reflow so all controls remain reachable without horizontal scrolling.
+- Pointer, keyboard and 390px touch paths reached the strict P1–P4 result.
+- A real normal-route completion produced 4/4 EVIDENCED output and one local Top 5 record.
+- Exact browser zoom and forced reduced-motion screenshots were unavailable from the connected browser; the equivalent reflow captures and static reduced-motion rule are recorded in the audit README without overstating the evidence.
+
+Final result: passed for the static GitHub Pages release
+
 # Design QA · Repair 2 Radix & Applications
 
 ## Visual source truth
