@@ -1,3 +1,41 @@
+# Design QA · CH.03 Sound Sampling Chamber
+
+## Comparison target
+
+- Source visual truth: `qa/ch3-sound-audit-2026-07-22/03-live-mix-desktop.png`.
+- Rendered implementation: `qa/ch3-sound-audit-2026-07-22/D08-final-checkpoint-p4-1915x895.png`.
+- Full-view combined evidence: `qa/ch3-sound-audit-2026-07-22/D09-source-vs-final-comparison-1915x895.png`.
+- Focused combined evidence: `qa/ch3-sound-audit-2026-07-22/D10-focused-ui-comparison-2000x980.png`.
+- Responsive implementation evidence: `D04-1024x480-guided.png`, `D05-240x480-checkpoint-p4.png`, `D06-390x844-course-card.png`, and `D07-1440x900-checkpoint-p4.png` in the same directory.
+- Desktop source and implementation pixels: 1915×895 each; CSS viewport: 1915×895; device scale factor: 1. The combined full view is 3830×895 and the focused comparison is a labelled 2000×980 composite made from the two original-resolution captures.
+- State: the shipped source is the former final `mix` activity; the implementation is the revised fixed P4 checkpoint. They are the closest same-room terminal states, but not identical product states because the old arithmetic task was intentionally removed to meet the official Sound scope.
+
+## Findings
+
+No actionable P0, P1 or P2 visual difference remains.
+
+- **Fonts and typography:** both views use the established narrow monospace hierarchy, uppercase terminal labels and compact secondary text. The revised HUD adds more small text, but the focused comparison shows distinct phase, current-knowledge and current-goal levels without clipping. At 240px the smallest phase labels remain a P3 readability limitation, not a blocked control.
+- **Spacing and layout rhythm:** the industrial room, left HUD, right utility controls and central focal object stay aligned to the source. The implementation intentionally reallocates the old single arithmetic strip into two controlled waveform panels and a larger bottom checkpoint/reference console. Desktop, 1024×480, 390×844 and 240×480 captures show no horizontal overflow or hidden persistent action.
+- **Colors and tokens:** near-black/deep-teal scenery, green/cyan linework, amber preview/caveat state and white focus treatment remain consistent. No generic rounded-card or shadow language was introduced.
+- **Image quality and asset fidelity:** the original raster Sound room remains the full-scene background with the same crop, camera and sharpness. Runtime waveforms are the product's existing canvas learning layer rather than a substitute for the environmental artwork; there are no placeholder images, emoji or improvised decorative assets.
+- **Copy and content:** visible copy now names Course Card, Teach, Guided Practice, Apply, Checkpoint and Evidence; explains the controlled comparison; and limits the chapter to encoding, sampling rate, sampling resolution, accuracy and file size. The old mono/duration/byte arithmetic wording is intentionally absent.
+- **Controls, states and accessibility:** pointer/keyboard routes, Guide/Reference/Hint, Escape close, invoker focus restoration, 44px minimum touch controls, background scroll lock and independent modal scrolling were exercised. Course Card and Evidence focus their titles first. The browser self-test reported `data-test-passed=true` with 23 checks; the final loaded run introduced no current page failure. Older cached console entries from superseded runs were not treated as final-run errors.
+
+## Comparison history
+
+1. **Pass 0 — blocked:** the first CH.03 build still assessed audio byte arithmetic/mono/channel assumptions, collapsed on short-height screens, and did not fully lock/restore modal scroll and focus. Those were P1 content/interaction defects and P2 responsive defects.
+2. **Fixes:** the checkpoint was replaced with the official controlled rate/resolution relationships; Sound Evidence and its validation contract moved to answer-set v2; unrelated schema v2 values remain rejected; short-height layouts enter document flow; Guide/Course/Evidence focus and scroll restoration were corrected; release gates now scan the implementation, Course Guide and both specifications.
+3. **Pass 1 — passed:** the full-view and focused comparisons above preserve the established room, palette and terminal grammar while making the changed teaching structure legible. Responsive captures show usable primary actions and independent modal scrolling. No P0/P1/P2 finding remains.
+
+## Residual test gaps / follow-up polish
+
+- Real device screen-reader output, exact browser 200% zoom and touch inertia were not separately recorded.
+- At 240×480 the first answer begins just below the first viewport and requires a small vertical scroll; this is acceptable because the task prompt and all navigation remain visible and the page has no horizontal overflow.
+
+final result: passed
+
+---
+
 # Design QA · Chapter 4 Compression + Course Guidance
 
 ## Visual source truth
