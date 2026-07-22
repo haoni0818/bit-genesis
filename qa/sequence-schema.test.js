@@ -72,4 +72,8 @@ assert.equal(migratedPartial.repairEvidence.numberSystemsAndBcd.sentinel,'partia
 assert.equal(migratedPartial.nodes.compression,false,'partial semantic node flag is not overwritten by legacy fallback');
 assert.equal(migratedPartial.nodeEvidence.compression.sentinel,'partial-wins','partial semantic node evidence wins');
 
+const unknownNode={version:1,nodes:{ACK:true},nodeEvidence:{ACK:{checkpointId:undefined,answerSetVersion:1,passed:true,facts:{}}}};
+assert.equal(schema.nodeEvidencePassed(unknownNode,'ACK'),false,'unknown nodes fail closed even with empty facts');
+assert.equal(schema.nodeEvidencePassed(unknownNode,''),false,'empty node id fails closed');
+
 console.info('[SEQUENCE SCHEMA TEST] all migration and predicate assertions passed');

@@ -40,6 +40,45 @@ Final result: passed
 
 ---
 
+# Design QA · CH.02 Vector Foundry
+
+## Source and implementation truth
+
+- Existing live reference states: `qa/ch2-vector-audit-2026-07-22/02-live-objects-desktop.png`, `03-live-medium-desktop.png`, and `05-live-objects-mobile-390x844.png`.
+- Final implementation states: `D02c-final-guided-1915x895.png`, `D03b-final-apply-labels-1915x895.png`, `D05d-final-checkpoint-p4-1915x895.png`, `M01c-final-guided-390x844-full.png`, `M05-final-hint-checkpoint-390x844-full.png`, `M04b-new-guide-top-390x844.png`, and `D06-new-evidence-4of4-1915x895.png` in the same audit directory.
+- Combined comparison inputs inspected at original resolution: `comparison-desktop-objects-old-vs-new.png`, `comparison-desktop-medium-old-vs-new.png`, and `comparison-mobile-objects-old-vs-new.png`.
+- Desktop source captures are 1915×911; implementation captures use the browser content viewport at 1915×895. Mobile CSS viewport is 390×844; full-page captures exclude the 15px scrollbar and are therefore 375px wide. Browser device scale factor remained 1.
+- Focused evidence also covers the 240×480 and 1024×480 extreme viewports, the Guide and Reference overlays, formal 4/4 Evidence, and Course Map state.
+
+## Fidelity surfaces
+
+1. **Environment and imagery** — The original `vector_foundry.webp` remains the real full-scene source. Camera position, central door drawing, industrial arms, deep-teal darkness, cyan construction lines and restrained green/amber accents are preserved without substitute CSS or canvas scenery.
+2. **Typography, colour and geometry** — Monospace typography, square one-pixel terminal borders, cyan primary state, amber teaching fixture, black translucent panels and compact uppercase labels remain consistent with the live chapter. New phase and evidence states reuse those tokens.
+3. **Spacing and composition** — Desktop retains the left HUD, right guide controls, central door and bottom two-column console. The corrected six-row task grid gives the prompt a non-zero row and keeps fields, feedback and actions separate; no actionable overlap or clipped primary control remains.
+4. **Copy and syllabus content** — The implementation adds explicit Course Card, current-knowledge/current-goal prompts, Guided Practice, Apply, fixed P1–P4 checkpoint and Evidence. Content is constrained to CAIE 9618 §1.2 vector encoding, drawing objects/properties/lists and bitmap/vector task suitability; ACK, network, Sound and Compression are not assessed here.
+5. **Icons and controls** — The chapter deliberately uses the established text-control grammar rather than introducing a new icon family. Every visible action remains labelled, focusable and at least 44px high on the tested touch viewports.
+6. **Interactions and accessibility** — Pointer and keyboard routes complete the chapter. Guide/Reference use inert background, trapped focus, Escape/Return focus restoration and scroll reset. Selection state is conveyed through text and pressed state, error feedback is visible and associated with fields, the Canvas has a DOM fact mirror, and reduced-motion rules disable nonessential movement.
+7. **Responsive behaviour** — 390×844, 240×480 and 1024×480 reflow into a readable vertical document. Drawing List remains visible on mobile, all primary controls stay reachable, and measured scroll widths remain below the CSS viewport widths with 44px minimum button height.
+
+## Comparison and correction history
+
+1. The live-before reference had the right world and core vector metaphor, but it ended after three activities with no strict checkpoint, formal evidence or auditable course-map transition; its mobile composition also hid the Drawing List.
+2. The first CH.02 pass exposed three visible/interaction defects: a five-row task grid held six children and collapsed the prompt; closing an overlay retained stale context; mobile overlays reopened at a retained scroll position.
+3. The independent touch re-audit then caught a missing visible Hint action, a 2.5px mobile panel overflow, stale Evidence progress, a duplicated mobile Drawing List and Apply labels too close to the console. The final pass added the 44px Hint control, bounded the panel, mapped both Evidence outcomes to 100%, hid only the resident mobile reference, focused the Course Card title, kept that title inside the Tab/Shift+Tab trap, moved Canvas labels above the console and shortened only the 390px labels to prevent overlap.
+4. The grid has six explicit tracks, overlay context clears on close, and every overlay opens at the top before and after focus. Final desktop and mobile comparison inputs were regenerated and inspected after all corrections.
+5. Final normal-route playback passed P1–P4, including a deliberately wrong task-suitability reason that was rejected before correction. Evidence showed `4 / 4 PASSED`, wrote one local ranked record, preserved first evidence on Replay and opened CH.03 Sound while keeping CH.04 Compression locked.
+
+## Verification result
+
+- Embedded browser self-test: 24/24, no warning or error logs.
+- Release contract: 238 assertions passed.
+- Sequence schema and inline-script gates passed.
+- No unresolved P0, P1 or P2 visual, interaction, syllabus or persistence defect remains.
+
+final result: passed
+
+---
+
 # Design QA · CH.01 Bitmap Foundry
 
 ## Visual source truth
