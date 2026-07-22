@@ -182,7 +182,7 @@ function predecessorMap(seq, extras = {}) {
   ], 'strict Compression v2 facts are exact');
   ok(courseMapSource.includes("{id:'compression',number:'CH.04',contentId:'compression_v2'"), 'Course Map identifies Compression v2');
   ok(courseMapSource.includes("if(id==='compression')return multimediaEvidencePassed(map)"), 'Course Map gates Compression on all multimedia evidence');
-  ok(courseMapSource.includes("multimediaEvidencePassed(map)&&Seq.nodeEvidencePassed(map,'compression')"), 'Networks gate includes all predecessors plus strict Compression');
+  ok(courseMapSource.includes("function networkUnlock(map){return Seq.nodeEvidencePassed(map,'compression')}"), 'Network Foundations direct prerequisite is strict Compression v2 only');
   ok(courseMapSource.includes('PRIOR EVIDENCE · COMPRESSION V1 · STRICT REPLAY AVAILABLE'), 'Course Map labels prior evidence without promotion');
   const strict = { version: 1, nodes: { compression: true }, nodeEvidence: { compression: nodeEvidence(seq, 'compression') } };
   ok(seq.nodeEvidencePassed(strict, 'compression'), 'strict fixture includes exact Compression content identity');

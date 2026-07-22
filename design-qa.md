@@ -36,7 +36,7 @@ final result: passed
 
 ---
 
-# Design QA · Chapter 4 Compression + Course Guidance
+# Design QA · Chapter 4 Compression + Course Guidance (historical v1 · superseded)
 
 ## Visual source truth
 
@@ -207,3 +207,46 @@ Final result: passed
 3. Test/debug-route checks confirmed no formal evidence, Level 4 kept both choices in two-option fields, GUIDE/Esc preserved the task, and the 390×844 layout had no horizontal overflow.
 
 Final result: passed
+
+---
+
+# Design QA · CH.04 Compression v2 Checkpoint
+
+## Visual source and repaired build
+
+- Historical source card: `qa/chapter4-overflow-1915x895.png`.
+- Repaired same-viewport capture: `qa/ch4-compression-audit-2026-07-23/01-course-card-1915x895.png`.
+- Combined source/build evidence: `qa/ch4-compression-audit-2026-07-23/source-vs-build-1915x895.png` (two 1915×895 halves).
+- Responsive and state evidence: Guided at 1366×768, P5 at 1024×768, Evidence at 390×844, and short-height Guided RLE at 1024×480 in the same audit directory.
+- Detailed audit: `qa/ch4-compression-audit-2026-07-23/REPORT.md`.
+
+## Result
+
+The v2 rebuild preserves the dark industrial archive, cyan/green terminal grammar, square controls and monospace hierarchy while replacing the legacy oversized card with a bounded six-phase Course Card. The repaired card fits the exact source viewport, names the §1.3 scope, distinguishes strict evidence from teaching fixtures, and leaves every action visible.
+
+Guided, P5, Evidence and short-height states retain readable HUD, Canvas, telemetry and sticky actions. Chrome recorded no error or warning. Keyboard focus, 44px targets, real line breaks and mobile vertical reachability passed. Automated corroboration: 332 assertions and 32/32 static gates, with schema and CH2/CH3 regressions green.
+
+Final result: READY · no unresolved P0/P1/P2 finding.
+
+---
+
+# Design QA · CH.05 Network Foundations
+
+## Visual and interaction evidence
+
+- Course Card: `qa/ch5-network-foundations-audit-2026-07-23/01-course-card-1366x768.png`.
+- Teach purpose at short height: `02-teach-purpose-1024x480-full.png`.
+- Guided G4 four-topology state: `03-guided-g4-700x700-full.png`.
+- Mobile independent P5 with non-colour selection cue: `04-p5-selected-390x844-full.png`.
+- Nested Guide/Esc/focus sequence: captures `05`–`07` in the same directory.
+- Detailed audit: `qa/ch5-network-foundations-audit-2026-07-23/REPORT.md`.
+
+## Result
+
+The final environment uses a real 1664×936 ImageGen background with no baked topology or answer. Runtime diagrams now show Bus as a separate shared backbone with host stubs, Star with a distinct `CENTRE`, Mesh with direct interconnections, and Hybrid as a visible combination of a shared-line segment and a central-spoke cluster. Guided G4 presents all four unlabelled models and the J/K/L/M path task; P5 uses an independent A/B/C/D graph.
+
+At 700×700 and below, the layout enters document flow, preserves the DOM mirror and uses a 3×2 phase rail. At 390×844 the selected answer exposes `✓ SELECTED` in addition to colour and `aria-pressed`. Course Card → Guide → Esc returns to Course Card; a second Esc closes and restores focus to `OPEN COURSE CARD`. Chrome recorded no error or warning.
+
+Automated corroboration: 286 CH.05 release assertions, 163 sequence-schema assertions, CH.04 332/32, CH.03 65/27 and CH.02 238 all pass. Strict evidence contains exactly eight facts, keeps §2.1 `PARTIAL`, and unlocks only N2.
+
+Final result: READY · no unresolved P0/P1/P2 finding.
