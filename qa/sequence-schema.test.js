@@ -16,7 +16,9 @@ const evidence=(id,version=1)=>({
   lastPassedAt:29,
   facts:facts(schema.NODE_FACTS[id]),
   ...(id==='compression'?{contentId:'compression_v2',validationContract:'compression_checkpoint_p1_p5_v2'}:{}),
-  ...(id==='networks'?{contentId:'network_foundations_v1',validationContract:'network_foundations_checkpoint_p1_p5_v1',sectionProgress:'PARTIAL'}:{})
+  ...(id==='networks'?{contentId:'network_foundations_v1',validationContract:'network_foundations_checkpoint_p1_p5_v1',sectionProgress:'PARTIAL'}:{}),
+  ...(id==='networkCloudMedia'?{contentId:'cloud_transmission_media_v1',validationContract:'cloud_transmission_media_checkpoint_p1_p5_v1',sectionProgress:'PARTIAL'}:{}),
+  ...(id==='networkLanInfrastructure'?{contentId:'lan_infrastructure_v1',validationContract:'lan_infrastructure_checkpoint_p1_p5_v1',sectionProgress:'PARTIAL'}:{})
 });
 const mapWith=(ids,versions={})=>({
   version:1,
@@ -35,8 +37,20 @@ check(schema.NODE_FACTS.networks,[
   'clientServerPeerToPeerEvaluationAndJustification','thinThickClientDifferences',
   'busStarMeshHybridTopologies','topologyPacketTransmission','topologySituationJustification'
 ],'Network Foundations v1 requires the exact eight N1 facts');
+check(schema.IDS.networkCloudMedia,'cloud_wired_wireless_media_v1','Cloud & Transmission Media node identity is frozen');
+check(schema.NODE_FACTS.networkCloudMedia,[
+  'cloudComputingConceptAndUse','publicPrivateCloudUse','cloudBenefitsDrawbacks','wiredWirelessDifferences',
+  'wiredWirelessImplications','copperCableCharacteristics','fibreOpticCableCharacteristics',
+  'radioWifiCharacteristics','microwaveCharacteristics','satelliteCharacteristics'
+],'Cloud & Transmission Media v1 requires the exact ten N2 facts');
+check(schema.IDS.networkLanInfrastructure,'lan_hardware_router_v1','LAN Infrastructure node identity is frozen');
+check(schema.NODE_FACTS.networkLanInfrastructure,[
+  'lanSwitchFunction','lanServerFunction','lanNicFunction','lanWnicFunction',
+  'lanWirelessAccessPointFunction','lanCablesFunction','lanBridgeFunction',
+  'lanRepeaterFunction','routerRoleAndFunction'
+],'LAN Infrastructure v1 requires the exact nine N3 facts');
 
-for(const id of ['bitmap','vector','sound','compression','networks']){
+for(const id of ['bitmap','vector','sound','compression','networks','networkCloudMedia','networkLanInfrastructure']){
   const valid=mapWith([id]);
   check(schema.nodeEvidencePassed(valid,id),true,id+' exact evidence passes');
   check(schema.nodeEvidencePassed({version:1,nodes:{[id]:true},nodeEvidence:{}},id),false,id+' boolean-only fails');
@@ -75,6 +89,24 @@ const networksV2=mapWith(['networks'],{networks:2});
 check(schema.nodeEvidencePassed(networksV2,'networks'),false,'Network Foundations answer set v2 is not accepted');
 const networksExtraFact=mapWith(['networks']);networksExtraFact.nodeEvidence.networks.facts.unverifiedExtra=true;
 check(schema.nodeEvidencePassed(networksExtraFact,'networks'),false,'Network Foundations rejects any ninth fact');
+for(const id of ['networkCloudMedia','networkLanInfrastructure']){
+  for(const field of ['contentId','validationContract','sectionProgress']){
+    const expected={
+      networkCloudMedia:{contentId:'cloud_transmission_media_v1',validationContract:'cloud_transmission_media_checkpoint_p1_p5_v1',sectionProgress:'PARTIAL'},
+      networkLanInfrastructure:{contentId:'lan_infrastructure_v1',validationContract:'lan_infrastructure_checkpoint_p1_p5_v1',sectionProgress:'PARTIAL'}
+    }[id][field];
+    for(const value of [undefined,'wrong','COMPLETE']){
+      if(value===expected)continue;
+      const bad=mapWith([id]);
+      if(value===undefined)delete bad.nodeEvidence[id][field];else bad.nodeEvidence[id][field]=value;
+      check(schema.nodeEvidencePassed(bad,id),false,id+' '+field+' fails closed');
+    }
+  }
+  const extra=mapWith([id]);extra.nodeEvidence[id].facts.unverifiedExtra=true;
+  check(schema.nodeEvidencePassed(extra,id),false,id+' rejects extra facts');
+  const v2=mapWith([id],{[id]:2});
+  check(schema.nodeEvidencePassed(v2,id),false,id+' answer set v2 is not accepted');
+}
 check(schema.nodeEvidencePassed({version:1,nodes:{ACK:true},nodeEvidence:{ACK:{passed:true,facts:{}}}},'ACK'),false,'unknown node fails closed');
 check(schema.nodeEvidencePassed({},''),false,'empty node fails closed');
 
@@ -146,6 +178,17 @@ const oldNamedCloudMedia={version:1,nodes:{cloudTransmissionMedia:true},nodeEvid
 check(schema.networkCloudMediaPriorEvidenceSeen(oldNamedCloudMedia),true,'old named N2 draft is prior/unverified');
 check(schema.nodeEvidencePassed(oldNamedCloudMedia,'networkCloudMedia'),false,'old named N2 draft cannot unlock N3');
 
+const oldLanInfrastructure={version:1,nodes:{networkLanInfrastructure:true},nodeEvidence:{networkLanInfrastructure:{checkpointId:'lan_hardware_draft_v0',answerSetVersion:1,passed:true,facts:{lanHardware:true},sentinel:'preserve'}}};
+check(schema.networkLanInfrastructurePriorEvidenceSeen(oldLanInfrastructure),true,'old N3 evidence is visible only as prior/unverified');
+check(schema.nodeEvidencePassed(oldLanInfrastructure,'networkLanInfrastructure'),false,'old N3 evidence never satisfies strict LAN Infrastructure v1');
+const migratedOldLanInfrastructure=schema.migrateSequenceMap(oldLanInfrastructure,100).map;
+check(migratedOldLanInfrastructure.nodeEvidence.networkLanInfrastructure,oldLanInfrastructure.nodeEvidence.networkLanInfrastructure,'old N3 evidence is preserved byte-semantically');
+check(schema.networkLanInfrastructurePriorEvidenceSeen(migratedOldLanInfrastructure),true,'old N3 remains prior/unverified after migration');
+check(schema.nodeEvidencePassed(migratedOldLanInfrastructure,'networkLanInfrastructure'),false,'migration never invents strict N3 facts');
+const oldNamedLanInfrastructure={version:1,nodes:{lanInfrastructure:true},nodeEvidence:{lanInfrastructure:{checkpointId:'lan_infrastructure_draft_v0',answerSetVersion:1,passed:true,facts:{draft:true}}}};
+check(schema.networkLanInfrastructurePriorEvidenceSeen(oldNamedLanInfrastructure),true,'old named N3 draft is prior/unverified');
+check(schema.nodeEvidencePassed(oldNamedLanInfrastructure,'networkLanInfrastructure'),false,'old named N3 draft cannot unlock N4');
+
 for(const bad of [null,{},[],{version:2},'bad']){
   const result=schema.migrateSequenceMap(bad,100);
   check(result.ok,false,'unsupported map fails closed');
@@ -194,5 +237,15 @@ check(schema.nodeEvidencePassed(n2WrongProgress,'networks'),false,'COMPLETE sect
 const n2MissingFact=clone(n2Ready);delete n2MissingFact.nodeEvidence.networks.facts.topologySituationJustification;
 check(schema.nodeEvidencePassed(n2MissingFact,'networks'),false,'missing Network Foundations fact cannot unlock N2');
 check(schema.nodeEvidencePassed(oldNetworks,'networks'),false,'prior/unverified Networks cannot unlock N2');
+const n3Ready=mapWith(['networkCloudMedia']);
+check(schema.nodeEvidencePassed(n3Ready,'networkCloudMedia'),true,'strict Cloud & Transmission Media v1 is the direct N3 predecessor');
+check(n3Ready.nodeEvidence.networkCloudMedia.sectionProgress,'PARTIAL','strict N2 keeps section 2.1 partial');
+check(schema.nodeEvidencePassed(oldCloudMedia,'networkCloudMedia'),false,'prior/unverified N2 cannot unlock N3');
+const n4Ready=mapWith(['networkLanInfrastructure']);
+check(schema.nodeEvidencePassed(n4Ready,'networkLanInfrastructure'),true,'strict LAN Infrastructure v1 is the only N4 evidence gate');
+check(n4Ready.nodeEvidence.networkLanInfrastructure.sectionProgress,'PARTIAL','strict N3 keeps section 2.1 partial');
+const n3WrongProgress=clone(n4Ready);n3WrongProgress.nodeEvidence.networkLanInfrastructure.sectionProgress='COMPLETE';
+check(schema.nodeEvidencePassed(n3WrongProgress,'networkLanInfrastructure'),false,'COMPLETE section marker cannot unlock N4');
+check(schema.nodeEvidencePassed(oldLanInfrastructure,'networkLanInfrastructure'),false,'prior/unverified N3 cannot unlock N4');
 
 console.info('[SEQUENCE SCHEMA TEST] '+assertions+' assertions passed');
