@@ -1,3 +1,30 @@
+# Design QA · CH.07 LAN Infrastructure
+
+## Visual and interaction evidence
+
+- Source visual truth: shipped CH.06 Course Card, `qa/ch7-lan-infrastructure-audit-2026-07-23/00-ch6-course-card-reference-1366x768.png`.
+- Rendered implementation: `qa/ch7-lan-infrastructure-audit-2026-07-23/01-course-card-1366x768.png`.
+- Same-state combined evidence: `qa/ch7-lan-infrastructure-audit-2026-07-23/03-ch6-vs-ch7-course-card-1366x768.png`.
+- Source and implementation pixels: 1366×768 each; CSS viewport: 1366×768; device scale factor: 1. The combined source/build image is 2732×768 at original resolution.
+- State: first-load Course Card. A focused crop was unnecessary because the complete original-resolution comparison shows every fidelity surface and all modal edges.
+- Responsive evidence: Teach at 1366×768; Course Card and Teach at 390×844; full mobile Teach; 1024×768 independent-checkpoint error; and measured 1024×768, 700×900, 700×600 and 1024×480 states in the same audit directory.
+- Responsive filenames identify requested CSS viewports; content-area captures may exclude browser chrome and scrollbars, so their PNG pixel dimensions can be smaller (documented exactly in the detailed report).
+- Detailed audit: `qa/ch7-lan-infrastructure-audit-2026-07-23/REPORT.md`.
+
+## Result and comparison history
+
+CH.07 preserves CH.06's real industrial workshop, cyan/green terminal palette, square borders, monospace hierarchy, phase rail and bounded modal while adding the syllabus-driven inventory density of eight LAN-support devices plus the separately classified router outcome. The visible chapter contains no hub or ACK, and names Course Card, Teach, Guided Practice, Apply, independent Checkpoint and strict Evidence.
+
+The first audit pass found four actionable problems: a short-safe-height fixed layout, a rollback path that could leave Evidence reachable, incomplete §2.1 target copy and generic checkpoint failure feedback. The corrected build uses the explicit 219/220 geometry boundary, blocks formal Evidence on rollback failure, reports `§2.1 N3 COMPLETE` only on strict success and mirrors the exact first invalid field in visible and DOM feedback.
+
+Six measured viewports have no horizontal overflow, all primary targets are at least 44px high, long official hardware names remain complete and modal actions remain keyboard-reachable. Course Card, Reference, Context and Evidence trap focus, close with Escape and restore the exact invoker. Chrome recorded no final console error.
+
+Automated corroboration: CH.07 364 assertions, embedded CH.07 33 checks, embedded Course Map 122 assertions, sequence-schema 237 assertions and all CH.02–CH.06 release suites passed. No unresolved P0/P1/P2 visual, interaction, syllabus or persistence defect remains.
+
+final result: passed
+
+---
+
 # Design QA · CH.03 Sound Sampling Chamber
 
 ## Comparison target
