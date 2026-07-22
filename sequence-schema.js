@@ -27,7 +27,8 @@ function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringi
 function hasFacts(evidence,names){const facts=evidence&&evidence.facts;return isObject(facts)&&names.every(name=>facts[name]===true)}
 function repairFlag(map,key){return Boolean(map&&map.repairs&&map.repairs[key]===true)}
 function repairDetail(map,key){const value=map&&map.repairEvidence&&map.repairEvidence[key];return isObject(value)?value:null}
-function exactEvidence(evidence,id,facts){return Boolean(evidence&&evidence.checkpointId===id&&evidence.answerSetVersion===1&&evidence.passed===true&&hasFacts(evidence,facts))}
+function acceptedAnswerSetVersion(id,version){return version===1||(id===IDS.sound&&version===2)}
+function exactEvidence(evidence,id,facts){return Boolean(evidence&&evidence.checkpointId===id&&acceptedAnswerSetVersion(id,evidence.answerSetVersion)&&evidence.passed===true&&hasFacts(evidence,facts))}
 
 function chapter0EvidencePassed(map){
   const chapter=map&&map.chapters&&map.chapters.ch0,checkpoint=chapter&&chapter.checkpoint;
