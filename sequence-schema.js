@@ -42,8 +42,9 @@ function characterDataEvidencePassed(map){return Boolean(map&&map.version===1&&r
 function section11EvidencePassed(map){return chapter0EvidencePassed(map)&&prefixEvidencePassed(map)&&(repair2aEvidencePassed(map)||legacyRepair2EvidencePassed(map))&&signedEvidencePassed(map)&&(repair2bEvidencePassed(map)||legacyRepair2EvidencePassed(map))&&characterDataEvidencePassed(map)}
 
 function nodeEvidencePassed(map,node){
+  if(!Object.prototype.hasOwnProperty.call(IDS,node)||!Object.prototype.hasOwnProperty.call(NODE_FACTS,node))return false;
   const evidence=map&&map.nodeEvidence&&map.nodeEvidence[node];
-  return Boolean(map&&map.version===1&&map.nodes&&map.nodes[node]===true&&exactEvidence(evidence,IDS[node],NODE_FACTS[node]||[]));
+  return Boolean(map&&map.version===1&&map.nodes&&map.nodes[node]===true&&exactEvidence(evidence,IDS[node],NODE_FACTS[node]));
 }
 function legacyCompressionEvidencePassed(map){
   const chapter=map&&map.chapters&&map.chapters.ch4,checkpoint=chapter&&chapter.checkpoint,evidence=chapter&&chapter.evidence;
